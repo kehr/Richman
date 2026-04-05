@@ -202,21 +202,25 @@ func Load() (*Config, error) {
 
 ## 日志
 
-使用结构化日志（slog 或 zerolog），object-first 模式：
+使用 Uber zap 结构化日志。完整规范见 `docs/standards/logging.md`。
+
+核心要点：
+- 通过 request-scoped logger 传递 requestId，保证链路可追踪
+- 开发环境 Text Console，生产环境 JSON
+- 文件分级输出：app.log (Info+) + error.log (Error+) + access.log
+- lumberjack 轮转 + 预留远程采集接口
+- 敏感数据脱敏（密码、token、邮箱、API Key）
+- 生产环境开启采样和异步写入，防止日志拖垮性能
 
 ```go
-slog.Info("analysis completed",
-	"holdingID", holdingID,
-	"assetCode", assetCode,
-	"duration", elapsed,
+// 结构化字段写法
+log.Info("analysis completed",
+	zap.Int64("holdingId", holdingID),
+	zap.String("assetCode", assetCode),
+	zap.Duration("latency", elapsed),
+	zap.Float64("confidence", card.Confidence),
 )
 ```
-
-**级别使用：**
-- Error: 需要人工介入的错误
-- Warn: 可恢复的异常（降级、重试）
-- Info: 关键业务节点（分析完成、推送发送）
-- Debug: 调试用细节
 
 
 ## 定时任务
