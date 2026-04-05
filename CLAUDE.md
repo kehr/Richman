@@ -199,7 +199,7 @@ API handlers -> Service -> Repo -> DB
 frontend/              # Next.js frontend app
 backend/               # Go backend service
 docs/                  # Product and technical documents
-  superpowers/specs/   # PRD and design specs
+  prds/               # PRD and design specs
   standards/           # Engineering standards (naming, frontend, backend, database, api, testing)
 ```
 
