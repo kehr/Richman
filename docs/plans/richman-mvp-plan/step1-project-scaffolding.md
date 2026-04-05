@@ -17,6 +17,7 @@
 - `frontend/src/app/layout.tsx` -- Root layout
 - `frontend/src/app/page.tsx` -- Root page (redirect)
 - `frontend/src/ui-kit/eat/index.ts` -- Ant Design barrel 导出
+- `frontend/vitest.config.ts` -- Vitest 测试配置
 
 **后端：**
 - `backend/go.mod` -- Go module

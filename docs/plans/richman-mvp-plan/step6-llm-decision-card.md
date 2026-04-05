@@ -23,6 +23,8 @@
 - `backend/internal/service/decision_card/service.go` -- 决策卡查询 service
 - `backend/internal/api/v1/analysis.go` -- 分析触发路由
 - `backend/internal/api/v1/decision_card.go` -- 决策卡查询路由
+- `backend/internal/api/v1/task.go` -- 异步任务状态查询路由
+- `backend/internal/service/analysis/task_store.go` -- 内存任务状态存储（MVP 用 sync.Map，后续可迁移到 Redis）
 - `backend/db/migration/003_analysis.up.sql` -- analysis_results + decision_cards 表
 - `backend/db/migration/003_analysis.down.sql`
 - `backend/db/query/analysis_result.sql`
