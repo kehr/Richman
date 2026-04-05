@@ -68,3 +68,10 @@ func GetUserID(c *gin.Context) int64 {
 	userID, _ := id.(int64)
 	return userID
 }
+
+// GetEmail extracts the authenticated user email from the gin context.
+func GetEmail(c *gin.Context) string {
+	v, _ := c.Get(ContextKeyEmail)
+	email, _ := v.(string)
+	return email
+}

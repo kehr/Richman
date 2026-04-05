@@ -17,6 +17,7 @@ import (
 	"github.com/richman/backend/internal/logger"
 	"github.com/richman/backend/internal/repo"
 	"github.com/richman/backend/internal/service/auth"
+	"github.com/richman/backend/internal/service/portfolio"
 	"go.uber.org/zap"
 )
 
@@ -54,12 +55,18 @@ func main() {
 	userRepo := repo.NewUserRepo(dbPool)
 	planRepo := repo.NewPlanRepo(dbPool)
 	inviteRepo := repo.NewInviteRepo(dbPool)
+	assetRepo := repo.NewAssetRepo(dbPool)
+	holdingRepo := repo.NewHoldingRepo(dbPool)
+	tradeRepo := repo.NewTradeRepo(dbPool)
 
 	// Initialize services
 	authService := auth.NewService(userRepo, planRepo, inviteRepo, cfg)
+	portfolioService := portfolio.NewService(holdingRepo, tradeRepo)
 
 	// Initialize handlers
 	authHandler := v1.NewAuthHandler(authService)
+	assetCatalogHandler := v1.NewAssetCatalogHandler(assetRepo)
+	portfolioHandler := v1.NewPortfolioHandler(portfolioService)
 
 	// Setup Gin
 	if !cfg.IsDev() {
@@ -82,6 +89,8 @@ func main() {
 	apiV1 := router.Group("/api/v1")
 	authMiddleware := middleware.Auth(authService)
 	authHandler.RegisterRoutes(apiV1, authMiddleware)
+	assetCatalogHandler.RegisterRoutes(apiV1)
+	portfolioHandler.RegisterRoutes(apiV1, authMiddleware)
 
 	// Start server
 	srv := &http.Server{
