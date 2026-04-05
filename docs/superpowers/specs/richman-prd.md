@@ -268,7 +268,7 @@ AI 驱动的个人投研决策助手。
 
 ### 5.1 整体架构
 
-前后端分离，Go 后端提供纯 RESTful JSON API，所有客户端消费同一套 API。
+前后端分离，Go 后端提供纯 RESTful JSON API，所有客户端消费同一套 API。前端架构借鉴 Orbiter 项目的 Pages + Features 双层模式。
 
 ### 5.2 前端
 
@@ -276,12 +276,47 @@ AI 驱动的个人投研决策助手。
 |---|---|
 | 框架 | Next.js 15 (App Router) |
 | UI 组件库 | Ant Design 6 + @ant-design/pro-components |
-| 样式方案 | Ant Design CSS-in-JS + CSS Variables |
+| 样式方案 | Ant Design CSS-in-JS + CSS Variables（不用 Tailwind） |
+| 数据获取 | TanStack Query v5（服务端状态管理） |
+| 客户端状态 | React hooks（useState / useReducer / Context） |
 | 语言 | TypeScript (strict mode) |
 | i18n | next-intl（中文 + 英文） |
 | 主题 | 亮色/暗色（Ant Design ConfigProvider 默认配置） |
 | 包管理 | pnpm |
+| Lint/Format | Biome（tab 缩进、100 字符行宽、双引号、始终分号） |
+| 架构检查 | dependency-cruiser（层间依赖约束） |
 | 部署 | Vercel |
+
+#### 5.2.1 前端架构（Pages + Features 双层模式）
+
+借鉴 Orbiter 项目的成熟架构模式：
+
+**依赖流向：** App -> config -> pages -> features -> domain -> ui-kit/eat
+
+| 层 | 职责 | 可依赖 | 不可依赖 |
+|---|------|--------|---------|
+| config/ | 路由和主题配置 | pages（引用）、ui-kit/eat | features、domain |
+| pages/ | 页面组装（纯组合） | features/*/index（barrel）、domain、ui-kit/eat | feature 内部文件 |
+| features/ | 自包含业务模块 | domain、ui-kit/eat | 其他 features、pages |
+| domain/ | 跨模块基础设施 | ui-kit/eat、第三方库 | features、pages |
+| layouts/ | 页面布局 | config、ui-kit/eat | features、domain、pages |
+| ui-kit/ | Ant Design 封装 | antd 包 | 业务代码 |
+
+**Feature 模块结构：**
+每个 feature 包含 api.ts（API 函数 + DTO 类型）、useXxx.ts（TanStack Query hooks）、index.ts（barrel 导出，仅公开 API）。
+
+**UI 组件导入规则：**
+所有 Ant Design 组件通过 ui-kit/eat barrel 导入，禁止直接从 antd / @ant-design/pro-components / @ant-design/icons 导入。由 Biome noRestrictedImports 规则强制执行。
+
+**Pro 组件优先规则：**
+
+| 场景 | 使用 |
+|------|-----|
+| 卡片容器 | Card（eat，默认 borderless） |
+| 统计指标 | StatisticCard |
+| 描述列表 | ProDescriptions |
+| 数据表格 | ProTable |
+| 页面布局 | ProLayout |
 
 ### 5.3 后端
 
@@ -295,20 +330,42 @@ AI 驱动的个人投研决策助手。
 | 定时任务 | Cron 调度器（早盘 + 收盘触发分析） |
 | 部署 | Docker + VPS |
 
+#### 5.3.1 后端四层架构
+
+| 层 | 职责 | 可依赖 | 不可依赖 |
+|---|------|--------|---------|
+| API handlers | 参数校验、路由、响应格式 | service、config、middleware | repo、db |
+| Service | 业务逻辑编排 | repo、config、外部服务 | API handlers |
+| Repo | 数据访问（sqlc 生成） | db/query | service、API handlers |
+
 ### 5.4 数据源（MVP 免费数据优先）
 
-| 数据源 | 用途 |
-|--------|------|
-| AKShare | A 股行情 / 估值数据 |
-| Yahoo Finance | 美股 / 黄金行情 |
-| Polymarket API | 宏观事件市场隐含概率 |
-| LLM 联网搜索 | 实时叙事补充（催化剂增强层） |
+| 数据源 | 用途 | 更新频率 |
+|--------|------|---------|
+| AKShare | A 股行情 / 估值数据 | 日级（收盘后拉取） |
+| Yahoo Finance | 美股 / 黄金行情 | 日级（每日拉取） |
+| Polymarket API | 宏观事件市场隐含概率 | 日级（分析前拉取） |
+| LLM 联网搜索 | 实时叙事补充（催化剂增强层） | 每次分析时实时 |
 
 ### 5.5 API 设计原则
 
-- 纯 RESTful JSON，客户端无关
+- 纯 RESTful JSON，客户端无关，camelCase 字段命名
+- URL 路径 kebab-case 复数形式（如 /api/v1/decision-cards）
+- 分页参数：page（默认 1）+ pageSize（默认 20，范围 1-100）
+- 统一错误格式：{ error: { code, message, details } }
 - Next.js Web App 是 API 的一个消费者，不与 SSR 耦合
 - Go 后端已是独立服务，后续可根据流量拆分为微服务
+
+### 5.6 工程规范
+
+工程规范文档放在 docs/standards/ 目录，借鉴 Orbiter 项目模式并适配 Go 后端：
+
+- naming.md -- 文件、目录、标识符、数据库、API 命名约定
+- frontend.md -- Pages + Features 架构、依赖规则、组件使用规范
+- backend.md -- Go 四层架构、service/repo 模式、错误处理
+- database.md -- PostgreSQL schema 约定、审计字段、索引策略
+- api.md -- RESTful API 设计、版本管理、分页、错误格式
+- testing.md -- 测试结构、命名、mock 策略
 
 
 ## 6. 多平台路线
