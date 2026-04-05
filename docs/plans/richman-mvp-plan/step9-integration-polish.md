@@ -30,11 +30,8 @@
 ## 验证标准
 
 ### Lint 全量通过
-- [ ] `cd frontend && pnpm lint` 零错误
-- [ ] `cd frontend && pnpm type-check` 零错误
-- [ ] `cd frontend && npx dependency-cruiser src --config .dependency-cruiser.cjs` 零违规
-- [ ] `cd backend && golangci-lint run ./...` 零错误
-- [ ] `cd backend && go vet ./...` 零警告
+- [ ] `cd frontend && pnpm lint:all` 零错误（Biome lint + format + type-check + dependency-cruiser）
+- [ ] `cd backend && make check` 零错误（golangci-lint + go vet + test + build）
 
 ### 后端集成测试
 - [ ] 完整流程：注册 -> 登录 -> 添加持仓 -> 触发分析 -> 查看决策卡

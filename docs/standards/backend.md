@@ -6,8 +6,8 @@
 - Gin（Web 框架）
 - sqlc（类型安全 SQL 生成）
 - PostgreSQL
-- pino 风格结构化日志（Go 对应 slog 或 zerolog）
-- Zod 对应 Go 验证库（如 go-playground/validator）
+- Uber zap（结构化日志） + lumberjack（日志轮转）
+- go-playground/validator（参数校验）
 
 
 ## 三层架构

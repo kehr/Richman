@@ -31,13 +31,13 @@ Step 3: Asset Catalog + Portfolio Management (Backend)
     |     Step 5: Three-Dimension Analysis Engine
     |         |
     |         v
-    |     Step 6: LLM Integration + Decision Card Generation
-    |         |
-    |         v
-    |     Step 7: Notification System (Push Hub + Cron)
-    |
-    v
-Step 8: Frontend Shell + All Pages
+    +---> Step 6: LLM Integration + Decision Card Generation (depends on Step 3 + Step 5)
+              |
+              v
+          Step 7: Notification System (Push Hub + Cron)
+              |
+              v
+          Step 8: Frontend Shell + All Pages (depends on Step 3 + Step 6 + Step 7)
     |
     v
 Step 9: Integration Testing + Polish

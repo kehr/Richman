@@ -20,6 +20,7 @@
 - `frontend/vitest.config.ts` -- Vitest 测试配置
 - `frontend/.env.example` -- 前端配置模板（入库，含变量名和说明）
 - `frontend/.env.dev` -- 开发环境默认值（入库）
+- `frontend/.env.prod` -- 生产环境默认值（入库，不含敏感值）
 
 **后端：**
 - `backend/go.mod` -- Go module

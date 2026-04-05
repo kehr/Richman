@@ -40,7 +40,7 @@
 - PRD 4.1 账户系统
 - PRD 4.2 权限模型
 - PRD 5.3 后端技术栈
-- PRD 5.3.1 后端四层架构
+- PRD 5.3.1 后端三层架构
 - `docs/standards/backend.md` 三层架构
 - `docs/standards/database.md` schema 约定、审计字段
 - `docs/standards/api.md` 认证端点、错误格式
@@ -59,6 +59,7 @@
 - [ ] Request ID 在响应头 X-Request-ID 中返回
 - [ ] 日志输出包含 requestId 字段
 - [ ] 全局错误处理返回统一 JSON 格式
+- [ ] `GET /health` 健康检查端点返回 200
 - [ ] `go test ./internal/service/auth/...` 通过
 - [ ] `go test ./internal/...` 全部通过
 - [ ] `golangci-lint run ./...` 零错误

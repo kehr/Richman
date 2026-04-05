@@ -181,7 +181,7 @@ backend/
     sqlc.yaml               # sqlc config
 ```
 
-### Four-Layer Dependency Rules (Go)
+### Three-Layer Dependency Rules (Go)
 
 ```
 API handlers -> Service -> Repo -> DB
