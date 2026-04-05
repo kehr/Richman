@@ -440,7 +440,65 @@ AI 驱动的个人投研决策助手。
 | `make docker-build` | 构建 Docker 镜像 |
 | `make check` | 全部检查合并（lint + test + build） |
 
-#### 5.6.4 Lint 执行规则
+#### 5.6.4 配置管理
+
+前后端通过 env 配置文件管理不同环境的配置，敏感信息不入版本库。
+
+**配置文件结构：**
+
+```
+frontend/
+  .env.example            # 模板（入库，包含所有变量名和说明）
+  .env.local              # 本地开发覆盖（不入库）
+  .env.development        # 开发环境默认值（入库）
+  .env.production         # 生产环境默认值（入库，不含敏感值）
+
+backend/
+  .env.example            # 模板（入库）
+  .env                    # 实际配置（不入库）
+  configs/
+    config.development.yaml   # 开发环境配置（入库，非敏感）
+    config.production.yaml    # 生产环境配置（入库，非敏感）
+```
+
+**前端配置项（Next.js .env）：**
+
+| 变量 | 说明 | 示例 |
+|------|------|------|
+| `NEXT_PUBLIC_API_BASE` | 后端 API 地址 | `http://localhost:8080/api/v1` |
+| `NEXT_PUBLIC_APP_ENV` | 运行环境标识 | `development` / `production` |
+
+前端仅通过 `NEXT_PUBLIC_` 前缀暴露给客户端的变量，敏感信息不放前端。
+
+**后端配置项（Go .env）：**
+
+| 变量 | 说明 | 敏感 |
+|------|------|------|
+| `APP_ENV` | 运行环境 | 否 |
+| `SERVER_PORT` | HTTP 服务端口 | 否 |
+| `DATABASE_URL` | PostgreSQL 连接串 | 是 |
+| `JWT_SECRET` | JWT 签名密钥 | 是 |
+| `LLM_PROVIDER` | 默认 LLM 提供商 | 否 |
+| `CLAUDE_API_KEY` | Claude API Key | 是 |
+| `OPENAI_API_KEY` | OpenAI API Key | 是 |
+| `WECHAT_APP_ID` | 微信公众号 AppID | 是 |
+| `WECHAT_APP_SECRET` | 微信公众号 Secret | 是 |
+| `FEISHU_WEBHOOK_URL` | 飞书机器人 Webhook | 是 |
+| `SMTP_HOST` | 邮件 SMTP 服务器 | 否 |
+| `SMTP_PORT` | SMTP 端口 | 否 |
+| `SMTP_USER` | SMTP 用户名 | 是 |
+| `SMTP_PASSWORD` | SMTP 密码 | 是 |
+| `LOG_LEVEL` | 日志级别 | 否 |
+| `LOG_DIR` | 日志文件目录 | 否 |
+
+**配置管理规则：**
+- 所有配置通过 `internal/config/config.go` 集中加载，业务代码不直接读 `os.Getenv`
+- `.env.example` 入库，包含全部变量名、说明和非敏感默认值
+- `.env` 不入库（.gitignore），包含实际敏感值
+- Docker 部署通过 `docker-compose.yml` 的 `env_file` 或环境变量注入
+- Vercel 部署通过 Vercel Dashboard 的 Environment Variables 配置
+
+#### 5.6.5 Lint 执行规则
 
 - 每次修改代码后立即执行对应端的 lint，修复所有问题后才能继续
 - 提交前必须前后端 lint 全部通过

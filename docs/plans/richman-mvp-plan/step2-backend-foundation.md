@@ -8,7 +8,8 @@
 
 ### 创建
 
-- `backend/internal/config/config.go` -- 集中式配置管理
+- `backend/internal/config/config.go` -- 集中式配置管理（从 .env + yaml 加载，业务代码不直接读 os.Getenv）
+- `backend/internal/config/config_test.go` -- 配置加载测试
 - `backend/internal/logger/logger.go` -- zap Logger 初始化（多 core、轮转、采样）
 - `backend/internal/logger/mask.go` -- 敏感数据脱敏
 - `backend/internal/model/user.go` -- 用户模型

@@ -2,7 +2,7 @@
 
 ## 任务目标
 
-搭建 monorepo 骨架，初始化前后端项目，配置完善的构建系统（build/dev/test/lint 一键命令）和本地开发环境。
+搭建 monorepo 骨架，初始化前后端项目，配置完善的构建系统（build/dev/test/lint 一键命令）、配置文件管理（env 多环境）和本地开发环境。
 
 ## 涉及文件路径
 
@@ -18,6 +18,8 @@
 - `frontend/src/app/page.tsx` -- Root page (redirect)
 - `frontend/src/ui-kit/eat/index.ts` -- Ant Design barrel 导出
 - `frontend/vitest.config.ts` -- Vitest 测试配置
+- `frontend/.env.example` -- 前端配置模板（入库，含变量名和说明）
+- `frontend/.env.development` -- 开发环境默认值（入库）
 
 **后端：**
 - `backend/go.mod` -- Go module
@@ -25,10 +27,13 @@
 - `backend/.golangci.yml` -- golangci-lint 配置（govet/errcheck/staticcheck/unused/gosimple/gocritic/gofmt/goimports/misspell/revive）
 - `backend/Makefile` -- 后端一键命令（dev/build/lint/test/test-race/test-cover/sqlc/migrate-up/migrate-down/docker-build/check）
 - `backend/Dockerfile` -- Docker 构建文件
+- `backend/.env.example` -- 后端配置模板（入库，含全部变量名和说明）
+- `backend/configs/config.development.yaml` -- 开发环境非敏感配置（入库）
+- `backend/configs/config.production.yaml` -- 生产环境非敏感配置（入库）
 
 **根目录：**
-- `docker-compose.yml` -- 本地开发环境（PostgreSQL）
-- `.gitignore` -- 全局忽略规则
+- `docker-compose.yml` -- 本地开发环境（PostgreSQL + env_file 注入）
+- `.gitignore` -- 全局忽略规则（含 .env、.env.local 等敏感文件）
 
 ### 修改
 
@@ -39,7 +44,7 @@
 - PRD 5.1 整体架构
 - PRD 5.2 前端技术栈
 - PRD 5.3 后端技术栈
-- PRD 5.6 代码质量保障（Lint 系统 + 构建系统）
+- PRD 5.6 代码质量保障（Lint 系统 + 构建系统 + 配置管理）
 - `docs/standards/naming.md` 文件命名规范
 - `docs/standards/frontend.md` 目录结构、Biome 配置
 
@@ -64,6 +69,14 @@
 - [ ] `cd backend && make check` 全部检查通过（lint + test + build）
 - [ ] `.golangci.yml` 配置了全部必要 linter
 - [ ] Makefile 包含所有一键命令（dev/build/lint/test/sqlc/migrate/docker-build/check）
+
+### 配置文件管理
+- [ ] `frontend/.env.example` 包含所有前端配置变量名和说明
+- [ ] `frontend/.env.development` 包含开发环境默认值
+- [ ] `backend/.env.example` 包含所有后端配置变量名和说明
+- [ ] `backend/configs/config.development.yaml` 包含开发环境非敏感配置
+- [ ] `.gitignore` 正确忽略 `.env`、`.env.local`、`backend/.env`
+- [ ] 复制 `.env.example` 为 `.env` 后，前后端均可正常启动
 
 ### 基础设施
 - [ ] `docker-compose up -d` PostgreSQL 容器启动成功

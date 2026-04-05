@@ -51,11 +51,19 @@
 - [ ] 语言切换正常（中文/英文）
 - [ ] 风险声明在所有含决策卡的页面展示
 
+### 配置管理验证
+- [ ] `frontend/.env.example` 和 `backend/.env.example` 变量完整且有说明
+- [ ] 复制 `.env.example` 为 `.env` 后前后端均可启动
+- [ ] `.gitignore` 正确忽略所有敏感 env 文件
+- [ ] docker-compose.yml 通过 env_file 正确注入后端配置
+- [ ] 生产环境配置（config.production.yaml）不含敏感值
+
 ### 部署验证
-- [ ] `docker-compose up` 后端服务正常启动
+- [ ] `docker-compose up` 后端服务正常启动（通过 env 配置）
 - [ ] 后端健康检查端点 `GET /health` 返回 200
 - [ ] 前端 `pnpm build` 输出可部署到 Vercel
 - [ ] 前端环境变量 `NEXT_PUBLIC_API_BASE` 配置正确
+- [ ] Vercel 部署通过 Dashboard Environment Variables 配置
 
 ### MVP 清单逐项确认
 - [ ] 独立账户体系 + 邀请码注册
