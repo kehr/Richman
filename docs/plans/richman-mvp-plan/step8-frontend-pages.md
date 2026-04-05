@@ -96,8 +96,10 @@
 
 - [ ] `pnpm dev` 启动成功
 - [ ] `pnpm lint` 通过（Biome，含 noRestrictedImports 规则）
-- [ ] `pnpm type-check` 通过
-- [ ] dependency-cruiser 架构检查通过（层间依赖无违规）
+- [ ] `pnpm format` 通过（Biome format）
+- [ ] `pnpm type-check` 通过（TypeScript strict）
+- [ ] `pnpm lint:deps` 通过（dependency-cruiser 架构边界检查）
+- [ ] `pnpm lint:all` 通过（以上全部合并，零错误）
 - [ ] 注册页面：输入邮箱 + 密码 + 邀请码可注册
 - [ ] 登录页面：输入邮箱 + 密码可登录
 - [ ] 未登录访问主页面被重定向到登录页

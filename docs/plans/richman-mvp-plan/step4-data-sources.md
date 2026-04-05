@@ -37,6 +37,8 @@
 - [ ] 所有客户端包含重试逻辑（3 次重试 + 指数退避）
 - [ ] 数据源故障时返回明确错误类型（可降级判断）
 - [ ] `go test ./internal/datasource/...` 全部通过（使用 mock HTTP）
+- [ ] `golangci-lint run ./...` 零错误
+- [ ] `go vet ./...` 零警告
 
 ## 依赖说明
 

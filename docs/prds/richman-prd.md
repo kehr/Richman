@@ -356,7 +356,62 @@ AI 驱动的个人投研决策助手。
 - Next.js Web App 是 API 的一个消费者，不与 SSR 耦合
 - Go 后端已是独立服务，后续可根据流量拆分为微服务
 
-### 5.6 工程规范
+### 5.6 代码质量保障（Lint 系统）
+
+前后端各自配置完善的 lint 工具链，每次代码修改后必须通过 lint 检查才能进入下一步工作。
+
+#### 5.6.1 前端 Lint 工具链
+
+| 工具 | 用途 | 命令 |
+|------|------|------|
+| Biome | 代码格式化 + lint（替代 ESLint + Prettier） | `pnpm lint` / `pnpm format` |
+| TypeScript | 静态类型检查（strict mode） | `pnpm type-check` |
+| dependency-cruiser | 架构层间依赖约束检查 | `pnpm lint:deps` |
+
+**Biome 规则重点：**
+- 格式：tab 缩进、100 字符行宽、双引号、始终分号
+- noRestrictedImports：禁止直接从 antd / @ant-design/pro-components / @ant-design/icons 导入，必须通过 ui-kit/eat barrel
+- 推荐规则集 + 自定义规则
+- import 自动排序
+
+**dependency-cruiser 规则重点：**
+- features 之间互相隔离
+- domain 不依赖 features/pages
+- ui-kit 不依赖业务代码
+- layouts 限制依赖范围
+
+**前端全量检查命令：** `pnpm lint:all`（Biome + type-check + dependency-cruiser，全部通过才算通过）
+
+#### 5.6.2 后端 Lint 工具链
+
+| 工具 | 用途 | 命令 |
+|------|------|------|
+| golangci-lint | Go 综合 lint（集成多个 linter） | `golangci-lint run ./...` |
+| go vet | Go 官方静态分析 | `go vet ./...` |
+| sqlc vet | SQL 查询静态检查 | `sqlc vet` |
+
+**golangci-lint 启用的 linter：**
+- govet -- 官方静态分析
+- errcheck -- 未处理的 error 返回值
+- staticcheck -- 高级静态分析
+- unused -- 未使用的代码
+- gosimple -- 代码简化建议
+- gocritic -- 代码风格和性能
+- gofmt / goimports -- 格式化和 import 排序
+- misspell -- 拼写检查
+- revive -- 可配置的 lint 规则
+
+**golangci-lint 配置文件：** `backend/.golangci.yml`
+
+**后端全量检查命令：** `cd backend && golangci-lint run ./... && go vet ./...`
+
+#### 5.6.3 Lint 执行规则
+
+- 每次修改代码后立即执行对应端的 lint，修复所有问题后才能继续
+- 提交前必须前后端 lint 全部通过
+- CI/CD 中 lint 作为必须通过的 gate
+
+### 5.7 工程规范文档
 
 工程规范文档放在 docs/standards/ 目录，借鉴 Orbiter 项目模式并适配 Go 后端：
 
@@ -366,6 +421,7 @@ AI 驱动的个人投研决策助手。
 - database.md -- PostgreSQL schema 约定、审计字段、索引策略
 - api.md -- RESTful API 设计、版本管理、分页、错误格式
 - testing.md -- 测试结构、命名、mock 策略
+- logging.md -- 日志系统规范（zap、轮转、脱敏、采样）
 
 
 ## 6. 多平台路线

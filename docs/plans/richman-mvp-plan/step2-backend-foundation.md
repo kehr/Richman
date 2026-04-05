@@ -60,6 +60,8 @@
 - [ ] 全局错误处理返回统一 JSON 格式
 - [ ] `go test ./internal/service/auth/...` 通过
 - [ ] `go test ./internal/...` 全部通过
+- [ ] `golangci-lint run ./...` 零错误
+- [ ] `go vet ./...` 零警告
 
 ## 依赖说明
 

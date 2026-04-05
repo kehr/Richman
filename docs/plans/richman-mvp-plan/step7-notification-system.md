@@ -56,6 +56,8 @@
 - [ ] Cron 只对有对应类型持仓的用户触发
 - [ ] `go test ./internal/notification/...` 全部通过
 - [ ] `go test ./internal/service/analysis/...` 调度器测试通过
+- [ ] `golangci-lint run ./...` 零错误
+- [ ] `go vet ./...` 零警告
 
 ## 依赖说明
 

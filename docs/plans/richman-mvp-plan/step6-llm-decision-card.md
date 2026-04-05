@@ -52,6 +52,8 @@
 - [ ] 分析结果和决策卡正确持久化到数据库
 - [ ] `go test ./internal/analysis/synthesis/...` 通过（使用 mock LLM）
 - [ ] `go test ./internal/service/analysis/...` 通过
+- [ ] `golangci-lint run ./...` 零错误
+- [ ] `go vet ./...` 零警告
 
 ## 依赖说明
 
