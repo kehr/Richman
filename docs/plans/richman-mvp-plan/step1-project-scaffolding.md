@@ -2,14 +2,14 @@
 
 ## 任务目标
 
-搭建 monorepo 骨架，初始化前后端项目，配置完善的 lint 工具链和本地开发环境。
+搭建 monorepo 骨架，初始化前后端项目，配置完善的构建系统（build/dev/test/lint 一键命令）和本地开发环境。
 
 ## 涉及文件路径
 
 ### 创建
 
 **前端：**
-- `frontend/package.json` -- Next.js 项目配置（含 lint/format/type-check/lint:deps/lint:all scripts）
+- `frontend/package.json` -- Next.js 项目配置（含 dev/build/lint/format/type-check/lint:deps/lint:all/test/test:watch/test:coverage scripts）
 - `frontend/next.config.ts` -- Next.js 配置
 - `frontend/tsconfig.json` -- TypeScript 配置（strict mode）
 - `frontend/biome.json` -- Biome lint + format 配置（tab、100 char、双引号、始终分号、noRestrictedImports）
@@ -23,7 +23,7 @@
 - `backend/go.mod` -- Go module
 - `backend/cmd/server/main.go` -- Go 服务入口（空壳）
 - `backend/.golangci.yml` -- golangci-lint 配置（govet/errcheck/staticcheck/unused/gosimple/gocritic/gofmt/goimports/misspell/revive）
-- `backend/Makefile` -- 后端常用命令（lint/test/build/run）
+- `backend/Makefile` -- 后端一键命令（dev/build/lint/test/test-race/test-cover/sqlc/migrate-up/migrate-down/docker-build/check）
 - `backend/Dockerfile` -- Docker 构建文件
 
 **根目录：**
@@ -39,7 +39,7 @@
 - PRD 5.1 整体架构
 - PRD 5.2 前端技术栈
 - PRD 5.3 后端技术栈
-- PRD 5.6 代码质量保障（Lint 系统）
+- PRD 5.6 代码质量保障（Lint 系统 + 构建系统）
 - `docs/standards/naming.md` 文件命名规范
 - `docs/standards/frontend.md` 目录结构、Biome 配置
 
@@ -56,11 +56,14 @@
 - [ ] Biome noRestrictedImports 规则生效（直接 import antd 报错）
 - [ ] ui-kit/eat barrel 能正确导出 Ant Design 组件
 
-### 后端 lint 工具链
+### 后端构建系统 + lint
 - [ ] `cd backend && go build ./...` 编译通过
-- [ ] `cd backend && golangci-lint run ./...` 通过
-- [ ] `cd backend && go vet ./...` 通过
+- [ ] `cd backend && make lint` 通过（golangci-lint + go vet）
+- [ ] `cd backend && make test` 通过
+- [ ] `cd backend && make build` 生成二进制文件
+- [ ] `cd backend && make check` 全部检查通过（lint + test + build）
 - [ ] `.golangci.yml` 配置了全部必要 linter
+- [ ] Makefile 包含所有一键命令（dev/build/lint/test/sqlc/migrate/docker-build/check）
 
 ### 基础设施
 - [ ] `docker-compose up -d` PostgreSQL 容器启动成功

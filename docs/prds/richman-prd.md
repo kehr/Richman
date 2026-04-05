@@ -405,7 +405,42 @@ AI 驱动的个人投研决策助手。
 
 **后端全量检查命令：** `cd backend && golangci-lint run ./... && go vet ./...`
 
-#### 5.6.3 Lint 执行规则
+#### 5.6.3 构建系统
+
+前后端各自提供完善的一键命令，降低构建、运行和验证的操作成本。
+
+**前端 scripts（package.json）：**
+
+| 命令 | 用途 |
+|------|------|
+| `pnpm dev` | 启动开发服务器 |
+| `pnpm build` | 生产构建 |
+| `pnpm lint` | Biome lint |
+| `pnpm format` | Biome format |
+| `pnpm type-check` | TypeScript 类型检查 |
+| `pnpm lint:deps` | dependency-cruiser 架构边界检查 |
+| `pnpm lint:all` | 全部检查合并（lint + format + type-check + lint:deps） |
+| `pnpm test` | 运行 Vitest 测试 |
+| `pnpm test:watch` | Vitest watch 模式 |
+| `pnpm test:coverage` | 测试覆盖率报告 |
+
+**后端 Makefile：**
+
+| 命令 | 用途 |
+|------|------|
+| `make dev` | 启动开发服务器（热重载，使用 air） |
+| `make build` | 编译生产二进制 |
+| `make lint` | golangci-lint + go vet |
+| `make test` | 运行全部测试 |
+| `make test-race` | 运行测试（含竞态检测） |
+| `make test-cover` | 测试覆盖率报告 |
+| `make sqlc` | 生成 sqlc 代码 |
+| `make migrate-up` | 执行数据库迁移 |
+| `make migrate-down` | 回滚数据库迁移 |
+| `make docker-build` | 构建 Docker 镜像 |
+| `make check` | 全部检查合并（lint + test + build） |
+
+#### 5.6.4 Lint 执行规则
 
 - 每次修改代码后立即执行对应端的 lint，修复所有问题后才能继续
 - 提交前必须前后端 lint 全部通过
