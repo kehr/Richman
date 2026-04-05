@@ -466,7 +466,7 @@ backend/
 | 变量 | 说明 | 示例 |
 |------|------|------|
 | `NEXT_PUBLIC_API_BASE` | 后端 API 地址 | `http://localhost:8080/api/v1` |
-| `NEXT_PUBLIC_APP_ENV` | 运行环境标识 | `dev` / `staging` / `prod` |
+| `NEXT_PUBLIC_APP_ENV` | 运行环境标识 | `dev` / `prod` |
 
 前端仅通过 `NEXT_PUBLIC_` 前缀暴露给客户端的变量，敏感信息不放前端。
 

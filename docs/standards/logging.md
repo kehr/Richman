@@ -25,7 +25,6 @@ Application ---> zap logger --+---> 本地文件（lumberjack 轮转）
 | 环境 | 格式 | 输出目标 | 日志级别 | 采样 |
 |------|------|---------|---------|------|
 | dev | Text (Console) | stdout only | Debug | 关闭 |
-| staging | JSON | stdout + 文件 | Info | 开启 |
 | prod | JSON | stdout + 文件 + 远程 | Info | 开启 |
 
 
@@ -315,7 +314,7 @@ func NewLogger(cfg *config.Config) (*zap.Logger, error) {
 		cores = append(cores, zapcore.NewCore(jsonEncoder, zapcore.AddSync(os.Stdout), zap.InfoLevel))
 	}
 
-	// File core (staging + production)
+	// File core (prod only)
 	if cfg.Env != "dev" {
 		jsonEncoder := zapcore.NewJSONEncoder(encoderConfig)
 
