@@ -228,6 +228,7 @@ docs/                  # Product and technical documents
 ### Backend
 - `go run cmd/server/main.go` - Start Go server
 - `go test ./...` - Run all tests
+- `golangci-lint run ./...` - Run Go linter (MUST pass before next step)
 - `sqlc generate` - Generate type-safe SQL code
 
 ## Standards (docs/standards/)
