@@ -56,7 +56,7 @@
 - [ ] 复制 `.env.example` 为 `.env` 后前后端均可启动
 - [ ] `.gitignore` 正确忽略所有敏感 env 文件
 - [ ] docker-compose.yml 通过 env_file 正确注入后端配置
-- [ ] 生产环境配置（config.production.yaml）不含敏感值
+- [ ] 生产环境配置（config.prod.yaml）不含敏感值
 
 ### 部署验证
 - [ ] `docker-compose up` 后端服务正常启动（通过 env 配置）

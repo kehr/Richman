@@ -450,15 +450,15 @@ AI 驱动的个人投研决策助手。
 frontend/
   .env.example            # 模板（入库，包含所有变量名和说明）
   .env.local              # 本地开发覆盖（不入库）
-  .env.development        # 开发环境默认值（入库）
-  .env.production         # 生产环境默认值（入库，不含敏感值）
+  .env.dev                # 开发环境默认值（入库）
+  .env.prod               # 生产环境默认值（入库，不含敏感值）
 
 backend/
   .env.example            # 模板（入库）
   .env                    # 实际配置（不入库）
   configs/
-    config.development.yaml   # 开发环境配置（入库，非敏感）
-    config.production.yaml    # 生产环境配置（入库，非敏感）
+    config.dev.yaml           # 开发环境配置（入库，非敏感）
+    config.prod.yaml          # 生产环境配置（入库，非敏感）
 ```
 
 **前端配置项（Next.js .env）：**
@@ -466,7 +466,7 @@ backend/
 | 变量 | 说明 | 示例 |
 |------|------|------|
 | `NEXT_PUBLIC_API_BASE` | 后端 API 地址 | `http://localhost:8080/api/v1` |
-| `NEXT_PUBLIC_APP_ENV` | 运行环境标识 | `development` / `production` |
+| `NEXT_PUBLIC_APP_ENV` | 运行环境标识 | `dev` / `staging` / `prod` |
 
 前端仅通过 `NEXT_PUBLIC_` 前缀暴露给客户端的变量，敏感信息不放前端。
 

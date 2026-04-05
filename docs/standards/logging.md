@@ -24,9 +24,9 @@ Application ---> zap logger --+---> 本地文件（lumberjack 轮转）
 
 | 环境 | 格式 | 输出目标 | 日志级别 | 采样 |
 |------|------|---------|---------|------|
-| development | Text (Console) | stdout only | Debug | 关闭 |
+| dev | Text (Console) | stdout only | Debug | 关闭 |
 | staging | JSON | stdout + 文件 | Info | 开启 |
-| production | JSON | stdout + 文件 + 远程 | Info | 开启 |
+| prod | JSON | stdout + 文件 + 远程 | Info | 开启 |
 
 
 ## 日志级别定义
@@ -54,7 +54,7 @@ Application ---> zap logger --+---> 本地文件（lumberjack 轮转）
 | `level` | string | 日志级别 | `"info"` |
 | `msg` | string | 日志消息（人可读） | `"analysis completed"` |
 | `service` | string | 服务名 | `"richman-api"` |
-| `env` | string | 运行环境 | `"production"` |
+| `env` | string | 运行环境 | `"prod"` |
 
 ### 请求上下文字段
 
@@ -94,7 +94,7 @@ HTTP 请求链路中的日志额外携带：
   "level": "info",
   "msg": "analysis completed",
   "service": "richman-api",
-  "env": "production",
+  "env": "prod",
   "requestId": "019606f8-1234-7abc-def0-123456789abc",
   "userId": 10001,
   "taskId": "task-20260406-001",
@@ -307,7 +307,7 @@ func NewLogger(cfg *config.Config) (*zap.Logger, error) {
 	encoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
 
 	// Stdout core
-	if cfg.Env == "development" {
+	if cfg.Env == "dev" {
 		consoleEncoder := zapcore.NewConsoleEncoder(zap.NewDevelopmentEncoderConfig())
 		cores = append(cores, zapcore.NewCore(consoleEncoder, zapcore.AddSync(os.Stdout), zap.DebugLevel))
 	} else {
@@ -316,7 +316,7 @@ func NewLogger(cfg *config.Config) (*zap.Logger, error) {
 	}
 
 	// File core (staging + production)
-	if cfg.Env != "development" {
+	if cfg.Env != "dev" {
 		jsonEncoder := zapcore.NewJSONEncoder(encoderConfig)
 
 		// App log

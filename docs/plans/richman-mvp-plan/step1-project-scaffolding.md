@@ -19,7 +19,7 @@
 - `frontend/src/ui-kit/eat/index.ts` -- Ant Design barrel 导出
 - `frontend/vitest.config.ts` -- Vitest 测试配置
 - `frontend/.env.example` -- 前端配置模板（入库，含变量名和说明）
-- `frontend/.env.development` -- 开发环境默认值（入库）
+- `frontend/.env.dev` -- 开发环境默认值（入库）
 
 **后端：**
 - `backend/go.mod` -- Go module
@@ -28,8 +28,8 @@
 - `backend/Makefile` -- 后端一键命令（dev/build/lint/test/test-race/test-cover/sqlc/migrate-up/migrate-down/docker-build/check）
 - `backend/Dockerfile` -- Docker 构建文件
 - `backend/.env.example` -- 后端配置模板（入库，含全部变量名和说明）
-- `backend/configs/config.development.yaml` -- 开发环境非敏感配置（入库）
-- `backend/configs/config.production.yaml` -- 生产环境非敏感配置（入库）
+- `backend/configs/config.dev.yaml` -- 开发环境非敏感配置（入库）
+- `backend/configs/config.prod.yaml` -- 生产环境非敏感配置（入库）
 
 **根目录：**
 - `docker-compose.yml` -- 本地开发环境（PostgreSQL + env_file 注入）
@@ -72,9 +72,9 @@
 
 ### 配置文件管理
 - [ ] `frontend/.env.example` 包含所有前端配置变量名和说明
-- [ ] `frontend/.env.development` 包含开发环境默认值
+- [ ] `frontend/.env.dev` 包含开发环境默认值
 - [ ] `backend/.env.example` 包含所有后端配置变量名和说明
-- [ ] `backend/configs/config.development.yaml` 包含开发环境非敏感配置
+- [ ] `backend/configs/config.dev.yaml` 包含开发环境非敏感配置
 - [ ] `.gitignore` 正确忽略 `.env`、`.env.local`、`backend/.env`
 - [ ] 复制 `.env.example` 为 `.env` 后，前后端均可正常启动
 
