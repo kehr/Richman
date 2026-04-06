@@ -45,6 +45,7 @@ import (
 	notificationSvc "github.com/richman/backend/internal/service/notification"
 	onboardingSvc "github.com/richman/backend/internal/service/onboarding"
 	screenshotSvc "github.com/richman/backend/internal/service/screenshot"
+	usersettingsSvc "github.com/richman/backend/internal/service/user_settings"
 )
 
 func main() {
@@ -125,6 +126,7 @@ func main() {
 	}
 	screenshotService := screenshotSvc.NewService(visionProvider, zapLogger, screenshotSvc.Options{})
 	onboardingService := onboardingSvc.NewService(userRepo, cfg)
+	userSettingsService := usersettingsSvc.NewService(userRepo)
 
 	// Fallback synthesizer when LLM is not available.
 	if llmSynthesizer == nil {
@@ -201,13 +203,14 @@ func main() {
 	// Initialize handlers
 	authHandler := v1.NewAuthHandler(authService)
 	assetCatalogHandler := v1.NewAssetCatalogHandler(assetRepo)
-	portfolioHandler := v1.NewPortfolioHandler(portfolioService)
+	portfolioHandler := v1.NewPortfolioHandler(portfolioService, userSettingsService)
 	analysisHandler := v1.NewAnalysisHandler(analysisSvc)
 	taskHandler := v1.NewTaskHandler(taskStore)
-	cardHandler := v1.NewDecisionCardHandler(cardService)
+	cardHandler := v1.NewDecisionCardHandler(cardService, userSettingsService)
 	notifHandler := v1.NewNotificationHandler(notifService)
 	screenshotHandler := v1.NewScreenshotHandler(screenshotService)
 	onboardingHandler := v1.NewOnboardingHandler(onboardingService)
+	userSettingsHandler := v1.NewUserSettingsHandler(userSettingsService)
 
 	// Setup Gin
 	if !cfg.IsDev() {
@@ -238,6 +241,7 @@ func main() {
 	notifHandler.RegisterRoutes(apiV1, authMiddleware)
 	screenshotHandler.RegisterRoutes(apiV1, authMiddleware)
 	onboardingHandler.RegisterRoutes(apiV1, authMiddleware)
+	userSettingsHandler.RegisterRoutes(apiV1, authMiddleware)
 
 	// Start scheduler
 	scheduler.Start()

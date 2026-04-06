@@ -78,6 +78,21 @@ func NewService(users UserRepo) *Service {
 	return &Service{users: users}
 }
 
+// GetTotalCapitalCNY loads only the user's optional total capital. It is
+// the cheap read used by API handlers (decision_card, portfolio) to attach
+// *Amount projections via money.AttachAmounts. Returns nil when the user
+// does not exist or has not set a total capital.
+func (s *Service) GetTotalCapitalCNY(ctx context.Context, userID int64) (*float64, error) {
+	u, err := s.users.GetUserByID(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("load user: %w", err)
+	}
+	if u == nil {
+		return nil, nil
+	}
+	return u.TotalCapitalCNY, nil
+}
+
 // GetUserSettings loads the full settings snapshot for the given user.
 func (s *Service) GetUserSettings(ctx context.Context, userID int64) (*UserSettings, error) {
 	u, err := s.users.GetUserByID(ctx, userID)
