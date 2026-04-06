@@ -42,3 +42,4 @@ Thumbs.db
 .superpowers/
 .claude/worktrees/
 .claude/launch.json
+frontend/tsconfig.tsbuildinfo
