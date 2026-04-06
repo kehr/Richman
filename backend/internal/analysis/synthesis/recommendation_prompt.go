@@ -2,7 +2,6 @@ package synthesis
 
 import (
 	"encoding/json"
-	"fmt"
 	"strings"
 
 	"github.com/richman/backend/internal/analysis"
@@ -181,9 +180,3 @@ func ensureRecommendation(rec *recommendation.Recommendation, input *SynthesisIn
 	}
 }
 
-// debugRecommendation is a small helper used in tests / logs to stringify the
-// essential parts of a Recommendation without importing pretty-printers.
-func debugRecommendation(r recommendation.Recommendation) string {
-	return fmt.Sprintf("action=%s level=%d target=%.2f steps=%d type=%s",
-		r.Action, r.ActionLevel, r.TargetPositionPct, len(r.Execution.Steps), r.Execution.Type)
-}

@@ -108,7 +108,7 @@ func TestComputeCardDiff_None(t *testing.T) {
 	}
 }
 
-func TestBuildCardSnapshot_ExplicitStringConversion(t *testing.T) {
+func TestBuildCardSnapshot_DirectFieldCopy(t *testing.T) {
 	card := newCard(2, 30, 70, "upward", "bullish", "bearish", "abc")
 	snap := buildCardSnapshot(card)
 	if snap.ActionLevel != 2 || snap.TargetPositionPct != 30 || snap.Confidence != 70 {
