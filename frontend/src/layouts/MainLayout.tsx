@@ -1,6 +1,8 @@
 import { clearAuth } from "@/domain/auth/storage";
+import { useCurrentUser } from "@/domain/auth/use-current-user";
 import { useThemeMode } from "@/domain/ui/use-theme";
 import {
+	Avatar,
 	BellOutlined,
 	DashboardOutlined,
 	Dropdown,
@@ -11,15 +13,13 @@ import {
 	PieChartOutlined,
 	ProLayout,
 	SettingOutlined,
+	Space,
 	SunOutlined,
 	Switch,
-	Typography,
 	UserOutlined,
 } from "@/ui-kit/eat";
 import { useState } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router";
-
-const { Text } = Typography;
 
 const menuRoutes = {
 	path: "/",
@@ -37,7 +37,11 @@ export function MainLayout() {
 	const navigate = useNavigate();
 	const location = useLocation();
 	const { mode, toggle } = useThemeMode();
+	const { data: userData } = useCurrentUser();
 	const [collapsed, setCollapsed] = useState(false);
+
+	const user = userData?.data;
+	const displayName = user?.email?.split("@")[0] || "User";
 
 	const handleLogout = () => {
 		clearAuth();
@@ -71,6 +75,7 @@ export function MainLayout() {
 					unCheckedChildren={<SunOutlined />}
 					checked={mode === "dark"}
 					onChange={toggle}
+					size="small"
 				/>,
 				<Dropdown
 					key="user"
@@ -80,15 +85,17 @@ export function MainLayout() {
 								key: "logout",
 								icon: <LogoutOutlined />,
 								label: "Logout",
+								danger: true,
 								onClick: handleLogout,
 							},
 						],
 					}}
+					placement="bottomRight"
 				>
-					<span style={{ cursor: "pointer" }}>
-						<UserOutlined />
-						<Text style={{ marginLeft: 8 }}>User</Text>
-					</span>
+					<Space style={{ cursor: "pointer", padding: "0 8px" }}>
+						<Avatar size="small" icon={<UserOutlined />} />
+						<span>{displayName}</span>
+					</Space>
 				</Dropdown>,
 			]}
 		>

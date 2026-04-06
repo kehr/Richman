@@ -3,6 +3,7 @@
 
 export {
 	App,
+	Avatar,
 	Button,
 	Card,
 	Checkbox,
