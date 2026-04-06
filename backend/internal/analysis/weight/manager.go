@@ -71,10 +71,19 @@ func (m *Manager) AdjustWeights(base analysis.WeightConfig, adj Adjustment) anal
 	return result
 }
 
-// Risk preference bias deltas applied on top of the current weights. These
-// values come from PRD §6 / TRD §5.4 and must stay within the ±10% allowed
-// range for every asset type.
+// Risk preference bias delta applied on top of the current weights, per
+// PRD §6 / TRD §5.4. The value must stay within the ±10% allowed range for
+// every asset type.
 const riskBiasDelta = 0.05
+
+// Risk preference enum values. These must stay in sync with
+// model.RiskPreferenceConservative / Neutral / Aggressive. A compile-time
+// assertion in the test file verifies the match.
+const (
+	prefConservative = "conservative"
+	prefNeutral      = "neutral"
+	prefAggressive   = "aggressive"
+)
 
 // ApplyRiskBias layers the user's risk_preference bias on top of the provided
 // weights. The bias is added to whatever adjustment the caller already made
@@ -84,32 +93,31 @@ const riskBiasDelta = 0.05
 //
 // Rules:
 //   - conservative -> position +5%, catalyst -5%
-//   - neutral      -> no change (returns a normalized copy)
+//   - neutral      -> returns the input verbatim (no normalization, no clamp)
 //   - aggressive   -> catalyst +5%, position -5%
 //
 // Unknown or empty preference values are treated as neutral. Unknown asset
 // types silently fall back to normalizing the input without any allowed-range
-// clamp, which keeps the function total for callers that operate on custom
-// weight sets in tests.
+// clamp, which keeps the function forgiving for callers that operate on custom
+// weight sets in tests. Trend dimension is never biased.
 func (m *Manager) ApplyRiskBias(
 	current analysis.WeightConfig, assetType, pref string,
 ) analysis.WeightConfig {
-	// Neutral / unknown preference: return the input verbatim after
-	// normalizing to defend against minor floating-point drift in the caller.
-	var trendDelta, posDelta, catDelta float64
+	var posDelta, catDelta float64
 	switch pref {
-	case "conservative":
+	case prefConservative:
 		posDelta = riskBiasDelta
 		catDelta = -riskBiasDelta
-	case "aggressive":
+	case prefAggressive:
 		catDelta = riskBiasDelta
 		posDelta = -riskBiasDelta
 	default:
-		// neutral, empty, or unknown -> no bias.
+		// neutral, empty, or unknown -> exact identity, no clamp, no normalize.
+		return current
 	}
 
 	result := analysis.WeightConfig{
-		Trend:    current.Trend + trendDelta,
+		Trend:    current.Trend,
 		Position: current.Position + posDelta,
 		Catalyst: current.Catalyst + catDelta,
 	}
@@ -125,11 +133,6 @@ func (m *Manager) ApplyRiskBias(
 		result.Catalyst = clamp(result.Catalyst,
 			base.Catalyst-maxAdjustment, base.Catalyst+maxAdjustment)
 	}
-
-	// Guard against negatives from pathological inputs before normalization.
-	result.Trend = math.Max(result.Trend, 0.01)
-	result.Position = math.Max(result.Position, 0.01)
-	result.Catalyst = math.Max(result.Catalyst, 0.01)
 
 	total := result.Trend + result.Position + result.Catalyst
 	if total > 0 {

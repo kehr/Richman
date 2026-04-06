@@ -5,9 +5,19 @@ import (
 	"testing"
 
 	"github.com/richman/backend/internal/analysis"
+	"github.com/richman/backend/internal/model"
 )
 
 const epsilon = 1e-9
+
+// Compile-time assertion that the weight package's local risk preference
+// string constants match the canonical values defined in the model package.
+// If any of these drift, the build fails.
+var _ = [1]struct{}{}[map[bool]int{
+	prefConservative == model.RiskPreferenceConservative &&
+		prefNeutral == model.RiskPreferenceNeutral &&
+		prefAggressive == model.RiskPreferenceAggressive: 0,
+}[true]]
 
 func TestGetBaseWeightsAllTypes(t *testing.T) {
 	m := NewManager()

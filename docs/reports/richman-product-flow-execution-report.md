@@ -254,4 +254,48 @@ Reviewer 结论：**Approve with minor follow-ups requested**。无 Critical，5
 5-9. reviewer 确认的"non-blocking" 观察项，详见上方 code quality review 原文
 
 ### Step 03 状态: **COMPLETED** ✅
-- Commits (ordered): `25726b7` → `d2868b0` → `50d525f` → `16537ec` → `29128d9` → `<inline rename commit pending>`
+- Commits (ordered): `25726b7` → `d2868b0` → `50d525f` → `16537ec` → `29128d9` → `9ebb00b`
+
+## Step 04 权重管理器 risk_preference bias
+
+### 实施结果
+- Commit: `70f14e4` feat(weight): apply risk_preference bias on top of base weights
+- 修改 `model/user.go`：新增 `RiskPreference string` 字段 + 3 个 enum 常量
+- 修改 `repo/user_repo.go`：集中 `userSelectColumns` 常量，所有 `GetUserBy*` 方法同步读新列；新增 `GetRiskPreference(ctx, userID) (string, error)` 单列查询 helper
+- 修改 `analysis/weight/manager.go`：新增 `ApplyRiskBias(current, assetType, pref)` 方法，与已有 `GetBaseWeights` / `AdjustWeights` 并存
+- 修改 `service/analysis/service.go`：Deps 新增 `UserRepo`，AnalyzeHolding 按 `GetBaseWeights → ApplyRiskBias` 两步流水运行
+- 修改 `cmd/server/main.go`：wire userRepo 进 analysisService.Deps
+- 测试：12 个测试函数、30+ 个子测试，覆盖 neutral identity、sum-to-one、direction、truncation、range bounds
+
+### Review 反馈与修复（controller inline）
+
+Code quality review 返回 **Request minor changes**（3 Important + 9 Minor）。3 Important 已 inline 修复：
+
+| 编号 | 问题 | 修复 |
+|---|---|---|
+| I1 | neutral 路径不是真 no-op，会走 clamp+normalize 造成浮点漂移风险 | `default:` 分支改为 `return current` 直接 early return |
+| I2 | `math.Max(x, 0.01)` 在生产路径是死代码，在 unknown asset type 路径会静默改写合法输入 | 删除 ApplyRiskBias 里的 floor 语句（AdjustWeights 保留不动） |
+| I3 | switch 用字符串字面量 `"conservative"` 而不是常量，与 model 包有漂移风险 | 新增包内常量 `prefConservative/Neutral/Aggressive`；测试文件加 compile-time 断言验证与 `model.RiskPreferenceXxx` 值一致；switch 改用常量 |
+| M1 | `trendDelta` 声明但恒为 0 | 删除，`result.Trend = current.Trend` 显式表达 |
+
+修复验证：
+- `go test ./internal/analysis/weight/... -v` 全绿（原有 12 个测试函数 + 30 子测试均保持通过）
+- `go test ./...` 全绿
+- `go vet ./...` 无警告
+- Compile-time 断言：如果 weight 包的 `prefXxx` 与 `model.RiskPreferenceXxx` 发生漂移，build 会直接 fail
+
+### 延后项（6 条 Minor 记录不修复）
+
+| 编号 | 问题 | 原因 |
+|---|---|---|
+| M2 | Unknown asset type 的 "skip clamp" 行为无测试 | 生产路径只有 4 种已知 asset type，unknown 是 test-friendly 保留路径 |
+| M3 | 文档 comment "keeps the function total" typo | inline 改为 "keeps the function forgiving" 时顺手处理，已修 |
+| M4 | `TestApplyRiskBiasDirection` 只覆盖 `a_share_broad` | 后续补 |
+| M5 | SumsToOne 测试可以更 table-driven | 风格项 |
+| M6 | 空串/unknown 值的 sum-to-one 覆盖 | 已在 M1 修复的 early return 下等效覆盖 |
+| M7 | service 集成路径（nil repo / error / empty pref）的单测缺失 | 需要构造 mock userRepo，留到 Step 21 E2E 统一补 |
+| M8 | `ApplyRiskBias` 命名可更明确 `BiasByRiskPreference` | 接受 reviewer "fine if kept" |
+| M9 | service pipeline 注释可更明确 | 风格项 |
+
+### Step 04 状态: **COMPLETED** ✅
+- Commits: `70f14e4`（主实施）+ `<inline fix pending>`（I1/I2/I3/M3 修复）
