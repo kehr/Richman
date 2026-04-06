@@ -5,6 +5,7 @@ export {
 	App,
 	Button,
 	Card,
+	Checkbox,
 	Col,
 	ConfigProvider,
 	DatePicker,
@@ -44,6 +45,8 @@ export {
 	Flex,
 	theme,
 } from "antd";
+
+export type { ThemeConfig } from "antd";
 
 export {
 	ProLayout,
