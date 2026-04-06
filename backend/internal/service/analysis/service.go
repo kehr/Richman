@@ -27,6 +27,7 @@ type Service struct {
 	holdingRepo     *repo.HoldingRepo
 	cardRepo        *repo.DecisionCardRepo
 	resultRepo      *repo.AnalysisResultRepo
+	userRepo        *repo.UserRepo
 	fetcher         *datasource.Fetcher
 	trendCalc       *trend.Calculator
 	posCalc         *position.Calculator
@@ -47,6 +48,7 @@ type Deps struct {
 	HoldingRepo     *repo.HoldingRepo
 	CardRepo        *repo.DecisionCardRepo
 	ResultRepo      *repo.AnalysisResultRepo
+	UserRepo        *repo.UserRepo
 	Fetcher         *datasource.Fetcher
 	TrendCalc       *trend.Calculator
 	PosCalc         *position.Calculator
@@ -76,6 +78,7 @@ func NewService(deps *Deps) *Service {
 		holdingRepo:     deps.HoldingRepo,
 		cardRepo:        deps.CardRepo,
 		resultRepo:      deps.ResultRepo,
+		userRepo:        deps.UserRepo,
 		fetcher:         deps.Fetcher,
 		trendCalc:       deps.TrendCalc,
 		posCalc:         deps.PosCalc,
@@ -235,7 +238,10 @@ func (s *Service) AnalyzeHolding(
 		}
 	}
 
-	// Step 6: Get weights.
+	// Step 6: Get weights, then layer the user's risk_preference bias on top
+	// of the base weights. A missing user or lookup error falls back to the
+	// neutral preference so weight selection stays available when the user
+	// repo is temporarily unreachable.
 	weights, err := s.weightMgr.GetBaseWeights(holding.AssetType)
 	if err != nil {
 		s.logger.Warn("failed to get weights, using equal weights",
@@ -244,6 +250,20 @@ func (s *Service) AnalyzeHolding(
 		)
 		weights = analysis.WeightConfig{Trend: 0.33, Position: 0.34, Catalyst: 0.33}
 	}
+
+	riskPref := model.RiskPreferenceNeutral
+	if s.userRepo != nil {
+		pref, prefErr := s.userRepo.GetRiskPreference(ctx, userID)
+		if prefErr != nil {
+			s.logger.Warn("failed to load risk preference, using neutral",
+				zap.Int64("user_id", userID),
+				zap.Error(prefErr),
+			)
+		} else if pref != "" {
+			riskPref = pref
+		}
+	}
+	weights = s.weightMgr.ApplyRiskBias(weights, holding.AssetType, riskPref)
 
 	// Step 7: Calculate confidence.
 	conf := s.confCalc.Calculate(confidence.Input{

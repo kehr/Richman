@@ -71,6 +71,75 @@ func (m *Manager) AdjustWeights(base analysis.WeightConfig, adj Adjustment) anal
 	return result
 }
 
+// Risk preference bias deltas applied on top of the current weights. These
+// values come from PRD §6 / TRD §5.4 and must stay within the ±10% allowed
+// range for every asset type.
+const riskBiasDelta = 0.05
+
+// ApplyRiskBias layers the user's risk_preference bias on top of the provided
+// weights. The bias is added to whatever adjustment the caller already made
+// (for example LLM-driven adjustments) and is clamped to the asset type's
+// allowed range (base ± 10%) before being normalized so the three dimensions
+// still sum to 1.0.
+//
+// Rules:
+//   - conservative -> position +5%, catalyst -5%
+//   - neutral      -> no change (returns a normalized copy)
+//   - aggressive   -> catalyst +5%, position -5%
+//
+// Unknown or empty preference values are treated as neutral. Unknown asset
+// types silently fall back to normalizing the input without any allowed-range
+// clamp, which keeps the function total for callers that operate on custom
+// weight sets in tests.
+func (m *Manager) ApplyRiskBias(
+	current analysis.WeightConfig, assetType, pref string,
+) analysis.WeightConfig {
+	// Neutral / unknown preference: return the input verbatim after
+	// normalizing to defend against minor floating-point drift in the caller.
+	var trendDelta, posDelta, catDelta float64
+	switch pref {
+	case "conservative":
+		posDelta = riskBiasDelta
+		catDelta = -riskBiasDelta
+	case "aggressive":
+		catDelta = riskBiasDelta
+		posDelta = -riskBiasDelta
+	default:
+		// neutral, empty, or unknown -> no bias.
+	}
+
+	result := analysis.WeightConfig{
+		Trend:    current.Trend + trendDelta,
+		Position: current.Position + posDelta,
+		Catalyst: current.Catalyst + catDelta,
+	}
+
+	// Clamp each dimension to the allowed range defined by the asset type's
+	// base weights ± maxAdjustment. If the asset type is unknown we skip the
+	// clamp to avoid surprising callers that pass ad-hoc weight configs.
+	if base, ok := baseWeights[assetType]; ok {
+		result.Trend = clamp(result.Trend,
+			base.Trend-maxAdjustment, base.Trend+maxAdjustment)
+		result.Position = clamp(result.Position,
+			base.Position-maxAdjustment, base.Position+maxAdjustment)
+		result.Catalyst = clamp(result.Catalyst,
+			base.Catalyst-maxAdjustment, base.Catalyst+maxAdjustment)
+	}
+
+	// Guard against negatives from pathological inputs before normalization.
+	result.Trend = math.Max(result.Trend, 0.01)
+	result.Position = math.Max(result.Position, 0.01)
+	result.Catalyst = math.Max(result.Catalyst, 0.01)
+
+	total := result.Trend + result.Position + result.Catalyst
+	if total > 0 {
+		result.Trend /= total
+		result.Position /= total
+		result.Catalyst /= total
+	}
+	return result
+}
+
 func clamp(value, lower, upper float64) float64 {
 	if value < lower {
 		return lower

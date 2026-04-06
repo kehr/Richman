@@ -139,6 +139,7 @@ func main() {
 		HoldingRepo:     holdingRepo,
 		CardRepo:        cardRepo,
 		ResultRepo:      resultRepo,
+		UserRepo:        userRepo,
 		Fetcher:         fetcher,
 		TrendCalc:       trend.NewCalculator(),
 		PosCalc:         position.NewCalculator(),
