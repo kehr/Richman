@@ -45,9 +45,9 @@ type DecisionCard struct {
 	ExecutionFingerprint string                        `json:"executionFingerprint"`
 }
 
-// RecommendationDetailJSON returns the structured recommendation as a JSON
+// RecommendationJSONBytes returns the structured recommendation as a JSON
 // byte slice for DB storage in the recommendation_json JSONB column.
-func (d *DecisionCard) RecommendationDetailJSON() ([]byte, error) {
+func (d *DecisionCard) RecommendationJSONBytes() ([]byte, error) {
 	return json.Marshal(d.Recommendation)
 }
 

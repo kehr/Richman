@@ -129,9 +129,9 @@ func (r *DecisionCardRepo) insertDecisionCardOn(
 	if err != nil {
 		return nil, fmt.Errorf("marshal risk warnings: %w", err)
 	}
-	recJSON, err := card.RecommendationDetailJSON()
+	recJSON, err := card.RecommendationJSONBytes()
 	if err != nil {
-		return nil, fmt.Errorf("marshal recommendation detail: %w", err)
+		return nil, fmt.Errorf("marshal recommendation: %w", err)
 	}
 
 	row := q.QueryRow(ctx, insertDecisionCardSQL,

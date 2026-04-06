@@ -233,5 +233,25 @@ Reviewer 结论：**Approve with minor follow-ups requested**。无 Critical，5
 ### Review 结果
 - Spec compliance (main Step 03): ✅ Pass
 - Code quality (main Step 03): ✅ Approve with minor follow-ups（已在 fix pass 中全部处理）
-- **Step 03 fix pass review**: 延后至 60 分钟冷却结束后派发 spec + code quality 两轮 review，通过后才标记 Step 03 为 completed
-- Step 03 状态: **in_progress**（冷却中，待 fix pass review 完成）
+- Spec compliance (Step 03 fix pass): ✅ Pass — 所有 8 项 fix 全部通过 grep + 测试 + 代码检查
+- Code quality (Step 03 fix pass): ✅ Approve with minor follow-ups
+
+### Step 03 fix pass 的 code quality review 观察项
+
+**2 项 Important（已在 controller inline 处理）:**
+1. `RecommendationDetailJSON()` 方法名在 Rule A 字段重命名后 stale（"Detail" 已无意义）
+   - **已修复**: 重命名为 `RecommendationJSONBytes()`，更新 `decision_card_repo.go:132` 的唯一 caller，build + vet + test 通过
+2. **API JSON 合约变更**: `model.DecisionCard` 的 `json:"recommendation"` tag 现在序列化的是完整的结构化 `recommendation.Recommendation` 对象（旧版是 plain string）
+   - **当前 grep 确认** `backend/internal/api` 和 `backend/internal/notification` 没有任何地方依赖旧的 string 形态
+   - **Step 09 API DTO alignment 必须知晓**: Dashboard / 详情页 / 推送渠道的 JSON 响应里 `"recommendation"` 字段从 string 变成了对象，前端消费时需要按新 schema 渲染
+   - **记录此项供 Step 09 参考**，不再额外修改
+
+**9 项 Minor（延后 / 不修复）:**
+1. shallow copy `toPersist := *card` 的 slice 共享问题：当前只 mutate 标量字段所以安全；注释可以更明确"only scalar diff fields are mutated"。**不改**
+2. TODO(degraded) 注释位置在 call site 上方而非 `false` 字面量旁：readability micro-polish。**不改**
+3. Commit `16537ec` bundle 了 7 个 fix 导致难以单独 revert：接受现状，下次 fix pass 拆更细
+4. Migration 009 down 恢复的 DEFAULT `''` 与原列定义（无 DEFAULT）不完全一致：无语义影响，可接受
+5-9. reviewer 确认的"non-blocking" 观察项，详见上方 code quality review 原文
+
+### Step 03 状态: **COMPLETED** ✅
+- Commits (ordered): `25726b7` → `d2868b0` → `50d525f` → `16537ec` → `29128d9` → `<inline rename commit pending>`
