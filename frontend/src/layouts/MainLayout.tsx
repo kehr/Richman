@@ -1,3 +1,4 @@
+import { layoutToken } from "@/config/theme";
 import { clearAuth } from "@/domain/auth/storage";
 import { useCurrentUser } from "@/domain/auth/use-current-user";
 import {
@@ -47,9 +48,12 @@ export function MainLayout() {
 		<ProLayout
 			title="Richman"
 			logo="/logo.svg"
-			layout="mix"
+			layout="side"
 			fixSiderbar
-			collapsed={collapsed}
+			token={layoutToken}
+			collapsed={false}
+			collapsedButtonRender={false}
+			// collapsed={collapsed}
 			onCollapse={setCollapsed}
 			location={{ pathname: location.pathname }}
 			route={menuRoutes}

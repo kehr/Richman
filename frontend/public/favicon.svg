@@ -1,11 +1,27 @@
-<svg viewBox="0 0 32 32" width="32" height="32" xmlns="http://www.w3.org/2000/svg">
+<svg viewBox="0 0 64 64" width="64" height="64" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="faviconTitle">
+  <title id="faviconTitle">Richman favicon</title>
   <defs>
-    <linearGradient id="fg" x1="0%" y1="100%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#1E40AF"/>
-      <stop offset="100%" stop-color="#3B82F6"/>
+    <linearGradient id="favTile" x1="10" y1="8" x2="54" y2="56" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#1A1A1D"/>
+      <stop offset="100%" stop-color="#0B0B0D"/>
     </linearGradient>
   </defs>
-  <path d="M16 2 L28 10 L28 20 L16 30 L4 20 L4 10 Z" fill="url(#fg)"/>
-  <path d="M9 20 L14 14 L18 17 L24 10" stroke="#FFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-  <path d="M21 10 L24 10 L24 13" stroke="#FFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+
+  <rect x="5" y="5" width="54" height="54" rx="16" fill="url(#favTile)"/>
+  <path
+    d="M21.5 16.5
+       V48
+       M21.5 16.5
+       H33
+       C39.1 16.5 43 20.2 43 26
+       C43 31.8 39.1 35.5 33 35.5
+       H21.5
+       M33 35.5
+       L44.3 48"
+    fill="none"
+    stroke="#F5F5F7"
+    stroke-width="5"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
 </svg>
