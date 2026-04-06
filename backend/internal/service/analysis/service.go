@@ -6,10 +6,13 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/richman/backend/internal/analysis"
 	"github.com/richman/backend/internal/analysis/catalyst"
 	"github.com/richman/backend/internal/analysis/confidence"
+	"github.com/richman/backend/internal/analysis/diff"
 	"github.com/richman/backend/internal/analysis/position"
+	"github.com/richman/backend/internal/analysis/recommendation"
 	"github.com/richman/backend/internal/analysis/synthesis"
 	"github.com/richman/backend/internal/analysis/trend"
 	"github.com/richman/backend/internal/analysis/weight"
@@ -251,7 +254,7 @@ func (s *Service) AnalyzeHolding(
 	})
 
 	// Step 8: Decide recommendation.
-	recommendation := s.matrix.Decide(trendResult, posResult, catResult, weights)
+	rec := s.matrix.Decide(trendResult, posResult, catResult, weights)
 
 	// Step 9: Synthesize card content.
 	costPrice, _ := holding.CostPrice.Float64()
@@ -266,7 +269,7 @@ func (s *Service) AnalyzeHolding(
 		Catalyst:       catResult,
 		Weights:        weights,
 		Confidence:     conf,
-		Recommendation: recommendation,
+		Recommendation: rec,
 		CostPrice:      costPrice,
 		PositionRatio:  posRatio,
 	})
@@ -276,34 +279,47 @@ func (s *Service) AnalyzeHolding(
 
 	now := time.Now()
 
-	// Build decision card.
+	// Compute execution fingerprint from the structured recommendation. The
+	// fingerprint is stable across LLM retries and feeds the badge diff
+	// algorithm's plan-adjustment check.
+	fingerprint := recommendation.Fingerprint(
+		synthOutput.Recommendation.TargetPositionPct,
+		synthOutput.Recommendation.Execution,
+	)
+
+	// Build decision card (prev_card_id, badge_state, confidence_delta are
+	// filled inside the persistence transaction below).
 	card := &model.DecisionCard{
-		UserID:            userID,
-		HoldingID:         holding.HoldingID,
-		AssetCode:         holding.AssetCode,
-		AssetName:         holding.AssetName,
-		AssetType:         holding.AssetType,
-		CostPrice:         costPrice,
-		PositionRatio:     posRatio,
-		TrendDirection:    string(trendResult.Direction),
-		TrendSummary:      synthOutput.TrendSummary,
-		PositionDirection: string(posResult.Assessment),
-		PositionSummary:   synthOutput.PositionSummary,
-		CatalystDirection: string(catResult.Direction),
-		CatalystSummary:   synthOutput.CatalystSummary,
-		Confidence:        conf,
-		Recommendation:    string(recommendation),
-		ActionAdvice:      synthOutput.ActionAdvice,
-		DetailedAdvice:    synthOutput.DetailedAdvice,
-		RiskWarnings:      synthOutput.RiskWarnings,
-		TodayHighlights:   synthOutput.TodayHighlights,
-		WeightTrend:       weights.Trend,
-		WeightPosition:    weights.Position,
-		WeightCatalyst:    weights.Catalyst,
-		AnalyzedAt:        now,
+		UserID:               userID,
+		HoldingID:            holding.HoldingID,
+		AssetCode:            holding.AssetCode,
+		AssetName:            holding.AssetName,
+		AssetType:            holding.AssetType,
+		CostPrice:            costPrice,
+		PositionRatio:        posRatio,
+		TrendDirection:       string(trendResult.Direction),
+		TrendSummary:         synthOutput.TrendSummary,
+		PositionDirection:    string(posResult.Assessment),
+		PositionSummary:      synthOutput.PositionSummary,
+		CatalystDirection:    string(catResult.Direction),
+		CatalystSummary:      synthOutput.CatalystSummary,
+		Confidence:           conf,
+		Recommendation:       string(rec),
+		ActionAdvice:         synthOutput.ActionAdvice,
+		DetailedAdvice:       synthOutput.DetailedAdvice,
+		RiskWarnings:         synthOutput.RiskWarnings,
+		TodayHighlights:      synthOutput.TodayHighlights,
+		WeightTrend:          weights.Trend,
+		WeightPosition:       weights.Position,
+		WeightCatalyst:       weights.Catalyst,
+		AnalyzedAt:           now,
+		RecommendationJSON:   synthOutput.Recommendation,
+		ActionLevel:          synthOutput.Recommendation.ActionLevel,
+		TargetPositionRatio:  synthOutput.Recommendation.TargetPositionPct / 100,
+		ExecutionFingerprint: fingerprint,
 	}
 
-	// Step 10: Persist raw analysis result.
+	// Step 10: Persist raw analysis result (non-critical, runs outside tx).
 	rawResult := analysis.AnalysisResult{
 		AssetCode:      holding.AssetCode,
 		AssetType:      holding.AssetType,
@@ -312,7 +328,7 @@ func (s *Service) AnalyzeHolding(
 		Catalyst:       catResult,
 		Weights:        weights,
 		Confidence:     conf,
-		Recommendation: recommendation,
+		Recommendation: rec,
 		AnalyzedAt:     now,
 	}
 	rawJSON, _ := json.Marshal(rawResult)
@@ -321,19 +337,99 @@ func (s *Service) AnalyzeHolding(
 		s.logger.Warn("failed to save analysis result", zap.Error(saveErr))
 	}
 
-	// Step 11: Persist decision card.
-	saved, err := s.cardRepo.CreateDecisionCard(ctx, card)
+	// Step 11: Persist decision card with badge diff inside a transaction.
+	saved, err := s.persistDecisionCardWithDiff(ctx, card)
 	if err != nil {
 		return nil, fmt.Errorf("save decision card: %w", err)
 	}
 
 	s.logger.Info("analysis completed",
 		zap.Int64("holding_id", holding.HoldingID),
-		zap.String("recommendation", string(recommendation)),
+		zap.String("recommendation", string(rec)),
 		zap.Float64("confidence", conf),
+		zap.String("badge_state", saved.BadgeState),
 	)
 
 	return saved, nil
+}
+
+// persistDecisionCardWithDiff wraps the previous-card lookup and new-card
+// insert inside a single transaction so concurrent analyses on the same
+// holding cannot produce interleaved prev_card_id chains. The caller must
+// have already populated every field on card except PrevCardID, BadgeState,
+// and ConfidenceDelta, which are computed here from diff.Compute.
+func (s *Service) persistDecisionCardWithDiff(
+	ctx context.Context, card *model.DecisionCard,
+) (*model.DecisionCard, error) {
+	pool := s.cardRepo.Pool()
+	if pool == nil {
+		// No pool available (e.g. in unit tests that inject a nil pool);
+		// fall back to the non-transactional path so tests can still run.
+		return s.cardRepo.CreateDecisionCard(ctx, card)
+	}
+
+	tx, err := pool.BeginTx(ctx, pgx.TxOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("begin tx: %w", err)
+	}
+	defer func() {
+		_ = tx.Rollback(ctx)
+	}()
+
+	prev, err := s.cardRepo.GetLatestByHoldingTx(ctx, tx, card.HoldingID)
+	if err != nil {
+		return nil, fmt.Errorf("get latest card: %w", err)
+	}
+
+	badge, delta := computeCardDiff(card, prev, false)
+	card.BadgeState = string(badge)
+	card.ConfidenceDelta = delta
+	if prev != nil {
+		prevID := prev.CardID
+		card.PrevCardID = &prevID
+	}
+
+	saved, err := s.cardRepo.CreateDecisionCardTx(ctx, tx, card)
+	if err != nil {
+		return nil, fmt.Errorf("insert decision card: %w", err)
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return nil, fmt.Errorf("commit tx: %w", err)
+	}
+	return saved, nil
+}
+
+// computeCardDiff is a pure helper that derives the badge state and
+// confidence delta for a new card given the previous card (may be nil) and
+// the data-source degraded flag. Extracted so unit tests can exercise every
+// branch without a database.
+func computeCardDiff(
+	current *model.DecisionCard, previous *model.DecisionCard, degraded bool,
+) (diff.BadgeState, float64) {
+	cur := buildCardSnapshot(current)
+	input := diff.Input{Current: cur, DataSourceDegraded: degraded}
+	if previous != nil {
+		prev := buildCardSnapshot(previous)
+		input.Previous = &prev
+	}
+	return diff.Compute(input)
+}
+
+// buildCardSnapshot converts a model.DecisionCard into a diff.CardSnapshot.
+// It exists to keep the explicit string conversions in one place so typos in
+// direction field mapping surface at the helper level instead of at every
+// call site.
+func buildCardSnapshot(card *model.DecisionCard) diff.CardSnapshot {
+	return diff.CardSnapshot{
+		ActionLevel:          card.ActionLevel,
+		TargetPositionPct:    card.TargetPositionRatio * 100,
+		Confidence:           card.Confidence,
+		TrendDirection:       string(card.TrendDirection),
+		PositionDirection:    string(card.PositionDirection),
+		CatalystDirection:    string(card.CatalystDirection),
+		ExecutionFingerprint: card.ExecutionFingerprint,
+	}
 }
 
 func (s *Service) holdingContext(parent context.Context) (context.Context, context.CancelFunc) {
