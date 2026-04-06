@@ -211,7 +211,8 @@ func (s *Service) allow(userID int64) bool {
 	defer s.mu.Unlock()
 
 	timestamps := s.attempts[userID]
-	// Drop stale entries in-place.
+	// Drop stale entries in-place; the new slice reuses the old backing
+	// array, so returning users do not accumulate garbage over time.
 	kept := timestamps[:0]
 	for _, t := range timestamps {
 		if t.After(cutoff) {
@@ -224,6 +225,23 @@ func (s *Service) allow(userID int64) bool {
 	}
 	s.attempts[userID] = append(kept, now)
 	return true
+}
+
+// janitorSweep removes map entries whose most-recent attempt is older than
+// the rate-limit window. This is the only way to reclaim memory for users
+// who made one request and never returned — the normal allow() path never
+// runs for them. Callers can invoke this from a background ticker or from
+// tests. It is safe to call concurrently with allow().
+func (s *Service) janitorSweep() {
+	now := s.now()
+	cutoff := now.Add(-s.window)
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for userID, timestamps := range s.attempts {
+		if len(timestamps) == 0 || !timestamps[len(timestamps)-1].After(cutoff) {
+			delete(s.attempts, userID)
+		}
+	}
 }
 
 // handleVisionError converts a typed VisionProvider error into a

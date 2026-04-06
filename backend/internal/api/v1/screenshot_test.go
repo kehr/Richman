@@ -73,11 +73,21 @@ func buildMultipart(t *testing.T, field, filename, mime string, body []byte) (*b
 	return &buf, w.FormDataContentType()
 }
 
+// fakePNGBytes returns a minimal byte slice that begins with the PNG magic
+// signature so http.DetectContentType classifies it as "image/png". The
+// handler sniffs the bytes directly rather than trusting the multipart
+// part's Content-Type header, so tests must use bytes that actually look
+// like an image.
+func fakePNGBytes() []byte {
+	header := []byte{0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A}
+	return append(header, []byte("payload")...)
+}
+
 func TestScreenshotHandler_HappyPath(t *testing.T) {
 	svc := screenshot.NewService(&stubVision{content: okPayload}, zap.NewNop(), screenshot.Options{})
 	r := newTestRouter(svc, 42)
 
-	body, ct := buildMultipart(t, "file", "portfolio.png", "image/png", []byte("fake-png-bytes"))
+	body, ct := buildMultipart(t, "file", "portfolio.png", "image/png", fakePNGBytes())
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/portfolio/import-screenshot", body)
 	req.Header.Set("Content-Type", ct)
 
@@ -105,7 +115,7 @@ func TestScreenshotHandler_Unauthenticated(t *testing.T) {
 	svc := screenshot.NewService(&stubVision{content: okPayload}, zap.NewNop(), screenshot.Options{})
 	r := newTestRouter(svc, 0)
 
-	body, ct := buildMultipart(t, "file", "portfolio.png", "image/png", []byte("fake"))
+	body, ct := buildMultipart(t, "file", "portfolio.png", "image/png", fakePNGBytes())
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/portfolio/import-screenshot", body)
 	req.Header.Set("Content-Type", ct)
 
@@ -158,7 +168,7 @@ func TestScreenshotHandler_RateLimited(t *testing.T) {
 	r := newTestRouter(svc, 42)
 
 	doCall := func() *httptest.ResponseRecorder {
-		body, ct := buildMultipart(t, "file", "a.png", "image/png", []byte("x"))
+		body, ct := buildMultipart(t, "file", "a.png", "image/png", fakePNGBytes())
 		req := httptest.NewRequest(http.MethodPost, "/api/v1/portfolio/import-screenshot", body)
 		req.Header.Set("Content-Type", ct)
 		w := httptest.NewRecorder()
@@ -182,7 +192,7 @@ func TestScreenshotHandler_VisionDegrades(t *testing.T) {
 	)
 	r := newTestRouter(svc, 42)
 
-	body, ct := buildMultipart(t, "file", "a.png", "image/png", []byte("x"))
+	body, ct := buildMultipart(t, "file", "a.png", "image/png", fakePNGBytes())
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/portfolio/import-screenshot", body)
 	req.Header.Set("Content-Type", ct)
 

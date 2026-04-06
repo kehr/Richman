@@ -1,6 +1,7 @@
 package v1
 
 import (
+	"errors"
 	"io"
 	"net/http"
 	"strings"
@@ -56,6 +57,19 @@ func (h *ScreenshotHandler) ImportScreenshot(c *gin.Context) {
 
 	fileHeader, err := c.FormFile("file")
 	if err != nil {
+		// If the MaxBytesReader tripped, surface a 413 instead of a generic
+		// validation error so clients can distinguish "oversized upload"
+		// from "missing file" without inspecting the error string.
+		var maxBytesErr *http.MaxBytesError
+		if errors.As(err, &maxBytesErr) {
+			c.JSON(http.StatusRequestEntityTooLarge, gin.H{
+				"error": gin.H{
+					"code":    "FILE_TOO_LARGE",
+					"message": "image must be no larger than 5 MB",
+				},
+			})
+			return
+		}
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": gin.H{
 				"code":    "VALIDATION_ERROR",
@@ -99,10 +113,12 @@ func (h *ScreenshotHandler) ImportScreenshot(c *gin.Context) {
 		return
 	}
 
-	mime := fileHeader.Header.Get("Content-Type")
-	if mime == "" {
-		mime = http.DetectContentType(data)
-	}
+	// Do not trust the client-supplied Content-Type on the multipart part —
+	// a hostile client can claim image/png for arbitrary bytes. Sniff the
+	// actual bytes to derive the MIME type; this also removes the need to
+	// maintain a separate MIME map here since screenshot.Service enforces
+	// the allowlist.
+	mime := http.DetectContentType(data)
 
 	resp, err := h.service.Recognize(c.Request.Context(), userID, screenshot.RecognizeRequest{
 		ImageData: data,

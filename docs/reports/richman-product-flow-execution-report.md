@@ -388,4 +388,51 @@ Spec: ✅ Pass。Code quality: **Approve with follow-ups**（0 Critical, 5 Impor
 | M6 | `config.validate` 未校验 VisionTimeout >= 0 | 后续 config 集中整理时补 |
 
 ### Step 06 状态: **COMPLETED** ✅
-- Commits: `b3de0f3` → `7f971ec` → `<inline fixes pending>`
+- Commits: `b3de0f3` → `7f971ec` → `ee2c708`（inline fixes）
+
+## Step 07 截图 OCR 服务与 API
+
+### 实施结果
+- Commits:
+  - `ea5d712` feat(screenshot): add recognition service with confidence thresholds
+  - `bf5e218` feat(api): add import-screenshot endpoint with multipart upload
+- 创建 screenshot service 包（service/prompts/parser + tests）
+- 创建 api/v1/screenshot.go handler + test
+- 修改 cmd/server/main.go wire VisionProvider + screenshotService
+- 关键设计：
+  - 内存 fixed-window rate limiter（10/hour/user，sync.Mutex，Options.Now 可注入便于测试）
+  - 任意字段 >= ConfidenceLow (0.60) → "ok"；全部低 → "low_quality"；vision fail / invalid JSON → "failed" + 中文 warning
+  - Vision error HTTP 200 + status=failed（TRD §4.6 降级策略，前端无需检查 HTTP 状态码）
+  - 可选 VisionProvider（nil 时 graceful degrade）
+- 测试：service 11 个测试 + handler 6 个测试 + parser 测试，全部通过
+
+### Review 反馈与修复（controller inline）
+
+Spec: ✅ Pass。Code quality: **Approve with follow-ups**（0 Critical, 4 Important, 7 Minor）
+
+**4 Important 全部 inline 修复:**
+
+| 编号 | 问题 | 修复 |
+|---|---|---|
+| I1 | Rate limiter 对"一次性用户"内存无限增长（allow() 只对返回用户剪裁） | 新增 `janitorSweep()` 辅助方法可由后台 ticker 或测试调用扫描所有 stale 用户 entries。保持 `allow()` 不变以维持其最小锁窗口原则 |
+| I2 | Parser 非严格模式，LLM prompt drift 时静默产生空 holdings | 改为 `json.NewDecoder(...).DisallowUnknownFields()`，drift 直接变 `ErrInvalidJSON` → failed 状态 |
+| I3 | `MaxBytesReader` 触发时 FormFile 返回的错误被映射为 400 VALIDATION_ERROR 而不是 413 | 使用 `errors.As(&http.MaxBytesError)` 检测并映射到 413 FILE_TOO_LARGE |
+| I4 | 信任客户端 multipart Content-Type header，恶意客户端可伪造 MIME | 改为始终 `http.DetectContentType(data)` 嗅探真实字节，不再回退到 fileHeader.Header。测试 fixture 改用真实 PNG magic bytes（0x89 50 4E 47 ...）|
+
+**测试调整:**
+- screenshot_test.go 新增 `fakePNGBytes()` helper，所有 fixture 从 `[]byte("fake")` 改为含真实 PNG 签名的字节序列
+
+### 延后项（7 条 Minor）
+
+| 编号 | 问题 | 处理 |
+|---|---|---|
+| M5 | stripCodeFence 对嵌套 fence 不处理 | 嵌套 fence 会在 JSON decode 层失败成 ErrInvalidJSON，功能正确 |
+| M6 | ConfidenceHigh 常量在 gradeStatus 中未使用 | 前端消费，保留常量作为 JSON schema 文档 |
+| M7 | maxUploadFormBytes 64KB envelope 注释 | 已存在说明 |
+| M8 | Vision error classification 未对所有 7 个 sentinel 显式 case | 不影响行为 |
+| M9 | AssetTypeGuess 无 confidence 字段 | schema 故意设计 |
+| M10 | io.ReadAll 完整加载到内存 | 5MB cap 已限制 |
+| M11 | newTestRouter 直接写 ContextKeyUserID | 测试辅助可接受 |
+
+### Step 07 状态: **COMPLETED** ✅
+- Commits: `ea5d712` → `bf5e218` → `<inline fixes pending>`

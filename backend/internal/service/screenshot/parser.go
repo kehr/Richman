@@ -1,6 +1,7 @@
 package screenshot
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"strings"
@@ -48,8 +49,13 @@ func Parse(raw string) (*RecognizeResponse, error) {
 		return nil, ErrInvalidJSON
 	}
 
+	// Strict decoding: reject unknown fields so prompt drift (e.g. the LLM
+	// starts emitting "items" instead of "holdings") surfaces as an explicit
+	// failure rather than silently producing an empty holdings list.
+	dec := json.NewDecoder(bytes.NewReader([]byte(trimmed)))
+	dec.DisallowUnknownFields()
 	var payload llmPayload
-	if err := json.Unmarshal([]byte(trimmed), &payload); err != nil {
+	if err := dec.Decode(&payload); err != nil {
 		return nil, ErrInvalidJSON
 	}
 
