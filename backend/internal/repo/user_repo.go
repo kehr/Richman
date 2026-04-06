@@ -231,3 +231,27 @@ func (r *UserRepo) MarkOnboardingCompleted(
 	}
 	return &u, nil
 }
+
+// ClearOnboardingCompleted resets onboarding_completed_at to NULL so the user
+// is treated as not yet onboarded. Intended for dev-only reset flows; the
+// service layer is responsible for gating production callers.
+func (r *UserRepo) ClearOnboardingCompleted(
+	ctx context.Context, userID int64,
+) (*model.User, error) {
+	var u model.User
+	row := r.pool.QueryRow(ctx,
+		`UPDATE users
+		 SET onboarding_completed_at = NULL,
+		     updated_at = NOW()
+		 WHERE user_id = $1 AND is_deleted = 0
+		 RETURNING `+userSelectColumns,
+		userID,
+	)
+	if err := scanUser(row, &u); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("clear onboarding completed: %w", err)
+	}
+	return &u, nil
+}

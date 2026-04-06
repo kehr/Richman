@@ -201,6 +201,18 @@ func (c *Config) IsDev() bool {
 	return c.App.Env == "dev"
 }
 
+// IsProduction returns true if the application is running in production mode.
+// Any APP_ENV other than "dev", "test", or "staging" is treated as production
+// to fail closed on misconfiguration.
+func (c *Config) IsProduction() bool {
+	switch c.App.Env {
+	case "dev", "test", "staging":
+		return false
+	default:
+		return true
+	}
+}
+
 // getEnv reads an environment variable or returns the fallback value.
 func getEnv(key, fallback string) string {
 	if val := os.Getenv(key); val != "" {
