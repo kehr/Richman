@@ -177,3 +177,33 @@ func (r *HoldingRepo) SoftDeleteHolding(ctx context.Context, holdingID int64, mo
 	}
 	return nil
 }
+
+// ListHoldingsByAssetType returns all active holdings of a given asset type across all users.
+func (r *HoldingRepo) ListHoldingsByAssetType(ctx context.Context, assetType string) ([]model.Holding, error) {
+	rows, err := r.pool.Query(ctx,
+		`SELECT holding_id, user_id, asset_code, asset_name, asset_type,
+		        cost_price, position_ratio, quantity, created_at, updated_at
+		 FROM holdings
+		 WHERE asset_type = $1 AND is_deleted = 0
+		 ORDER BY user_id, created_at DESC`,
+		assetType,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("query holdings by asset type: %w", err)
+	}
+	defer rows.Close()
+
+	var holdings []model.Holding
+	for rows.Next() {
+		var h model.Holding
+		if err := rows.Scan(
+			&h.HoldingID, &h.UserID, &h.AssetCode, &h.AssetName, &h.AssetType,
+			&h.CostPrice, &h.PositionRatio, &h.Quantity,
+			&h.CreatedAt, &h.UpdatedAt,
+		); err != nil {
+			return nil, fmt.Errorf("scan holding: %w", err)
+		}
+		holdings = append(holdings, h)
+	}
+	return holdings, nil
+}

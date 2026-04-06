@@ -23,6 +23,10 @@ import (
 	"github.com/richman/backend/internal/config"
 	"github.com/richman/backend/internal/llm"
 	"github.com/richman/backend/internal/logger"
+	"github.com/richman/backend/internal/notification"
+	emailAdapter "github.com/richman/backend/internal/notification/adapter/email"
+	feishuAdapter "github.com/richman/backend/internal/notification/adapter/feishu"
+	wechatAdapter "github.com/richman/backend/internal/notification/adapter/wechat"
 	"github.com/richman/backend/internal/repo"
 	"github.com/richman/backend/internal/service/auth"
 	"github.com/richman/backend/internal/service/portfolio"
@@ -34,6 +38,7 @@ import (
 
 	analysisService "github.com/richman/backend/internal/service/analysis"
 	decisioncard "github.com/richman/backend/internal/service/decision_card"
+	notificationSvc "github.com/richman/backend/internal/service/notification"
 )
 
 func main() {
@@ -75,6 +80,8 @@ func main() {
 	tradeRepo := repo.NewTradeRepo(dbPool)
 	cardRepo := repo.NewDecisionCardRepo(dbPool)
 	resultRepo := repo.NewAnalysisResultRepo(dbPool)
+	notifChannelRepo := repo.NewNotificationChannelRepo(dbPool)
+	notifLogRepo := repo.NewNotificationLogRepo(dbPool)
 
 	// Initialize services
 	authService := auth.NewService(userRepo, planRepo, inviteRepo, cfg)
@@ -125,6 +132,30 @@ func main() {
 
 	cardService := decisioncard.NewService(cardRepo)
 
+	// Initialize notification system
+	dispatcher := notification.NewDispatcher(zapLogger)
+	dispatcher.Register(wechatAdapter.New(
+		cfg.Notification.WeChatAppID,
+		cfg.Notification.WeChatAppSecret,
+		zapLogger,
+	))
+	dispatcher.Register(feishuAdapter.New(
+		cfg.Notification.FeishuWebhook,
+		zapLogger,
+	))
+	dispatcher.Register(emailAdapter.New(
+		cfg.Notification.SMTPHost,
+		cfg.Notification.SMTPPort,
+		cfg.Notification.SMTPUser,
+		cfg.Notification.SMTPPassword,
+		zapLogger,
+	))
+
+	notifService := notificationSvc.NewService(notifChannelRepo, notifLogRepo, dispatcher, zapLogger)
+
+	// Initialize scheduler
+	scheduler := analysisService.NewScheduler(analysisSvc, notifService, holdingRepo, userRepo, zapLogger)
+
 	// Initialize handlers
 	authHandler := v1.NewAuthHandler(authService)
 	assetCatalogHandler := v1.NewAssetCatalogHandler(assetRepo)
@@ -132,6 +163,7 @@ func main() {
 	analysisHandler := v1.NewAnalysisHandler(analysisSvc)
 	taskHandler := v1.NewTaskHandler(taskStore)
 	cardHandler := v1.NewDecisionCardHandler(cardService)
+	notifHandler := v1.NewNotificationHandler(notifService)
 
 	// Setup Gin
 	if !cfg.IsDev() {
@@ -159,6 +191,10 @@ func main() {
 	analysisHandler.RegisterRoutes(apiV1, authMiddleware)
 	taskHandler.RegisterRoutes(apiV1, authMiddleware)
 	cardHandler.RegisterRoutes(apiV1, authMiddleware)
+	notifHandler.RegisterRoutes(apiV1, authMiddleware)
+
+	// Start scheduler
+	scheduler.Start()
 
 	// Start server
 	srv := &http.Server{
@@ -179,6 +215,9 @@ func main() {
 	<-quit
 
 	zapLogger.Info("shutting down server...")
+
+	// Stop scheduler
+	scheduler.Stop()
 
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
