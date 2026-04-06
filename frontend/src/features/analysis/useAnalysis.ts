@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { fetchTaskStatus, triggerAnalysis } from "./api";
+import { fetchTaskStatus, triggerAnalysis, type AnalysisTaskStatusDto } from "./api";
 
 export function useTriggerAnalysis() {
 	const qc = useQueryClient();
@@ -18,7 +18,7 @@ export function useTaskStatus(taskId: string | null) {
 		select: (res) => res.data,
 		enabled: !!taskId,
 		refetchInterval: (query) => {
-			const status = query.state.data?.data?.status;
+			const status = (query.state.data as AnalysisTaskStatusDto | undefined)?.status;
 			if (status === "completed" || status === "failed") return false;
 			return 3000;
 		},

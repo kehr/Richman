@@ -23,10 +23,10 @@ sqlc:
 	sqlc generate
 
 migrate-up:
-	@echo "placeholder: migrate up"
+	go run ./cmd/migrate up
 
 migrate-down:
-	@echo "placeholder: migrate down"
+	go run ./cmd/migrate down
 
 docker-build:
 	docker build -t richman-api .

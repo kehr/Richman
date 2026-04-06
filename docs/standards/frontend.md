@@ -2,13 +2,12 @@
 
 ## 技术栈
 
-- Next.js 15 (App Router)
-- Ant Design 6 + @ant-design/pro-components
-- TanStack Query v5（数据获取）
-- React hooks（客户端状态）
-- next-intl（i18n）
-- Biome（lint + format）
-- dependency-cruiser（架构边界检查）
+- Vite 6（ESM 原生 dev server） + React 19 + React Router v7
+- Ant Design 6 + @ant-design/pro-components（通过 ui-kit/eat barrel）
+- TanStack Query v5（服务端状态） + 原生 React hooks（客户端状态）
+- 自研 JSON i18n provider（`domain/i18n`）、pnpm + Vite env（`.env.[mode]`）
+- Biome（lint + format）+ dependency-cruiser（架构边界检查）
+- Vitest + React Testing Library + MSW（测试，参考 `docs/standards/testing.md`）
 
 
 ## 目录结构：Pages + Features 双层架构
@@ -91,7 +90,7 @@ App.tsx -> config/ -> pages/ -> features/ -> domain/ -> ui-kit/eat
 | pages/ | 页面组装 | features/*/index（barrel）、domain、ui-kit/eat、layouts | feature 内部文件 |
 | features/ | 自包含业务模块 | domain、ui-kit/eat | **其他 features**、pages |
 | domain/ | 跨模块基础设施 | ui-kit/eat、第三方库 | features、pages |
-| layouts/ | 页面布局 | config、ui-kit/eat、next 路由 | features、domain、pages |
+| layouts/ | 页面布局 | config、ui-kit/eat、React Router | features、domain、pages |
 | ui-kit/ | Ant Design 封装 | antd 包 | 任何业务代码 |
 
 **核心约束：**

@@ -21,6 +21,10 @@ import (
 	"github.com/richman/backend/internal/api/middleware"
 	v1 "github.com/richman/backend/internal/api/v1"
 	"github.com/richman/backend/internal/config"
+	"github.com/richman/backend/internal/datasource"
+	akshare "github.com/richman/backend/internal/datasource/akshare"
+	polymarket "github.com/richman/backend/internal/datasource/polymarket"
+	yahoo "github.com/richman/backend/internal/datasource/yahoo"
 	"github.com/richman/backend/internal/llm"
 	"github.com/richman/backend/internal/logger"
 	"github.com/richman/backend/internal/notification"
@@ -80,6 +84,7 @@ func main() {
 	tradeRepo := repo.NewTradeRepo(dbPool)
 	cardRepo := repo.NewDecisionCardRepo(dbPool)
 	resultRepo := repo.NewAnalysisResultRepo(dbPool)
+	taskRepo := repo.NewAnalysisTaskRepo(dbPool)
 	notifChannelRepo := repo.NewNotificationChannelRepo(dbPool)
 	notifLogRepo := repo.NewNotificationLogRepo(dbPool)
 
@@ -111,23 +116,42 @@ func main() {
 		llmSynthesizer = synthesis.NewSynthesizer(nil, zapLogger)
 	}
 
+	// Initialize datasource clients
+	akshareClient := akshare.New(cfg.Datasource.AKShareBaseURL, zapLogger)
+	yahooClient := yahoo.New(zapLogger)
+	polymarketClient := polymarket.New(zapLogger)
+	fetcher := datasource.NewFetcher(datasource.FetcherDeps{
+		AKShare:    akshareClient,
+		Yahoo:      yahooClient,
+		Polymarket: polymarketClient,
+		Logger:     zapLogger,
+	})
+
 	// Initialize analysis components
-	taskStore := analysisService.NewTaskStore()
+	taskTTL := time.Duration(cfg.Analysis.TaskTTLHours) * time.Hour
+	if taskTTL <= 0 {
+		taskTTL = 24 * time.Hour
+	}
+	taskStore := analysisService.NewTaskStore(taskRepo, taskTTL, zapLogger)
+	defer taskStore.Stop()
+	analysisTimeout := time.Duration(cfg.Analysis.HoldingTimeoutSeconds) * time.Second
 	analysisSvc := analysisService.NewService(&analysisService.Deps{
-		HoldingRepo: holdingRepo,
-		CardRepo:    cardRepo,
-		ResultRepo:  resultRepo,
-		Fetcher:     nil, // Will be set when datasource clients are configured.
-		TrendCalc:   trend.NewCalculator(),
-		PosCalc:     position.NewCalculator(),
-		CatCalc:     catalyst.NewCalculator(),
-		LLMEnhancer: llmEnhancer,
-		Synthesizer: llmSynthesizer,
-		WeightMgr:   weight.NewManager(),
-		ConfCalc:    confidence.NewCalculator(),
-		Matrix:      analysis.NewMatrix(),
-		TaskStore:   taskStore,
-		Logger:      zapLogger,
+		HoldingRepo:     holdingRepo,
+		CardRepo:        cardRepo,
+		ResultRepo:      resultRepo,
+		Fetcher:         fetcher,
+		TrendCalc:       trend.NewCalculator(),
+		PosCalc:         position.NewCalculator(),
+		CatCalc:         catalyst.NewCalculator(),
+		LLMEnhancer:     llmEnhancer,
+		Synthesizer:     llmSynthesizer,
+		WeightMgr:       weight.NewManager(),
+		ConfCalc:        confidence.NewCalculator(),
+		Matrix:          analysis.NewMatrix(),
+		TaskStore:       taskStore,
+		AnalysisTimeout: analysisTimeout,
+		MaxConcurrent:   cfg.Analysis.MaxConcurrentHoldings,
+		Logger:          zapLogger,
 	})
 
 	cardService := decisioncard.NewService(cardRepo)

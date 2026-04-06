@@ -21,57 +21,71 @@ import (
 
 // Service orchestrates the full analysis pipeline.
 type Service struct {
-	holdingRepo *repo.HoldingRepo
-	cardRepo    *repo.DecisionCardRepo
-	resultRepo  *repo.AnalysisResultRepo
-	fetcher     *datasource.Fetcher
-	trendCalc   *trend.Calculator
-	posCalc     *position.Calculator
-	catCalc     *catalyst.Calculator
-	llmEnhancer *catalyst.LLMEnhancer
-	synthesizer *synthesis.Synthesizer
-	weightMgr   *weight.Manager
-	confCalc    *confidence.Calculator
-	matrix      *analysis.Matrix
-	taskStore   *TaskStore
-	logger      *zap.Logger
+	holdingRepo     *repo.HoldingRepo
+	cardRepo        *repo.DecisionCardRepo
+	resultRepo      *repo.AnalysisResultRepo
+	fetcher         *datasource.Fetcher
+	trendCalc       *trend.Calculator
+	posCalc         *position.Calculator
+	catCalc         *catalyst.Calculator
+	llmEnhancer     *catalyst.LLMEnhancer
+	synthesizer     *synthesis.Synthesizer
+	weightMgr       *weight.Manager
+	confCalc        *confidence.Calculator
+	matrix          *analysis.Matrix
+	taskStore       *TaskStore
+	logger          *zap.Logger
+	analysisTimeout time.Duration
+	semaphore       chan struct{}
 }
 
 // Deps holds all dependencies for the analysis Service.
 type Deps struct {
-	HoldingRepo *repo.HoldingRepo
-	CardRepo    *repo.DecisionCardRepo
-	ResultRepo  *repo.AnalysisResultRepo
-	Fetcher     *datasource.Fetcher
-	TrendCalc   *trend.Calculator
-	PosCalc     *position.Calculator
-	CatCalc     *catalyst.Calculator
-	LLMEnhancer *catalyst.LLMEnhancer
-	Synthesizer *synthesis.Synthesizer
-	WeightMgr   *weight.Manager
-	ConfCalc    *confidence.Calculator
-	Matrix      *analysis.Matrix
-	TaskStore   *TaskStore
-	Logger      *zap.Logger
+	HoldingRepo     *repo.HoldingRepo
+	CardRepo        *repo.DecisionCardRepo
+	ResultRepo      *repo.AnalysisResultRepo
+	Fetcher         *datasource.Fetcher
+	TrendCalc       *trend.Calculator
+	PosCalc         *position.Calculator
+	CatCalc         *catalyst.Calculator
+	LLMEnhancer     *catalyst.LLMEnhancer
+	Synthesizer     *synthesis.Synthesizer
+	WeightMgr       *weight.Manager
+	ConfCalc        *confidence.Calculator
+	Matrix          *analysis.Matrix
+	TaskStore       *TaskStore
+	Logger          *zap.Logger
+	AnalysisTimeout time.Duration
+	MaxConcurrent   int
 }
 
 // NewService creates a new analysis Service.
 func NewService(deps *Deps) *Service {
+	var sem chan struct{}
+	if deps.MaxConcurrent > 0 {
+		sem = make(chan struct{}, deps.MaxConcurrent)
+	}
+	timeout := deps.AnalysisTimeout
+	if timeout <= 0 {
+		timeout = 30 * time.Second
+	}
 	return &Service{
-		holdingRepo: deps.HoldingRepo,
-		cardRepo:    deps.CardRepo,
-		resultRepo:  deps.ResultRepo,
-		fetcher:     deps.Fetcher,
-		trendCalc:   deps.TrendCalc,
-		posCalc:     deps.PosCalc,
-		catCalc:     deps.CatCalc,
-		llmEnhancer: deps.LLMEnhancer,
-		synthesizer: deps.Synthesizer,
-		weightMgr:   deps.WeightMgr,
-		confCalc:    deps.ConfCalc,
-		matrix:      deps.Matrix,
-		taskStore:   deps.TaskStore,
-		logger:      deps.Logger,
+		holdingRepo:     deps.HoldingRepo,
+		cardRepo:        deps.CardRepo,
+		resultRepo:      deps.ResultRepo,
+		fetcher:         deps.Fetcher,
+		trendCalc:       deps.TrendCalc,
+		posCalc:         deps.PosCalc,
+		catCalc:         deps.CatCalc,
+		llmEnhancer:     deps.LLMEnhancer,
+		synthesizer:     deps.Synthesizer,
+		weightMgr:       deps.WeightMgr,
+		confCalc:        deps.ConfCalc,
+		matrix:          deps.Matrix,
+		taskStore:       deps.TaskStore,
+		logger:          deps.Logger,
+		analysisTimeout: timeout,
+		semaphore:       sem,
 	}
 }
 
@@ -83,7 +97,7 @@ func (s *Service) GetTaskStore() *TaskStore {
 // TriggerAnalysis starts an async analysis for all holdings of a user.
 // It returns a task ID immediately and runs the analysis in the background.
 func (s *Service) TriggerAnalysis(ctx context.Context, userID int64, taskID string) {
-	s.taskStore.Create(taskID)
+	s.taskStore.Create(taskID, userID)
 
 	// Use a detached context so the background work is not canceled when the
 	// HTTP request completes.
@@ -112,7 +126,9 @@ func (s *Service) TriggerAnalysis(ctx context.Context, userID int64, taskID stri
 			progress := 0.1 + (float64(i)/total)*0.85
 			s.taskStore.UpdateProgress(taskID, progress)
 
-			_, analyzeErr := s.AnalyzeHolding(bgCtx, userID, &holdings[i])
+			ctxHolding, cancel := s.holdingContext(bgCtx)
+			_, analyzeErr := s.AnalyzeHolding(ctxHolding, userID, &holdings[i])
+			cancel()
 			if analyzeErr != nil {
 				s.logger.Error("failed to analyze holding",
 					zap.Int64("holding_id", holdings[i].HoldingID),
@@ -131,6 +147,14 @@ func (s *Service) TriggerAnalysis(ctx context.Context, userID int64, taskID stri
 func (s *Service) AnalyzeHolding(
 	ctx context.Context, userID int64, holding *model.Holding,
 ) (*model.DecisionCard, error) {
+	release := s.acquireSlot()
+	defer release()
+	if _, ok := ctx.Deadline(); !ok && s.analysisTimeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, s.analysisTimeout)
+		defer cancel()
+	}
+
 	s.logger.Info("starting analysis",
 		zap.Int64("holding_id", holding.HoldingID),
 		zap.String("asset", holding.AssetCode),
@@ -310,4 +334,21 @@ func (s *Service) AnalyzeHolding(
 	)
 
 	return saved, nil
+}
+
+func (s *Service) holdingContext(parent context.Context) (context.Context, context.CancelFunc) {
+	if s.analysisTimeout <= 0 {
+		return context.WithCancel(parent)
+	}
+	return context.WithTimeout(parent, s.analysisTimeout)
+}
+
+func (s *Service) acquireSlot() func() {
+	if s.semaphore == nil {
+		return func() {}
+	}
+	s.semaphore <- struct{}{}
+	return func() {
+		<-s.semaphore
+	}
 }

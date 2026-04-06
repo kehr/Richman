@@ -17,6 +17,8 @@ type Config struct {
 	LLM          LLMConfig
 	Notification NotificationConfig
 	Log          LogConfig
+	Datasource   DatasourceConfig
+	Analysis     AnalysisConfig
 }
 
 // AppConfig holds application-level settings.
@@ -62,6 +64,18 @@ type LogConfig struct {
 	Dir   string
 }
 
+// DatasourceConfig holds external market data source settings.
+type DatasourceConfig struct {
+	AKShareBaseURL string
+}
+
+// AnalysisConfig controls analysis task execution behavior.
+type AnalysisConfig struct {
+	TaskTTLHours          int
+	HoldingTimeoutSeconds int
+	MaxConcurrentHoldings int
+}
+
 // Load reads configuration from .env file and environment variables.
 // Environment variables take precedence over .env file values.
 func Load() (*Config, error) {
@@ -81,6 +95,21 @@ func Load() (*Config, error) {
 	smtpPort, err := strconv.Atoi(getEnv("SMTP_PORT", "587"))
 	if err != nil {
 		return nil, fmt.Errorf("invalid SMTP_PORT: %w", err)
+	}
+
+	taskTTLHours, err := strconv.Atoi(getEnv("ANALYSIS_TASK_TTL_HOURS", "24"))
+	if err != nil {
+		return nil, fmt.Errorf("invalid ANALYSIS_TASK_TTL_HOURS: %w", err)
+	}
+
+	holdingTimeoutSeconds, err := strconv.Atoi(getEnv("ANALYSIS_TIMEOUT_SECONDS", "45"))
+	if err != nil {
+		return nil, fmt.Errorf("invalid ANALYSIS_TIMEOUT_SECONDS: %w", err)
+	}
+
+	maxConcurrentHoldings, err := strconv.Atoi(getEnv("ANALYSIS_MAX_CONCURRENT", "4"))
+	if err != nil {
+		return nil, fmt.Errorf("invalid ANALYSIS_MAX_CONCURRENT: %w", err)
 	}
 
 	cfg := &Config{
@@ -115,6 +144,14 @@ func Load() (*Config, error) {
 			Level: getEnv("LOG_LEVEL", "info"),
 			Dir:   getEnv("LOG_DIR", "/var/log/richman"),
 		},
+		Datasource: DatasourceConfig{
+			AKShareBaseURL: getEnv("AKSHARE_BASE_URL", ""),
+		},
+		Analysis: AnalysisConfig{
+			TaskTTLHours:          taskTTLHours,
+			HoldingTimeoutSeconds: holdingTimeoutSeconds,
+			MaxConcurrentHoldings: maxConcurrentHoldings,
+		},
 	}
 
 	if err := cfg.validate(); err != nil {
@@ -131,6 +168,12 @@ func (c *Config) validate() error {
 	}
 	if c.JWT.Secret == "" {
 		return fmt.Errorf("JWT_SECRET is required")
+	}
+	if c.Analysis.TaskTTLHours < 0 {
+		return fmt.Errorf("ANALYSIS_TASK_TTL_HOURS cannot be negative")
+	}
+	if c.Analysis.HoldingTimeoutSeconds < 0 {
+		return fmt.Errorf("ANALYSIS_TIMEOUT_SECONDS cannot be negative")
 	}
 	return nil
 }

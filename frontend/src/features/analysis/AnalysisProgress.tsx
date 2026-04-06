@@ -1,5 +1,3 @@
-"use client";
-
 import { Alert, Button, Card, Progress, Space, Typography } from "@/ui-kit/eat";
 import { ReloadOutlined } from "@/ui-kit/eat";
 import { useState } from "react";
@@ -24,6 +22,12 @@ export function AnalysisProgress() {
 	const isRunning = task && task.status !== "completed" && task.status !== "failed";
 	const isCompleted = task?.status === "completed";
 	const isFailed = task?.status === "failed";
+	const statusCopy = (() => {
+		if (!task) return "";
+		if (isFailed) return task.error || "Analysis failed";
+		if (isCompleted) return "Analysis completed";
+		return "Analysis running...";
+	})();
 
 	return (
 		<Card>
@@ -51,14 +55,18 @@ export function AnalysisProgress() {
 
 				{task && (
 					<>
-						<Progress
-							percent={Math.round(task.progress * 100)}
-							status={isFailed ? "exception" : isCompleted ? "success" : "active"}
+					<Progress
+						percent={Math.round((task.progress ?? 0) * 100)}
+						status={isFailed ? "exception" : isCompleted ? "success" : "active"}
+					/>
+					<Text>{statusCopy}</Text>
+					{isFailed && (
+						<Alert
+							type="error"
+							message="Analysis failed"
+							description={task.error || "Unknown error"}
 						/>
-						<Text>{task.message}</Text>
-						{isFailed && (
-							<Alert type="error" message="Analysis failed" description={task.message} />
-						)}
+					)}
 						{isCompleted && (
 							<Alert
 								type="success"

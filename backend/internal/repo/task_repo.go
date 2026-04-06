@@ -1,0 +1,74 @@
+package repo
+
+import (
+	"context"
+	"errors"
+	"time"
+
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/richman/backend/internal/model"
+)
+
+// AnalysisTaskRepo persists analysis task status history.
+type AnalysisTaskRepo struct {
+	pool *pgxpool.Pool
+}
+
+// NewAnalysisTaskRepo creates a repo instance.
+func NewAnalysisTaskRepo(pool *pgxpool.Pool) *AnalysisTaskRepo {
+	return &AnalysisTaskRepo{pool: pool}
+}
+
+// Upsert creates or updates a task status.
+func (r *AnalysisTaskRepo) Upsert(ctx context.Context, task *model.TaskStatus) error {
+	_, err := r.pool.Exec(ctx,
+		`INSERT INTO analysis_tasks (task_id, user_id, status, progress, error, started_at, done_at)
+		 VALUES ($1, $2, $3, $4, NULLIF($5, ''), $6, $7)
+		 ON CONFLICT (task_id) DO UPDATE SET
+		 status = EXCLUDED.status,
+		 progress = EXCLUDED.progress,
+		 error = EXCLUDED.error,
+		 done_at = EXCLUDED.done_at`,
+		task.TaskID,
+		task.UserID,
+		task.Status,
+		task.Progress,
+		task.Error,
+		task.StartedAt,
+		task.DoneAt,
+	)
+	return err
+}
+
+// GetByID fetches a task status by ID.
+func (r *AnalysisTaskRepo) GetByID(ctx context.Context, taskID string) (*model.TaskStatus, error) {
+	row := r.pool.QueryRow(ctx,
+		`SELECT task_id, user_id, status, progress, COALESCE(error, ''), started_at, done_at
+		 FROM analysis_tasks WHERE task_id = $1`, taskID,
+	)
+	var task model.TaskStatus
+	if err := row.Scan(
+		&task.TaskID,
+		&task.UserID,
+		&task.Status,
+		&task.Progress,
+		&task.Error,
+		&task.StartedAt,
+		&task.DoneAt,
+	); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &task, nil
+}
+
+// DeleteOlderThan removes persisted tasks older than the cutoff (only completed/failed).
+func (r *AnalysisTaskRepo) DeleteOlderThan(ctx context.Context, cutoff time.Time) error {
+	_, err := r.pool.Exec(ctx,
+		`DELETE FROM analysis_tasks WHERE done_at IS NOT NULL AND done_at < $1`, cutoff,
+	)
+	return err
+}
