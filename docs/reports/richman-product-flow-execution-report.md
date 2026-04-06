@@ -347,4 +347,45 @@ Spec compliance: ✅ Pass。Code quality: **Request minor changes**（4 Importan
 | M11 | scanUser 维护成本（后续加字段时多处同步） | 未来可迁移 sqlc |
 
 ### Step 05 状态: **COMPLETED** ✅
-- Commits: `4dcfff3` → `f861f03` → `2608780` → `<inline fixes pending>`
+- Commits: `4dcfff3` → `f861f03` → `2608780` → `1283f52`（inline review fixes）
+
+## Step 06 LLM Vision provider
+
+### 实施结果
+- Commits:
+  - `b3de0f3` feat(llm): add vision provider abstraction
+  - `7f971ec` feat(llm): add claude vision implementation with mock tests
+- 创建 `llm/vision.go`、`llm/vision_factory.go`、`llm/claude/vision.go`、`llm/claude/vision_test.go`
+- 修改 `llm/claude/register.go`、`config/config.go`、`.env.example`
+- 关键设计：独立 visionRegistry（与文本 Provider 解耦）；7 个 typed sentinel errors；ctx.Err() 重校正保证 timeout 分类；VISION_API_KEY → CLAUDE_API_KEY 单 vendor 回退
+- 测试：7 个 httptest 场景（success / 5xx / 429 / timeout / malformed / 4xx / invalid request）全部通过
+
+### Review 反馈与修复（controller inline）
+
+Spec: ✅ Pass。Code quality: **Approve with follow-ups**（0 Critical, 5 Important, 7 Minor）
+
+**Important 中的 I2 / I3 / I5 inline 修复**（Step 07 依赖 ErrVisionInvalidRequest 合约）:
+
+| 编号 | 问题 | 修复 |
+|---|---|---|
+| I2 | MIME 类型未按 Claude allowlist 预先校验，可能浪费 API 请求 | 新增 `allowedVisionMIMEs` map（jpeg/png/gif/webp），不在列表的 MIME 在 client 层直接返回 `ErrVisionInvalidRequest` |
+| I3 | 图像字节数无本地 cap，5MB+ 载荷会白白打到 Claude 再被拒 | 新增 `maxVisionImageBytes = 5 MB` 常量，超过直接返 `ErrVisionInvalidRequest` 含明确字节数错误消息 |
+| I5 | `VISION_API_KEY → CLAUDE_API_KEY` 回退无测试 | 新增 `TestRegisterVision_FallsBackToClaudeKey` 构造最小 config 验证 apiKey 字段正确继承；同时补两个 MIME/size 拒绝测试 |
+
+**Important 中的 I1 / I4 延后**:
+- I1：`LLM_VISION_TIMEOUT_SECONDS=0` 被 WithVisionTimeout 静默忽略 → 记录待 config.validate() 统一处理
+- I4：error response body 日志无脱敏 → 记录（API 响应不太可能回显 base64 图像数据，生产风险可控）
+
+### 延后项（5 条 Minor）
+
+| 编号 | 问题 | 处理 |
+|---|---|---|
+| M1 | visionRegistry 写入无 mutex（init-time only） | 加 "init-time only" 注释即可，风险极低 |
+| M2 | `VisionResponse.Model` 略 leaky（Claude 特定） | 与 ChatResponse.Model 一致，保持 |
+| M3 | 7 个 error 类别数量辩护 | 延后 |
+| M4 | `visionMessage.Content` 字段对齐 gofmt | gofmt 自动处理 |
+| M5 | `UsageHint` 用 map[string]any | 可考虑后续改为 typed struct |
+| M6 | `config.validate` 未校验 VisionTimeout >= 0 | 后续 config 集中整理时补 |
+
+### Step 06 状态: **COMPLETED** ✅
+- Commits: `b3de0f3` → `7f971ec` → `<inline fixes pending>`

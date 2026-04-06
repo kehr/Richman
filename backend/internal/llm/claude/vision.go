@@ -135,6 +135,24 @@ type visionAPIError struct {
 	Message string `json:"message"`
 }
 
+// maxVisionImageBytes bounds the raw image payload size accepted by this
+// client before base64 encoding. Anthropic's documented limit is ~5 MB for
+// the encoded payload, so 5 MB raw leaves headroom for the base64 overhead
+// and message envelope while catching obviously-oversized screenshots
+// locally rather than round-tripping to the API.
+const maxVisionImageBytes = 5 * 1024 * 1024
+
+// allowedVisionMIMEs lists the image MIME types accepted by the Claude
+// Messages API. Callers passing anything else (for example image/bmp or
+// image/svg+xml) get a typed ErrVisionInvalidRequest up front, so the
+// screenshot service can treat it as non-retryable without probing the API.
+var allowedVisionMIMEs = map[string]struct{}{
+	"image/jpeg": {},
+	"image/png":  {},
+	"image/gif":  {},
+	"image/webp": {},
+}
+
 // AnalyzeImage sends image bytes plus prompts to the Claude Messages API.
 func (c *VisionClient) AnalyzeImage(ctx context.Context, req llm.VisionRequest) (*llm.VisionResponse, error) {
 	if len(req.ImageData) == 0 {
@@ -142,6 +160,18 @@ func (c *VisionClient) AnalyzeImage(ctx context.Context, req llm.VisionRequest) 
 	}
 	if req.ImageMIME == "" {
 		return nil, fmt.Errorf("%w: image mime is empty", llm.ErrVisionInvalidRequest)
+	}
+	if _, ok := allowedVisionMIMEs[req.ImageMIME]; !ok {
+		return nil, fmt.Errorf(
+			"%w: unsupported image mime %q (allowed: image/jpeg, image/png, image/gif, image/webp)",
+			llm.ErrVisionInvalidRequest, req.ImageMIME,
+		)
+	}
+	if len(req.ImageData) > maxVisionImageBytes {
+		return nil, fmt.Errorf(
+			"%w: image payload %d bytes exceeds %d byte limit",
+			llm.ErrVisionInvalidRequest, len(req.ImageData), maxVisionImageBytes,
+		)
 	}
 
 	maxTokens := req.MaxTokens

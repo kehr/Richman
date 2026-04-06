@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/richman/backend/internal/config"
 	"github.com/richman/backend/internal/llm"
 	"go.uber.org/zap"
 )
@@ -202,6 +203,55 @@ func TestVisionClient_AnalyzeImage_InvalidRequest(t *testing.T) {
 	_, err = client.AnalyzeImage(context.Background(), llm.VisionRequest{ImageData: []byte{0x01}})
 	if err == nil || !errors.Is(err, llm.ErrVisionInvalidRequest) {
 		t.Errorf("expected ErrVisionInvalidRequest for empty mime, got %v", err)
+	}
+}
+
+func TestVisionClient_AnalyzeImage_RejectsUnsupportedMIME(t *testing.T) {
+	client := NewVisionClient("k", zap.NewNop())
+	_, err := client.AnalyzeImage(context.Background(), llm.VisionRequest{
+		ImageData: []byte{0x01, 0x02},
+		ImageMIME: "image/bmp",
+	})
+	if err == nil || !errors.Is(err, llm.ErrVisionInvalidRequest) {
+		t.Fatalf("expected ErrVisionInvalidRequest for image/bmp, got %v", err)
+	}
+}
+
+func TestVisionClient_AnalyzeImage_RejectsOversizedPayload(t *testing.T) {
+	client := NewVisionClient("k", zap.NewNop())
+	huge := make([]byte, maxVisionImageBytes+1)
+	_, err := client.AnalyzeImage(context.Background(), llm.VisionRequest{
+		ImageData: huge,
+		ImageMIME: "image/png",
+	})
+	if err == nil || !errors.Is(err, llm.ErrVisionInvalidRequest) {
+		t.Fatalf("expected ErrVisionInvalidRequest for oversized payload, got %v", err)
+	}
+}
+
+func TestRegisterVision_FallsBackToClaudeKey(t *testing.T) {
+	// Verify the VISION_API_KEY → CLAUDE_API_KEY fallback documented in
+	// register.go. If VisionAPIKey is empty, the registry factory must pick
+	// up the text APIKey field so single-vendor deployments can authenticate
+	// vision requests without duplicating the key env var.
+	cfg := &config.Config{
+		LLM: config.LLMConfig{
+			Provider:       "claude",
+			ClaudeAPIKey:   "text-fallback-key",
+			VisionProvider: "claude",
+			VisionAPIKey:   "",
+		},
+	}
+	provider, err := llm.NewVisionProvider(cfg, zap.NewNop())
+	if err != nil {
+		t.Fatalf("NewVisionProvider: %v", err)
+	}
+	vc, ok := provider.(*VisionClient)
+	if !ok {
+		t.Fatalf("expected *VisionClient, got %T", provider)
+	}
+	if vc.apiKey != "text-fallback-key" {
+		t.Errorf("expected vision client to fall back to text api key, got %q", vc.apiKey)
 	}
 }
 
