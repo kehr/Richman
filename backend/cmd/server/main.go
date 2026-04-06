@@ -11,14 +11,29 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/richman/backend/internal/analysis"
+	"github.com/richman/backend/internal/analysis/catalyst"
+	"github.com/richman/backend/internal/analysis/confidence"
+	"github.com/richman/backend/internal/analysis/position"
+	"github.com/richman/backend/internal/analysis/synthesis"
+	"github.com/richman/backend/internal/analysis/trend"
+	"github.com/richman/backend/internal/analysis/weight"
 	"github.com/richman/backend/internal/api/middleware"
 	v1 "github.com/richman/backend/internal/api/v1"
 	"github.com/richman/backend/internal/config"
+	"github.com/richman/backend/internal/llm"
 	"github.com/richman/backend/internal/logger"
 	"github.com/richman/backend/internal/repo"
 	"github.com/richman/backend/internal/service/auth"
 	"github.com/richman/backend/internal/service/portfolio"
 	"go.uber.org/zap"
+
+	// Register LLM provider implementations via init().
+	_ "github.com/richman/backend/internal/llm/claude"
+	_ "github.com/richman/backend/internal/llm/openai"
+
+	analysisService "github.com/richman/backend/internal/service/analysis"
+	decisioncard "github.com/richman/backend/internal/service/decision_card"
 )
 
 func main() {
@@ -58,15 +73,65 @@ func main() {
 	assetRepo := repo.NewAssetRepo(dbPool)
 	holdingRepo := repo.NewHoldingRepo(dbPool)
 	tradeRepo := repo.NewTradeRepo(dbPool)
+	cardRepo := repo.NewDecisionCardRepo(dbPool)
+	resultRepo := repo.NewAnalysisResultRepo(dbPool)
 
 	// Initialize services
 	authService := auth.NewService(userRepo, planRepo, inviteRepo, cfg)
 	portfolioService := portfolio.NewService(holdingRepo, tradeRepo)
 
+	// Initialize LLM provider (optional; analysis works in degraded mode without it).
+	var llmProvider llm.Provider
+	var llmEnhancer *catalyst.LLMEnhancer
+	var llmSynthesizer *synthesis.Synthesizer
+
+	llmProvider, err = llm.NewProvider(cfg, zapLogger)
+	if err != nil {
+		zapLogger.Warn("llm provider not available, analysis will run in degraded mode",
+			zap.Error(err),
+		)
+	}
+	if llmProvider != nil {
+		llmEnhancer = catalyst.NewLLMEnhancer(llmProvider, zapLogger)
+		llmSynthesizer = synthesis.NewSynthesizer(llmProvider, zapLogger)
+		zapLogger.Info("llm provider initialized", zap.String("provider", llmProvider.Name()))
+	}
+
+	// Fallback synthesizer when LLM is not available.
+	if llmSynthesizer == nil {
+		// Create a synthesizer that will always use the template fallback.
+		// Pass nil provider; Synthesize handles nil gracefully via degraded mode.
+		llmSynthesizer = synthesis.NewSynthesizer(nil, zapLogger)
+	}
+
+	// Initialize analysis components
+	taskStore := analysisService.NewTaskStore()
+	analysisSvc := analysisService.NewService(&analysisService.Deps{
+		HoldingRepo: holdingRepo,
+		CardRepo:    cardRepo,
+		ResultRepo:  resultRepo,
+		Fetcher:     nil, // Will be set when datasource clients are configured.
+		TrendCalc:   trend.NewCalculator(),
+		PosCalc:     position.NewCalculator(),
+		CatCalc:     catalyst.NewCalculator(),
+		LLMEnhancer: llmEnhancer,
+		Synthesizer: llmSynthesizer,
+		WeightMgr:   weight.NewManager(),
+		ConfCalc:    confidence.NewCalculator(),
+		Matrix:      analysis.NewMatrix(),
+		TaskStore:   taskStore,
+		Logger:      zapLogger,
+	})
+
+	cardService := decisioncard.NewService(cardRepo)
+
 	// Initialize handlers
 	authHandler := v1.NewAuthHandler(authService)
 	assetCatalogHandler := v1.NewAssetCatalogHandler(assetRepo)
 	portfolioHandler := v1.NewPortfolioHandler(portfolioService)
+	analysisHandler := v1.NewAnalysisHandler(analysisSvc)
+	taskHandler := v1.NewTaskHandler(taskStore)
+	cardHandler := v1.NewDecisionCardHandler(cardService)
 
 	// Setup Gin
 	if !cfg.IsDev() {
@@ -91,6 +156,9 @@ func main() {
 	authHandler.RegisterRoutes(apiV1, authMiddleware)
 	assetCatalogHandler.RegisterRoutes(apiV1)
 	portfolioHandler.RegisterRoutes(apiV1, authMiddleware)
+	analysisHandler.RegisterRoutes(apiV1, authMiddleware)
+	taskHandler.RegisterRoutes(apiV1, authMiddleware)
+	cardHandler.RegisterRoutes(apiV1, authMiddleware)
 
 	// Start server
 	srv := &http.Server{

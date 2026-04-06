@@ -40,7 +40,9 @@ type JWTConfig struct {
 type LLMConfig struct {
 	Provider     string
 	ClaudeAPIKey string
+	ClaudeModel  string
 	OpenAIAPIKey string
+	OpenAIModel  string
 }
 
 // NotificationConfig holds notification channel settings.
@@ -96,7 +98,9 @@ func Load() (*Config, error) {
 		LLM: LLMConfig{
 			Provider:     getEnv("LLM_PROVIDER", "claude"),
 			ClaudeAPIKey: getEnv("CLAUDE_API_KEY", ""),
+			ClaudeModel:  getEnv("CLAUDE_MODEL", ""),
 			OpenAIAPIKey: getEnv("OPENAI_API_KEY", ""),
+			OpenAIModel:  getEnv("OPENAI_MODEL", ""),
 		},
 		Notification: NotificationConfig{
 			WeChatAppID:     getEnv("WECHAT_APP_ID", ""),
