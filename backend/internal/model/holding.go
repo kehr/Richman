@@ -13,6 +13,7 @@ type Holding struct {
 	AssetCode     string          `json:"assetCode"`
 	AssetName     string          `json:"assetName"`
 	AssetType     string          `json:"assetType"`
+	Category      *string         `json:"category,omitempty"`
 	CostPrice     decimal.Decimal `json:"costPrice"`
 	PositionRatio decimal.Decimal `json:"positionRatio"`
 	Quantity      decimal.Decimal `json:"quantity"`
@@ -25,6 +26,7 @@ type CreateHoldingInput struct {
 	AssetCode     string          `json:"assetCode" binding:"required"`
 	AssetName     string          `json:"assetName" binding:"required"`
 	AssetType     string          `json:"assetType" binding:"required"`
+	Category      *string         `json:"category,omitempty"`
 	CostPrice     decimal.Decimal `json:"costPrice"`
 	PositionRatio decimal.Decimal `json:"positionRatio"`
 	Quantity      decimal.Decimal `json:"quantity"`
@@ -35,4 +37,5 @@ type UpdateHoldingInput struct {
 	CostPrice     *decimal.Decimal `json:"costPrice"`
 	PositionRatio *decimal.Decimal `json:"positionRatio"`
 	Quantity      *decimal.Decimal `json:"quantity"`
+	Category      *string          `json:"category,omitempty"`
 }

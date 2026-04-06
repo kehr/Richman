@@ -2,6 +2,7 @@ package repo
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 
@@ -24,7 +25,7 @@ func NewHoldingRepo(pool *pgxpool.Pool) *HoldingRepo {
 // ListHoldingsByUser returns all active holdings for a user.
 func (r *HoldingRepo) ListHoldingsByUser(ctx context.Context, userID int64) ([]model.Holding, error) {
 	rows, err := r.pool.Query(ctx,
-		`SELECT holding_id, user_id, asset_code, asset_name, asset_type,
+		`SELECT holding_id, user_id, asset_code, asset_name, asset_type, category,
 		        cost_price, position_ratio, quantity, created_at, updated_at
 		 FROM holdings
 		 WHERE user_id = $1 AND is_deleted = 0
@@ -39,12 +40,17 @@ func (r *HoldingRepo) ListHoldingsByUser(ctx context.Context, userID int64) ([]m
 	var holdings []model.Holding
 	for rows.Next() {
 		var h model.Holding
+		var category sql.NullString
 		if err := rows.Scan(
-			&h.HoldingID, &h.UserID, &h.AssetCode, &h.AssetName, &h.AssetType,
+			&h.HoldingID, &h.UserID, &h.AssetCode, &h.AssetName, &h.AssetType, &category,
 			&h.CostPrice, &h.PositionRatio, &h.Quantity,
 			&h.CreatedAt, &h.UpdatedAt,
 		); err != nil {
 			return nil, fmt.Errorf("scan holding: %w", err)
+		}
+		if category.Valid {
+			s := category.String
+			h.Category = &s
 		}
 		holdings = append(holdings, h)
 	}
@@ -54,14 +60,15 @@ func (r *HoldingRepo) ListHoldingsByUser(ctx context.Context, userID int64) ([]m
 // GetHoldingByID returns a single holding by ID. Returns nil if not found.
 func (r *HoldingRepo) GetHoldingByID(ctx context.Context, holdingID int64) (*model.Holding, error) {
 	var h model.Holding
+	var category sql.NullString
 	err := r.pool.QueryRow(ctx,
-		`SELECT holding_id, user_id, asset_code, asset_name, asset_type,
+		`SELECT holding_id, user_id, asset_code, asset_name, asset_type, category,
 		        cost_price, position_ratio, quantity, created_at, updated_at
 		 FROM holdings
 		 WHERE holding_id = $1 AND is_deleted = 0`,
 		holdingID,
 	).Scan(
-		&h.HoldingID, &h.UserID, &h.AssetCode, &h.AssetName, &h.AssetType,
+		&h.HoldingID, &h.UserID, &h.AssetCode, &h.AssetName, &h.AssetType, &category,
 		&h.CostPrice, &h.PositionRatio, &h.Quantity,
 		&h.CreatedAt, &h.UpdatedAt,
 	)
@@ -70,6 +77,10 @@ func (r *HoldingRepo) GetHoldingByID(ctx context.Context, holdingID int64) (*mod
 			return nil, nil
 		}
 		return nil, fmt.Errorf("query holding by id: %w", err)
+	}
+	if category.Valid {
+		s := category.String
+		h.Category = &s
 	}
 	return &h, nil
 }
@@ -93,23 +104,32 @@ func (r *HoldingRepo) CreateHolding(
 	input *model.CreateHoldingInput, creator string,
 ) (*model.Holding, error) {
 	var h model.Holding
+	var category sql.NullString
+	var categoryArg any
+	if input.Category != nil {
+		categoryArg = *input.Category
+	}
 	err := r.pool.QueryRow(ctx,
 		`INSERT INTO holdings
-		 (user_id, asset_code, asset_name, asset_type,
+		 (user_id, asset_code, asset_name, asset_type, category,
 		  cost_price, position_ratio, quantity, creator, modifier)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $8)
-		 RETURNING holding_id, user_id, asset_code, asset_name, asset_type,
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $9)
+		 RETURNING holding_id, user_id, asset_code, asset_name, asset_type, category,
 		           cost_price, position_ratio, quantity, created_at, updated_at`,
-		userID, input.AssetCode, input.AssetName, input.AssetType,
+		userID, input.AssetCode, input.AssetName, input.AssetType, categoryArg,
 		input.CostPrice, input.PositionRatio, input.Quantity,
 		creator,
 	).Scan(
-		&h.HoldingID, &h.UserID, &h.AssetCode, &h.AssetName, &h.AssetType,
+		&h.HoldingID, &h.UserID, &h.AssetCode, &h.AssetName, &h.AssetType, &category,
 		&h.CostPrice, &h.PositionRatio, &h.Quantity,
 		&h.CreatedAt, &h.UpdatedAt,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("insert holding: %w", err)
+	}
+	if category.Valid {
+		s := category.String
+		h.Category = &s
 	}
 	return &h, nil
 }
@@ -120,20 +140,26 @@ func (r *HoldingRepo) UpdateHolding(
 	input *model.UpdateHoldingInput, modifier string,
 ) (*model.Holding, error) {
 	var h model.Holding
+	var category sql.NullString
+	var categoryArg any
+	if input.Category != nil {
+		categoryArg = *input.Category
+	}
 	err := r.pool.QueryRow(ctx,
 		`UPDATE holdings SET
 			cost_price = COALESCE($1, cost_price),
 			position_ratio = COALESCE($2, position_ratio),
 			quantity = COALESCE($3, quantity),
-			modifier = $4,
+			category = COALESCE($4, category),
+			modifier = $5,
 			updated_at = NOW()
-		 WHERE holding_id = $5 AND is_deleted = 0
-		 RETURNING holding_id, user_id, asset_code, asset_name, asset_type,
+		 WHERE holding_id = $6 AND is_deleted = 0
+		 RETURNING holding_id, user_id, asset_code, asset_name, asset_type, category,
 		           cost_price, position_ratio, quantity, created_at, updated_at`,
-		input.CostPrice, input.PositionRatio, input.Quantity,
+		input.CostPrice, input.PositionRatio, input.Quantity, categoryArg,
 		modifier, holdingID,
 	).Scan(
-		&h.HoldingID, &h.UserID, &h.AssetCode, &h.AssetName, &h.AssetType,
+		&h.HoldingID, &h.UserID, &h.AssetCode, &h.AssetName, &h.AssetType, &category,
 		&h.CostPrice, &h.PositionRatio, &h.Quantity,
 		&h.CreatedAt, &h.UpdatedAt,
 	)
@@ -142,6 +168,10 @@ func (r *HoldingRepo) UpdateHolding(
 			return nil, nil
 		}
 		return nil, fmt.Errorf("update holding: %w", err)
+	}
+	if category.Valid {
+		s := category.String
+		h.Category = &s
 	}
 	return &h, nil
 }
@@ -181,7 +211,7 @@ func (r *HoldingRepo) SoftDeleteHolding(ctx context.Context, holdingID int64, mo
 // ListHoldingsByAssetType returns all active holdings of a given asset type across all users.
 func (r *HoldingRepo) ListHoldingsByAssetType(ctx context.Context, assetType string) ([]model.Holding, error) {
 	rows, err := r.pool.Query(ctx,
-		`SELECT holding_id, user_id, asset_code, asset_name, asset_type,
+		`SELECT holding_id, user_id, asset_code, asset_name, asset_type, category,
 		        cost_price, position_ratio, quantity, created_at, updated_at
 		 FROM holdings
 		 WHERE asset_type = $1 AND is_deleted = 0
@@ -196,12 +226,17 @@ func (r *HoldingRepo) ListHoldingsByAssetType(ctx context.Context, assetType str
 	var holdings []model.Holding
 	for rows.Next() {
 		var h model.Holding
+		var category sql.NullString
 		if err := rows.Scan(
-			&h.HoldingID, &h.UserID, &h.AssetCode, &h.AssetName, &h.AssetType,
+			&h.HoldingID, &h.UserID, &h.AssetCode, &h.AssetName, &h.AssetType, &category,
 			&h.CostPrice, &h.PositionRatio, &h.Quantity,
 			&h.CreatedAt, &h.UpdatedAt,
 		); err != nil {
 			return nil, fmt.Errorf("scan holding: %w", err)
+		}
+		if category.Valid {
+			s := category.String
+			h.Category = &s
 		}
 		holdings = append(holdings, h)
 	}
