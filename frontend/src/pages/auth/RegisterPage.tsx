@@ -1,6 +1,6 @@
-import type { ReactNode } from "react";
+import { RegisterForm } from "@/features/auth";
 
-export default function AuthLayout({ children }: { children: ReactNode }) {
+export default function RegisterPage() {
 	return (
 		<div
 			style={{
@@ -10,7 +10,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
 				minHeight: "100vh",
 			}}
 		>
-			{children}
+			<RegisterForm />
 		</div>
 	);
 }

@@ -3,7 +3,7 @@
 ## Architecture
 
 Monorepo, frontend and backend separated:
-- Frontend: Next.js 15 (App Router) + Ant Design 6 + TanStack Query v5 -> Vercel
+- Frontend: Vite + React 19 + React Router v7 (SPA) + Ant Design 6 + TanStack Query v5
 - Backend: Go (Gin + sqlc + PostgreSQL) -> Docker + VPS
 - API: RESTful JSON, client-agnostic, all clients consume the same API
 - Reference project: /Users/kyle/Studio/Orbiter (frontend patterns)
@@ -12,7 +12,7 @@ Monorepo, frontend and backend separated:
 
 | Layer | Stack |
 |-------|-------|
-| Frontend | Next.js 15, Ant Design 6, @ant-design/pro-components, TanStack Query v5, TypeScript strict, next-intl (zh+en), Biome, pnpm |
+| Frontend | Vite 7, React 19, React Router v7, Ant Design 6, @ant-design/pro-components, TanStack Query v5, TypeScript strict, Biome, pnpm |
 | Backend | Go, Gin, sqlc, PostgreSQL, Uber zap, golangci-lint |
 | LLM | Multi-provider abstraction (Claude API / OpenAI API) |
 | Data | AKShare (A-share), Yahoo Finance (US/Gold), Polymarket (events) |
@@ -20,7 +20,7 @@ Monorepo, frontend and backend separated:
 ## Project Structure
 
 ```
-frontend/          # Next.js app (Pages + Features dual architecture)
+frontend/          # Vite SPA (Pages + Features dual architecture)
 backend/           # Go service (API handlers -> Service -> Repo)
 docs/
   prds/            # PRD and design specs
@@ -41,14 +41,14 @@ docs/
 
 | Command | Purpose |
 |---------|---------|
-| `cd frontend && pnpm dev` | Start frontend dev server |
+| `cd frontend && pnpm dev` | Start frontend dev server (Vite, port 3000) |
 | `cd frontend && pnpm lint:all` | Full frontend check (Biome + type-check + dependency-cruiser) |
-| `cd frontend && pnpm build` | Production build |
+| `cd frontend && pnpm build` | Production build (outputs to dist/) |
 | `cd backend && make dev` | Start backend dev server (hot reload) |
 | `cd backend && make check` | Full backend check (lint + test + build) |
 | `cd backend && make sqlc` | Generate type-safe SQL code |
 | `cd backend && make migrate-up` | Run database migrations |
-| `docker-compose up -d` | Start local PostgreSQL |
+| `docker-compose up -d` | Start local PostgreSQL (port 5433) |
 
 ## Standards Index
 

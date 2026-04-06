@@ -39,7 +39,7 @@ Open http://localhost:3000 in your browser.
 ## Project Structure
 
 ```
-frontend/          # Next.js 15 + Ant Design 6
+frontend/          # Vite + React 19 + Ant Design 6 (SPA)
 backend/           # Go + Gin + PostgreSQL
 docs/
   prds/            # Product requirements
@@ -53,8 +53,8 @@ docs/
 
 | Command | Purpose |
 |---------|---------|
-| `pnpm dev` | Start dev server |
-| `pnpm build` | Production build |
+| `pnpm dev` | Start dev server (Vite, port 3000) |
+| `pnpm build` | Production build (outputs to dist/) |
 | `pnpm lint:all` | Full check (Biome + TypeScript + architecture) |
 | `pnpm test` | Run tests |
 
@@ -69,7 +69,7 @@ docs/
 
 ## Architecture
 
-- Frontend: Pages + Features dual architecture (Ant Design 6, TanStack Query)
+- Frontend: Vite SPA with Pages + Features dual architecture (React Router v7, Ant Design 6, TanStack Query)
 - Backend: Three-layer (API handlers -> Service -> Repo)
 - Analysis: Three-dimension engine (Trend + Position + Catalyst)
 - Notification: Pluggable adapter pattern (WeChat, Feishu, Email)

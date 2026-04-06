@@ -1,5 +1,3 @@
-"use client";
-
 import { StatsOverview } from "@/features/dashboard";
 import { PageContainer } from "@/ui-kit/eat";
 

@@ -1,4 +1,5 @@
 export { HoldingForm } from "./HoldingForm";
+export type { SelectedAsset } from "./HoldingForm";
 export { TradeRecordList } from "./TradeRecordList";
 export {
 	useHoldings,

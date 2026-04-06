@@ -1,5 +1,3 @@
-"use client";
-
 import { AnalysisProgress } from "@/features/analysis";
 import { PageContainer } from "@/ui-kit/eat";
 

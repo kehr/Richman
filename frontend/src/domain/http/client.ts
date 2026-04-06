@@ -1,6 +1,6 @@
 import { getToken } from "@/domain/auth/storage";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8080/api/v1";
+const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8080/api/v1";
 
 export class ApiError extends Error {
 	status: number;

@@ -1,5 +1,3 @@
-"use client";
-
 import { Card, PageContainer, Typography } from "@/ui-kit/eat";
 
 const { Text } = Typography;

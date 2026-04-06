@@ -1,17 +1,10 @@
-"use client";
-
 import { HoldingForm, TradeRecordList, useHoldings } from "@/features/portfolio";
 import { Card, PageContainer, Skeleton } from "@/ui-kit/eat";
-import { useRouter } from "next/navigation";
-import { use } from "react";
+import { useNavigate, useParams } from "react-router";
 
-interface HoldingDetailPageProps {
-	params: Promise<{ id: string }>;
-}
-
-export default function HoldingDetailPage({ params }: HoldingDetailPageProps) {
-	const { id } = use(params);
-	const router = useRouter();
+export default function PortfolioEditPage() {
+	const { id } = useParams<{ id: string }>();
+	const navigate = useNavigate();
 	const holdingId = Number(id);
 	const { data: holdings, isLoading } = useHoldings();
 
@@ -36,7 +29,7 @@ export default function HoldingDetailPage({ params }: HoldingDetailPageProps) {
 	return (
 		<PageContainer title={`Edit: ${holding.assetName}`}>
 			<Card title="Holding Details" style={{ marginBottom: 16 }}>
-				<HoldingForm initialValues={holding} onSuccess={() => router.push("/portfolio")} />
+				<HoldingForm initialValues={holding} onSuccess={() => navigate("/portfolio")} />
 			</Card>
 			<TradeRecordList holdingId={holdingId} />
 		</PageContainer>

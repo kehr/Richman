@@ -1,16 +1,10 @@
-"use client";
-
 import { RiskDisclaimer } from "@/components/RiskDisclaimer";
 import { DecisionCardView, useCardById } from "@/features/decision-card";
 import { PageContainer, Skeleton } from "@/ui-kit/eat";
-import { use } from "react";
+import { useParams } from "react-router";
 
-interface DecisionCardDetailPageProps {
-	params: Promise<{ id: string }>;
-}
-
-export default function DecisionCardDetailPage({ params }: DecisionCardDetailPageProps) {
-	const { id } = use(params);
+export default function DecisionCardDetailPage() {
+	const { id } = useParams<{ id: string }>();
 	const cardId = Number(id);
 	const { data: card, isLoading } = useCardById(cardId);
 

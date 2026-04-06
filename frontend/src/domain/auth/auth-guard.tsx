@@ -1,8 +1,6 @@
-"use client";
-
 import { Spin } from "@/ui-kit/eat";
-import { useRouter } from "next/navigation";
 import { type ReactNode, useEffect } from "react";
+import { useNavigate } from "react-router";
 import { getToken } from "./storage";
 import { useCurrentUser } from "./use-current-user";
 
@@ -11,15 +9,15 @@ interface AuthGuardProps {
 }
 
 export function AuthGuard({ children }: AuthGuardProps) {
-	const router = useRouter();
+	const navigate = useNavigate();
 	const token = getToken();
 	const { isLoading, isError } = useCurrentUser();
 
 	useEffect(() => {
 		if (!token || isError) {
-			router.replace("/login");
+			navigate("/login", { replace: true });
 		}
-	}, [token, isError, router]);
+	}, [token, isError, navigate]);
 
 	if (!token) {
 		return null;
@@ -28,7 +26,12 @@ export function AuthGuard({ children }: AuthGuardProps) {
 	if (isLoading) {
 		return (
 			<div
-				style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh" }}
+				style={{
+					display: "flex",
+					justifyContent: "center",
+					alignItems: "center",
+					height: "100vh",
+				}}
 			>
 				<Spin size="large" />
 			</div>

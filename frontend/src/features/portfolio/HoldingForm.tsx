@@ -1,27 +1,34 @@
-"use client";
-
-import { AssetPicker } from "@/features/asset-catalog";
-import type { AssetDto } from "@/features/asset-catalog";
 import { Button, Form, InputNumber, message } from "@/ui-kit/eat";
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 import type { HoldingDto } from "./api";
 import { useCreateHolding, useUpdateHolding } from "./usePortfolio";
+
+export interface SelectedAsset {
+	code: string;
+	name: string;
+	assetType: string;
+}
 
 interface HoldingFormProps {
 	initialValues?: HoldingDto;
 	onSuccess?: () => void;
+	renderAssetPicker?: (props: {
+		open: boolean;
+		onClose: () => void;
+		onSelect: (asset: SelectedAsset) => void;
+	}) => ReactNode;
 }
 
-export function HoldingForm({ initialValues, onSuccess }: HoldingFormProps) {
+export function HoldingForm({ initialValues, onSuccess, renderAssetPicker }: HoldingFormProps) {
 	const [form] = Form.useForm();
 	const [pickerOpen, setPickerOpen] = useState(false);
-	const [selectedAsset, setSelectedAsset] = useState<AssetDto | null>(null);
+	const [selectedAsset, setSelectedAsset] = useState<SelectedAsset | null>(null);
 	const createMutation = useCreateHolding();
 	const updateMutation = useUpdateHolding();
 
 	const isEdit = !!initialValues;
 
-	const handleAssetSelect = (asset: AssetDto) => {
+	const handleAssetSelect = (asset: SelectedAsset) => {
 		setSelectedAsset(asset);
 		form.setFieldsValue({
 			assetCode: asset.code,
@@ -119,11 +126,11 @@ export function HoldingForm({ initialValues, onSuccess }: HoldingFormProps) {
 				</Form.Item>
 			</Form>
 
-			<AssetPicker
-				open={pickerOpen}
-				onClose={() => setPickerOpen(false)}
-				onSelect={handleAssetSelect}
-			/>
+			{renderAssetPicker?.({
+				open: pickerOpen,
+				onClose: () => setPickerOpen(false),
+				onSelect: handleAssetSelect,
+			})}
 		</>
 	);
 }

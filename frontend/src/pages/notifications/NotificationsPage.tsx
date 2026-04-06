@@ -1,5 +1,3 @@
-"use client";
-
 import {
 	ChannelConfigForm,
 	useChannels,
@@ -9,9 +7,11 @@ import {
 import type { NotificationChannelDto } from "@/features/notification";
 import {
 	Button,
-	Card,
+	DeleteOutlined,
+	EditOutlined,
 	Modal,
 	PageContainer,
+	PlusOutlined,
 	Popconfirm,
 	ProTable,
 	Space,
@@ -19,7 +19,6 @@ import {
 	Tag,
 	message,
 } from "@/ui-kit/eat";
-import { DeleteOutlined, EditOutlined, PlusOutlined } from "@/ui-kit/eat";
 import { useState } from "react";
 
 export default function NotificationsPage() {

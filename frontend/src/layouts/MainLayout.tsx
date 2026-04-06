@@ -1,5 +1,3 @@
-"use client";
-
 import { clearAuth } from "@/domain/auth/storage";
 import { useThemeMode } from "@/domain/ui/use-theme";
 import {
@@ -18,14 +16,10 @@ import {
 	Typography,
 	UserOutlined,
 } from "@/ui-kit/eat";
-import { usePathname, useRouter } from "next/navigation";
-import { type ReactNode, useState } from "react";
+import { useState } from "react";
+import { Outlet, useLocation, useNavigate } from "react-router";
 
 const { Text } = Typography;
-
-interface MainLayoutProps {
-	children: ReactNode;
-}
 
 const menuRoutes = {
 	path: "/",
@@ -39,15 +33,15 @@ const menuRoutes = {
 	],
 };
 
-export function MainLayout({ children }: MainLayoutProps) {
-	const router = useRouter();
-	const pathname = usePathname();
+export function MainLayout() {
+	const navigate = useNavigate();
+	const location = useLocation();
 	const { mode, toggle } = useThemeMode();
 	const [collapsed, setCollapsed] = useState(false);
 
 	const handleLogout = () => {
 		clearAuth();
-		router.replace("/login");
+		navigate("/login", { replace: true });
 	};
 
 	return (
@@ -57,14 +51,14 @@ export function MainLayout({ children }: MainLayoutProps) {
 			fixSiderbar
 			collapsed={collapsed}
 			onCollapse={setCollapsed}
-			location={{ pathname }}
+			location={{ pathname: location.pathname }}
 			route={menuRoutes}
 			menuItemRender={(item, dom) => (
 				<a
 					href={item.path || "#"}
 					onClick={(e) => {
 						e.preventDefault();
-						if (item.path) router.push(item.path);
+						if (item.path) navigate(item.path);
 					}}
 				>
 					{dom}
@@ -98,7 +92,7 @@ export function MainLayout({ children }: MainLayoutProps) {
 				</Dropdown>,
 			]}
 		>
-			{children}
+			<Outlet />
 		</ProLayout>
 	);
 }

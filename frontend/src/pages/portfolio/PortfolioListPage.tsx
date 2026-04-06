@@ -1,14 +1,22 @@
-"use client";
-
 import { formatCurrency, formatPercent } from "@/domain/ui/format";
 import { useDeleteHolding, useHoldings } from "@/features/portfolio";
 import type { HoldingDto } from "@/features/portfolio";
-import { Button, PageContainer, Popconfirm, ProTable, Space, Tag, message } from "@/ui-kit/eat";
-import { DeleteOutlined, EditOutlined, PlusOutlined } from "@/ui-kit/eat";
-import { useRouter } from "next/navigation";
+import {
+	Button,
+	DeleteOutlined,
+	EditOutlined,
+	PageContainer,
+	PlusOutlined,
+	Popconfirm,
+	ProTable,
+	Space,
+	Tag,
+	message,
+} from "@/ui-kit/eat";
+import { useNavigate } from "react-router";
 
-export default function PortfolioPage() {
-	const router = useRouter();
+export default function PortfolioListPage() {
+	const navigate = useNavigate();
 	const { data: holdings, isLoading } = useHoldings();
 	const deleteMutation = useDeleteHolding();
 
@@ -70,7 +78,7 @@ export default function PortfolioPage() {
 						type="link"
 						size="small"
 						icon={<EditOutlined />}
-						onClick={() => router.push(`/portfolio/${record.holdingId}`)}
+						onClick={() => navigate(`/portfolio/${record.holdingId}`)}
 					>
 						Edit
 					</Button>
@@ -97,7 +105,7 @@ export default function PortfolioPage() {
 						key="add"
 						type="primary"
 						icon={<PlusOutlined />}
-						onClick={() => router.push("/portfolio/new")}
+						onClick={() => navigate("/portfolio/new")}
 					>
 						Add Holding
 					</Button>,

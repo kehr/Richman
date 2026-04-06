@@ -1,13 +1,11 @@
-"use client";
-
 import { clearAuth, setToken, setUser } from "@/domain/auth/storage";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
+import { useNavigate } from "react-router";
 import { login, register } from "./api";
 import type { LoginInput, RegisterInput } from "./api";
 
 export function useLogin() {
-	const router = useRouter();
+	const navigate = useNavigate();
 	const queryClient = useQueryClient();
 
 	return useMutation({
@@ -16,13 +14,13 @@ export function useLogin() {
 			setToken(res.data.token);
 			setUser(res.data.user);
 			queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
-			router.replace("/dashboard");
+			navigate("/dashboard", { replace: true });
 		},
 	});
 }
 
 export function useRegister() {
-	const router = useRouter();
+	const navigate = useNavigate();
 	const queryClient = useQueryClient();
 
 	return useMutation({
@@ -31,18 +29,18 @@ export function useRegister() {
 			setToken(res.data.token);
 			setUser(res.data.user);
 			queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
-			router.replace("/dashboard");
+			navigate("/dashboard", { replace: true });
 		},
 	});
 }
 
 export function useLogout() {
-	const router = useRouter();
+	const navigate = useNavigate();
 	const queryClient = useQueryClient();
 
 	return () => {
 		clearAuth();
 		queryClient.clear();
-		router.replace("/login");
+		navigate("/login", { replace: true });
 	};
 }

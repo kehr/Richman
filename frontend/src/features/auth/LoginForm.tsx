@@ -1,7 +1,5 @@
-"use client";
-
 import { Alert, Button, Form, Input, Typography } from "@/ui-kit/eat";
-import Link from "next/link";
+import { Link } from "react-router";
 import type { LoginInput } from "./api";
 import { useLogin } from "./useAuth";
 
@@ -51,7 +49,7 @@ export function LoginForm() {
 				</Form.Item>
 
 				<div style={{ textAlign: "center" }}>
-					Don&apos;t have an account? <Link href="/register">Register</Link>
+					Don&apos;t have an account? <Link to="/register">Register</Link>
 				</div>
 			</Form>
 		</div>

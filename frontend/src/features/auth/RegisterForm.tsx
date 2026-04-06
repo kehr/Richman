@@ -1,7 +1,5 @@
-"use client";
-
 import { Alert, Button, Form, Input, Typography } from "@/ui-kit/eat";
-import Link from "next/link";
+import { Link } from "react-router";
 import type { RegisterInput } from "./api";
 import { useRegister } from "./useAuth";
 
@@ -62,7 +60,7 @@ export function RegisterForm() {
 				</Form.Item>
 
 				<div style={{ textAlign: "center" }}>
-					Already have an account? <Link href="/login">Sign In</Link>
+					Already have an account? <Link to="/login">Sign In</Link>
 				</div>
 			</Form>
 		</div>

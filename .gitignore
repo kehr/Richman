@@ -43,3 +43,4 @@ Thumbs.db
 .claude/worktrees/
 .claude/launch.json
 frontend/tsconfig.tsbuildinfo
+frontend/dist/

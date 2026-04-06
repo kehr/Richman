@@ -1,10 +1,8 @@
-"use client";
-
 import { RiskDisclaimer } from "@/components/RiskDisclaimer";
 import { DecisionCardView, useLatestCards } from "@/features/decision-card";
 import { Col, Empty, PageContainer, Row, Skeleton } from "@/ui-kit/eat";
 
-export default function DecisionCardsPage() {
+export default function DecisionCardListPage() {
 	const { data: cards, isLoading } = useLatestCards();
 
 	return (
