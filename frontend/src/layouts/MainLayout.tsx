@@ -46,6 +46,7 @@ export function MainLayout() {
 	return (
 		<ProLayout
 			title="Richman"
+			logo="/logo.svg"
 			layout="mix"
 			fixSiderbar
 			collapsed={collapsed}
