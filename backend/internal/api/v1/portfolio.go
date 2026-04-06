@@ -3,21 +3,80 @@ package v1
 import (
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/richman/backend/internal/api/middleware"
 	"github.com/richman/backend/internal/model"
 	"github.com/richman/backend/internal/service/portfolio"
+	usersettings "github.com/richman/backend/internal/service/user_settings"
 )
+
+// HoldingDTO is the API response shape for a holding row. PositionRatio is
+// projected from the database decimal into a float64 percentage so that
+// user_settings.AttachAmounts can fill PositionAmount when the user has set
+// total_capital_cny (TRD §5.3, PRD §8.3).
+type HoldingDTO struct {
+	HoldingID      int64     `json:"holdingId"`
+	UserID         int64     `json:"userId"`
+	AssetCode      string    `json:"assetCode"`
+	AssetName      string    `json:"assetName"`
+	AssetType      string    `json:"assetType"`
+	Category       *string   `json:"category,omitempty"`
+	CostPrice      float64   `json:"costPrice"`
+	PositionRatio  float64   `json:"positionRatio"`
+	PositionAmount *float64  `json:"positionAmount,omitempty"`
+	Quantity       float64   `json:"quantity"`
+	CreatedAt      time.Time `json:"createdAt"`
+	UpdatedAt      time.Time `json:"updatedAt"`
+}
+
+// toHoldingDTO projects a model.Holding onto the API response DTO. Decimal
+// fields are converted to float64 (the precision required for percentage and
+// quantity display in the dashboard is well within float64 range).
+func toHoldingDTO(h *model.Holding) HoldingDTO {
+	cost, _ := h.CostPrice.Float64()
+	pct, _ := h.PositionRatio.Float64()
+	qty, _ := h.Quantity.Float64()
+	return HoldingDTO{
+		HoldingID:     h.HoldingID,
+		UserID:        h.UserID,
+		AssetCode:     h.AssetCode,
+		AssetName:     h.AssetName,
+		AssetType:     h.AssetType,
+		Category:      h.Category,
+		CostPrice:     cost,
+		PositionRatio: pct,
+		Quantity:      qty,
+		CreatedAt:     h.CreatedAt,
+		UpdatedAt:     h.UpdatedAt,
+	}
+}
 
 // PortfolioHandler handles portfolio-related HTTP requests.
 type PortfolioHandler struct {
 	portfolioService *portfolio.Service
+	capital          CapitalProvider
 }
 
-// NewPortfolioHandler creates a new PortfolioHandler.
-func NewPortfolioHandler(portfolioService *portfolio.Service) *PortfolioHandler {
-	return &PortfolioHandler{portfolioService: portfolioService}
+// NewPortfolioHandler creates a new PortfolioHandler. The capital provider
+// may be nil; in that case PositionAmount fields are never populated.
+func NewPortfolioHandler(portfolioService *portfolio.Service, capital CapitalProvider) *PortfolioHandler {
+	return &PortfolioHandler{portfolioService: portfolioService, capital: capital}
+}
+
+// resolveCapital fetches the optional total capital for the given user.
+// Errors are swallowed so a transient profile read failure does not break
+// the holdings list response.
+func (h *PortfolioHandler) resolveCapital(c *gin.Context, userID int64) *float64 {
+	if h.capital == nil {
+		return nil
+	}
+	totalCap, err := h.capital.GetTotalCapitalCNY(c.Request.Context(), userID)
+	if err != nil {
+		return nil
+	}
+	return totalCap
 }
 
 // RegisterRoutes registers portfolio routes on the given router group.
@@ -42,8 +101,15 @@ func (h *PortfolioHandler) ListHoldings(c *gin.Context) {
 		return
 	}
 
+	capital := h.resolveCapital(c, userID)
+	dtos := make([]HoldingDTO, len(holdings))
+	for i := range holdings {
+		dtos[i] = toHoldingDTO(&holdings[i])
+		usersettings.AttachAmounts(&dtos[i], capital)
+	}
+
 	c.JSON(http.StatusOK, gin.H{
-		"data": holdings,
+		"data": dtos,
 	})
 }
 
@@ -69,8 +135,10 @@ func (h *PortfolioHandler) CreateHolding(c *gin.Context) {
 		return
 	}
 
+	dto := toHoldingDTO(holding)
+	usersettings.AttachAmounts(&dto, h.resolveCapital(c, userID))
 	c.JSON(http.StatusCreated, gin.H{
-		"data": holding,
+		"data": dto,
 	})
 }
 
@@ -107,8 +175,10 @@ func (h *PortfolioHandler) UpdateHolding(c *gin.Context) {
 		return
 	}
 
+	dto := toHoldingDTO(holding)
+	usersettings.AttachAmounts(&dto, h.resolveCapital(c, userID))
 	c.JSON(http.StatusOK, gin.H{
-		"data": holding,
+		"data": dto,
 	})
 }
 
