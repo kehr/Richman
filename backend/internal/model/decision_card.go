@@ -3,6 +3,8 @@ package model
 import (
 	"encoding/json"
 	"time"
+
+	"github.com/richman/backend/internal/analysis/recommendation"
 )
 
 // DecisionCard represents a generated investment decision card for a holding.
@@ -32,6 +34,22 @@ type DecisionCard struct {
 	WeightCatalyst    float64   `json:"weightCatalyst"`
 	AnalyzedAt        time.Time `json:"analyzedAt"`
 	CreatedAt         time.Time `json:"createdAt"`
+
+	// Structured recommendation and badge diff fields (migration 006).
+	// RecommendationJSON is serialized into the recommendation_json JSONB column.
+	RecommendationJSON   recommendation.Recommendation `json:"recommendation_detail"`
+	ActionLevel          int                           `json:"actionLevel"`
+	TargetPositionRatio  float64                       `json:"targetPositionRatio"`
+	BadgeState           string                        `json:"badgeState"`
+	ConfidenceDelta      float64                       `json:"confidenceDelta"`
+	PrevCardID           *int64                        `json:"prevCardId,omitempty"`
+	ExecutionFingerprint string                        `json:"executionFingerprint"`
+}
+
+// RecommendationDetailJSON returns the structured recommendation as a JSON
+// byte slice for DB storage in the recommendation_json JSONB column.
+func (d *DecisionCard) RecommendationDetailJSON() ([]byte, error) {
+	return json.Marshal(d.RecommendationJSON)
 }
 
 // RiskWarningsJSON returns the risk warnings as a JSON byte slice for DB storage.
