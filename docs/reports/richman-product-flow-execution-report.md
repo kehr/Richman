@@ -9,7 +9,10 @@
 - 隔离模式：git worktree 在 `.claude/worktrees/product-flow`，分支 `product-flow-redesign`
 - 执行流：Subagent 驱动开发（superpowers:subagent-driven-development）
 - 每个 step 流程：implementer → spec compliance review → code quality review → 必要修复循环 → 任务标记完成
-- 冷却规则：按 phase 边界 20 分钟冷却，防止触发 Claude Plan usage limits
+- 冷却规则：按 phase 边界冷却，防止触发 Claude Plan usage limits
+  - Phase 边界默认冷却：20 分钟
+  - Step 03 → Step 04 之间额外 50 分钟冷却（用户单独指定，覆盖默认）
+  - 冷却实现：`sleep` 后台命令 + `run_in_background=true`，启动后立即结束 turn，等通知回来再继续
 
 ## 全局规则
 
@@ -164,7 +167,37 @@
 ### 无法决策项
 - 无（JSON 冲突已按规则 A 明确如何修复）
 
+### Code quality review 反馈
+
+Reviewer 结论：**Approve with minor follow-ups requested**。无 Critical，5 条 Important + 10 条 Minor。
+
+#### 将在 Step 03 fix implementer 中一次性修复的项
+
+| 编号 | 问题 | 修复策略 |
+|---|---|---|
+| Rule A | legacy `Recommendation string` 字段与 JSON tag `"recommendation"` 冲突 | 新增 migration 009 drop 列；删除 model 字段；新字段 JSON tag 改回 `"recommendation"`；更新 repo/service/synthesizer/tests |
+| Important #1 | `persistDecisionCardWithDiff` 副作用 mutate 输入 card pointer（即使 rollback 也污染 caller） | 在 tx 内用 local copy，不污染输入 |
+| Important #2 | `scanCardRow` 静默吞掉 recommendation_json 反序列化错误，产生零值 Recommendation 静默生成错误徽章 | 解析失败时用 zap.Warn 记日志（含 card_id）而不是静默 |
+| Important #5 | `DataSourceDegraded` 硬编码 false 缺少 TODO 标记 | 在 call site 加 `// TODO(degraded)` 指向 `datasource.AssetData.Degraded` 未来字段 |
+| Minor #1 | `debugRecommendation` 无调用（dead code） | 删除 |
+| Minor #3 | `scanCard` 是 `scanCardRow` 的 0-value wrapper（dead code） | 删除 |
+| Minor #4 | `buildCardSnapshot` 的 `string()` cast 是 no-op（model 字段已经是 string） | 移除 cast，加注释说明为何不用 typed Direction |
+| Minor #10 | tx `Rollback` 用可能被取消的 ctx，pgx 会额外 "context canceled" 错误 | 改为 `_ = tx.Rollback(context.Background())` |
+
+#### 延后项（非阻塞，记录待用户验收时决策或在后续 step 中处理）
+
+| 编号 | 问题 | 延后原因 | 建议处理时机 |
+|---|---|---|---|
+| Important #3 | `DecisionCardRepo.Pool()` 方法破坏 repo 层封装 | reviewer 明确"worth doing in small follow-up" | Step 09 API DTO alignment 阶段重构为 `WithTx` helper |
+| Important #4 | tx 路径零单元/集成测试覆盖 | 需要 Postgres 测试环境（docker-compose 已有），集成测试方案独立 | Step 21 E2E verification 或专门 CI step |
+| Minor #2 | `extractJSON` 二次解析冗余 | 性能优化，非功能 | 不修复，可接受 |
+| Minor #5 | 迁移边界首次分析普遍产生 plan_adjust 徽章（旧卡 TargetPositionRatio=0） | 一次性适应成本可接受 | 不修复，作为预期行为 |
+| Minor #6 | `recommendationText` 放在 `synthesizer.go` 但只被 `recommendation_prompt.go` 使用 | 风格项 | 可后续 step 中顺手迁移 |
+| Minor #7 | 局部变量 `rec` 命名不够自文档 | naming polish | 不修复 |
+| Minor #8 | `insertDecisionCardSQL` 的 `$1..$30` 手工维护 | YAGNI，只有下次加列时才值得 | 等下次加列时一起 |
+| Minor #9 | tx 错误 wrap 缺 `holding_id` 上下文 | 日志便利性，非功能 | 不修复 |
+
 ### Review 结果
-- Spec compliance: 进行中
-- Code quality: 待进行
-- JSON tag 一次性升级 fix: 待派发
+- Spec compliance: ✅ Pass
+- Code quality: ✅ Approve with minor follow-ups
+- Step 03 fix implementer（Rule A + 5 项 quick fix）：待派发
