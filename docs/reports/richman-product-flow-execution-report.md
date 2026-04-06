@@ -233,5 +233,5 @@ Reviewer 结论：**Approve with minor follow-ups requested**。无 Critical，5
 ### Review 结果
 - Spec compliance (main Step 03): ✅ Pass
 - Code quality (main Step 03): ✅ Approve with minor follow-ups（已在 fix pass 中全部处理）
-- **Step 03 fix pass**: **用户直接接受**，跳过额外 review 循环（决策原因：fix implementer 已完成 grep 全清验证 + 测试全绿 + migration roundtrip 通过，且用户指示立即进入冷却执行后续任务）
-- Step 03 状态: **completed**
+- **Step 03 fix pass review**: 延后至 60 分钟冷却结束后派发 spec + code quality 两轮 review，通过后才标记 Step 03 为 completed
+- Step 03 状态: **in_progress**（冷却中，待 fix pass review 完成）
