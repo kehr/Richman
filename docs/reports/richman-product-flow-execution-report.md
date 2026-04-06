@@ -9,10 +9,11 @@
 - 隔离模式：git worktree 在 `.claude/worktrees/product-flow`，分支 `product-flow-redesign`
 - 执行流：Subagent 驱动开发（superpowers:subagent-driven-development）
 - 每个 step 流程：implementer → spec compliance review → code quality review → 必要修复循环 → 任务标记完成
-- 冷却规则：按 phase 边界冷却，防止触发 Claude Plan usage limits
-  - Phase 边界默认冷却：20 分钟
-  - Step 03 → Step 04 之间额外 50 分钟冷却（用户单独指定，覆盖默认）
-  - 冷却实现：`sleep` 后台命令 + `run_in_background=true`，启动后立即结束 turn，等通知回来再继续
+- 冷却规则（最终版本）：
+  - Step 03 完成后冷却 **1 小时**
+  - 冷却结束后一次性连续执行 Step 04 至 Step 21 全部 18 个 step，**中间无冷却**
+  - 冷却实现：`sleep 3600` 后台命令 + `run_in_background=true`，启动后立即结束 turn，等通知回来继续
+  - 历史规则变更：先后经历过"按 phase 边界 20 min"、"Step 03 之间 50 min"、"phase 边界 30 min"等多版本，最终以"只在 Step 03 完成后冷却 1 小时"为准
 
 ## 全局规则
 
