@@ -87,4 +87,5 @@ export {
 	LineChartOutlined,
 	BarChartOutlined,
 	StockOutlined,
+	QuestionCircleOutlined,
 } from "@ant-design/icons";
