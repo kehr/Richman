@@ -68,3 +68,22 @@ describe("formatAmountOrNull", () => {
 		expect(formatAmountOrNull(1000, true)).toBe("¥1,000");
 	});
 });
+
+describe("edge cases: NaN and negative zero", () => {
+	it("formatPercent coerces NaN to 0%", () => {
+		expect(formatPercent(Number.NaN)).toBe("0%");
+	});
+
+	it("formatAmount coerces NaN to ¥0", () => {
+		expect(formatAmount(Number.NaN)).toBe("¥0");
+	});
+
+	it("formatAmount renders negative zero without a sign", () => {
+		// -0 < 0 is false in JS, so the positive branch runs.
+		expect(formatAmount(-0)).toBe("¥0");
+	});
+
+	it("formatPercentWithAmount handles NaN percent with an amount", () => {
+		expect(formatPercentWithAmount(Number.NaN, 1000, true)).toBe("0% · ¥1,000");
+	});
+});

@@ -566,4 +566,50 @@ Spec: ✅ Pass。Code quality: **Approve with follow-ups**（0 Critical, 4 Impor
 - `pnpm test onboarding-guard` PASS（5/5）
 
 ### Step 10 状态: **COMPLETED** ✅
-- Commits: `a257310` → `bf3e8be` → `c6aaf35` → `2e3fdc3`
+- Commits: `a257310` → `bf3e8be` → `c6aaf35` → `2e3fdc3` → `4af49d0`
+
+## Step 11 Money hook 与 user-settings feature
+
+### 实施结果
+- Commits:
+  - `a0aa013` feat(domain/money): add money formatting hook and pure utils
+  - `ec21717` feat(features/user-settings): expose settings and onboarding hooks
+  - `<inline fixes>` review follow-ups
+- 创建 `domain/money/` 包（format.ts pure + useMoney.ts hook + test）
+- 创建 `features/user-settings/` feature 包（api / types / 4 个 query/mutation hooks / barrel）
+- 删除 Step 10 临时 hook `domain/auth/use-onboarding-status.ts`
+- 更新 onboarding-guard + 测试，mock target 改为 `@/features/user-settings`
+- 更新 dependency-cruiser 规则：2 个 pathNot 例外 + 2 个只允许 pinhole 指向 features/user-settings 的 narrow rule
+- 15 个 format.test.ts 用例 + 5 个 onboarding-guard 用例 + 后续补的 4 个 edge case 用例 = 24/24 通过
+
+### Review 反馈与修复（controller inline）
+
+Spec: ✅ Pass。Code quality: **Approve with 1 critical follow-up required**（0 Critical, 5 Important, 6 Minor）。
+
+**4 Important / Minor 已 inline 修复:**
+
+| 编号 | 问题 | 修复 |
+|---|---|---|
+| I1 | `useMoney` 返回的 object / 函数 references 每次 render 都重建，会击穿 Step 12 决策卡 React.memo | 改为 `useMemo(() => ({...}), [hasCapital])`；object identity 和 function references 现在在 hasCapital 不变时稳定 |
+| I3 | `Intl.NumberFormat("zh-CN")` 硬编码 locale 与 ¥ 符号，与 PRD §6.4 未来 i18n 冲突，注释误导为 "locale-aware" | 改为明确的 "MVP locale policy" 注释，说明 post-MVP i18n 工作需要把 locale 切换到 user preference，并用 Intl currency formatting 替代手动 ¥ 前缀 |
+| I4 | `formatPercent` 的 `toFixed(1)` rounding 语义未文档化 | 加注释明确 "half-away-from-zero, integers render without decimal, NaN → 0%" |
+| I7 | format.test.ts 缺 NaN / negative zero edge case | 新增 4 个 edge case 测试：formatPercent(NaN)、formatAmount(NaN)、formatAmount(-0)、formatPercentWithAmount(NaN, 1000) |
+| 发现 bug | formatAmount(-0) 原实现依赖 `amount < 0` 判断，但 `Intl.NumberFormat` 会把 `-0` 格式化为 `-0`，触发测试失败 | 加 `if (amount === 0) return "¥0"` 显式归一化；注释说明"Intl 会保留 -0 sign，但 UI 需要永远不带负号" |
+
+### 延后项（5 条）
+
+| 编号 | 处理 |
+|---|---|
+| I2 | `hasCapital` 在 loading 时返回 false 可能闪烁 | 记录在 useMoney doc，说明 OnboardingGuard 已作为 hydration boundary 规避；如未来 Step 14 发现闪烁再加 `isLoading` 返回字段 |
+| I5 | mutation error surfacing 未集中处理 | 与现有 features/portfolio 风格一致，延后到 Step 18 时若有统一需求再整理 |
+| M8 | HTTP client headers merge pre-existing tech debt | 与本 step 无关 |
+| M9 | query key 位于不同文件 | 目前 2 个 key，可接受 |
+| M11 | useResetOnboarding YAGNI 讨论 | Step 18 会消费 |
+
+### 验证
+- `pnpm lint:all` PASS（Biome + tsc + depcruise 全绿，84 modules / 196 deps）
+- `pnpm build` PASS（vite build 3.36s）
+- `pnpm test --run` PASS（24/24）
+
+### Step 11 状态: **COMPLETED** ✅
+- Commits: `a0aa013` → `ec21717` → `<inline fix pending>`
