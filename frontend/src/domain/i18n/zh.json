@@ -2,10 +2,8 @@
 	"nav": {
 		"dashboard": "仪表盘",
 		"portfolio": "投资组合",
-		"analysis": "分析",
-		"decisionCards": "决策卡片",
-		"notifications": "通知",
-		"settings": "设置"
+		"settings": "设置",
+		"help": "帮助"
 	},
 	"auth": {
 		"login": "登录",

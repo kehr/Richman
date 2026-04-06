@@ -79,6 +79,9 @@ export function AppRoutes() {
 					<Route path="/portfolio" element={<PortfolioListPage />} />
 					<Route path="/portfolio/new" element={<PortfolioNewPage />} />
 					<Route path="/portfolio/:id" element={<PortfolioEditPage />} />
+					{/* TODO(step17): replace PortfolioEditPage alias with a real
+					    TransactionsPage that shows trade history for a single holding
+					    (PRD §4.4). */}
 					<Route path="/portfolio/:id/transactions" element={<PortfolioEditPage />} />
 					<Route path="/decision-cards/:id" element={<DecisionCardDetailPage />} />
 					<Route path="/settings" element={<SettingsPage />} />

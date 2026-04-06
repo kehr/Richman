@@ -13,7 +13,6 @@ import {
 	Space,
 	UserOutlined,
 } from "@/ui-kit/eat";
-import { useState } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router";
 
 const menuRoutes = {
@@ -29,7 +28,6 @@ export function MainLayout() {
 	const navigate = useNavigate();
 	const location = useLocation();
 	const { data: userData } = useCurrentUser();
-	const [collapsed, setCollapsed] = useState(false);
 
 	const user = userData?.data;
 	const displayName = user?.email?.split("@")[0] || "User";
@@ -48,7 +46,6 @@ export function MainLayout() {
 			token={layoutToken}
 			collapsed={false}
 			collapsedButtonRender={false}
-			onCollapse={setCollapsed}
 			location={{ pathname: location.pathname }}
 			route={menuRoutes}
 			menuItemRender={(item, dom) => (
@@ -62,49 +59,25 @@ export function MainLayout() {
 					{dom}
 				</a>
 			)}
-			menuFooterRender={(props) => {
-				if (props?.collapsed) {
-					return (
-						<div
-							style={{
-								display: "flex",
-								justifyContent: "center",
-								padding: "12px 0",
-							}}
-						>
-							<a
-								href="/help"
-								onClick={(e) => {
-									e.preventDefault();
-									navigate("/help");
-								}}
-								style={{ color: "inherit" }}
-							>
-								<QuestionCircleOutlined />
-							</a>
-						</div>
-					);
-				}
-				return (
-					<a
-						href="/help"
-						onClick={(e) => {
-							e.preventDefault();
-							navigate("/help");
-						}}
-						style={{
-							display: "flex",
-							alignItems: "center",
-							gap: 8,
-							padding: "12px 16px",
-							color: "inherit",
-						}}
-					>
-						<QuestionCircleOutlined />
-						<span>Help</span>
-					</a>
-				);
-			}}
+			menuFooterRender={() => (
+				<a
+					href="/help"
+					onClick={(e) => {
+						e.preventDefault();
+						navigate("/help");
+					}}
+					style={{
+						display: "flex",
+						alignItems: "center",
+						gap: 8,
+						padding: "12px 16px",
+						color: "inherit",
+					}}
+				>
+					<QuestionCircleOutlined />
+					<span>Help</span>
+				</a>
+			)}
 			actionsRender={() => [
 				<Dropdown
 					key="user"
