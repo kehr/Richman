@@ -1,0 +1,3 @@
+DROP TABLE IF EXISTS trades;
+DROP TABLE IF EXISTS holdings;
+DROP TABLE IF EXISTS asset_catalog;

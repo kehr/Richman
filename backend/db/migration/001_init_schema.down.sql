@@ -1,0 +1,3 @@
+DROP TABLE IF EXISTS invite_codes;
+DROP TABLE IF EXISTS plans;
+DROP TABLE IF EXISTS users;

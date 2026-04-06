@@ -1,0 +1,12 @@
+app:
+  env: prod
+  port: 8080
+database:
+  host: "${DATABASE_HOST}"
+  port: 5432
+  name: richman
+  user: "${DATABASE_USER}"
+  password: "${DATABASE_PASSWORD}"
+log:
+  level: info
+  dir: /var/log/richman

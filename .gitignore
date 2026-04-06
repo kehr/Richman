@@ -1,0 +1,42 @@
+# Dependencies
+frontend/node_modules/
+frontend/.pnpm-store/
+
+# Build output
+frontend/.next/
+frontend/out/
+backend/bin/
+backend/tmp/
+
+# Environment files (secrets)
+.env
+.env.local
+frontend/.env.local
+backend/.env
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs
+*.log
+logs/
+frontend/logs/
+backend/logs/
+
+# Test coverage
+frontend/coverage/
+backend/coverage/
+
+# Docker
+docker-compose.override.yml
+
+# OS
+Thumbs.db
+
+# Superpowers brainstorm artifacts
+.superpowers/
