@@ -521,5 +521,49 @@ Spec: ✅ Pass。Code quality: **Approve with minor fixes**（0 Critical, 3 Impo
 | M10 | user_settings handler PATCH 400 分支未走 handleServiceError |
 
 ### Step 09 状态: **COMPLETED** ✅
-- Commits: `d294b85` → `4d4f2cf` → `d2fa59e` → `b7863a3` → `4f907dc` → `<inline fixes pending>`
+- Commits: `d294b85` → `4d4f2cf` → `d2fa59e` → `b7863a3` → `4f907dc` → `da76c74`（inline fixes）
 - **Phase 3（后端阶段）全部完成**
+
+## Step 10 前端路由与守卫重构（Phase 4 前端基础第 1 步）
+
+### 实施结果
+- Commits:
+  - `a257310` feat(auth): add onboarding guard
+  - `bf3e8be` refactor(routes): collapse menu to dashboard, portfolio, settings
+  - `c6aaf35` chore(pages): remove deprecated analysis, decision-cards-list, notifications pages
+  - `2e3fdc3` review inline fixes
+- 创建 OnboardingGuard + 临时 useOnboardingStatus hook + 4 个 onboarding 占位页 + HelpPage 占位
+- 重构 routes.tsx 使用 OnboardingShell / AppShell 两层 shell 组件
+- MainLayout 菜单精简到 3 项 + menuFooterRender 帮助入口
+- 删除 analysis / decision-cards-list / notifications 页面与相关 features
+- 修复 pre-existing 的 test/setup.ts 和 test/utils.tsx 的 Biome 错误
+- tsconfig.json 加 vitest/jest-dom types 让 tsc 识别测试 globals
+
+### Review 反馈与修复（controller inline）
+
+Spec: ✅ Pass。Code quality: **Approve with follow-ups**（0 Critical, 4 Important, 6 Minor）。
+
+**4 Important 全部 inline 修复:**
+
+| 编号 | 问题 | 修复 |
+|---|---|---|
+| I1 | OnboardingGuard 的 redirect 分支在 Step 11 接入前完全未被测试 | 新增 `onboarding-guard.test.tsx` 5 个用例：loading spinner、pre-onboarding redirect、onboarding pass-through、post-onboarding redirect、main app pass-through。Mock useOnboardingStatus + useNavigate |
+| I2 | MainLayout 的 `collapsed` useState 是 dead code（sider 被强制展开） | 删除 useState；`menuFooterRender` 简化为单一展开样式（无 collapsed 分支） |
+| I3 | i18n nav.analysis / nav.decisionCards / nav.notifications 过时 key 未清理 | zh.json + en.json 精简 nav section 至 `dashboard / portfolio / settings / help` 四项 |
+| I4 | `/portfolio/:id/transactions` 静默 alias 到 PortfolioEditPage，无注释说明 | 加 `TODO(step17)` 注释指向 PRD §4.4 要求 |
+
+### 延后项（6 条 Minor）
+
+| 编号 | 处理 |
+|---|---|
+| M5 | tsconfig.json 的 types 字段可能需要 tsconfig.test.json 拆分 | 不修复，当前配置验证通过 |
+| M6 | useOnboardingStatus hook 的 error 字段未被消费 | Step 11 接入真实 API 后一并处理 |
+| M7-M10 | 风格项 | 不修复 |
+
+### 验证
+- `pnpm lint:all` PASS（Biome + tsc + depcruise 全绿，75 modules / 169 deps）
+- `pnpm build` PASS（vite build 3.37s）
+- `pnpm test onboarding-guard` PASS（5/5）
+
+### Step 10 状态: **COMPLETED** ✅
+- Commits: `a257310` → `bf3e8be` → `c6aaf35` → `2e3fdc3`
