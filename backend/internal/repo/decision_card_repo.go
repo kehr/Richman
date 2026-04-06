@@ -9,16 +9,23 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/richman/backend/internal/model"
+	"go.uber.org/zap"
 )
 
 // DecisionCardRepo handles decision card data access operations.
 type DecisionCardRepo struct {
-	pool *pgxpool.Pool
+	pool   *pgxpool.Pool
+	logger *zap.Logger
 }
 
-// NewDecisionCardRepo creates a new DecisionCardRepo.
-func NewDecisionCardRepo(pool *pgxpool.Pool) *DecisionCardRepo {
-	return &DecisionCardRepo{pool: pool}
+// NewDecisionCardRepo creates a new DecisionCardRepo. The logger is used to
+// surface JSONB unmarshal failures (e.g. corrupted recommendation_json rows)
+// that would otherwise produce silently zero-valued recommendations.
+func NewDecisionCardRepo(pool *pgxpool.Pool, logger *zap.Logger) *DecisionCardRepo {
+	if logger == nil {
+		logger = zap.NewNop()
+	}
+	return &DecisionCardRepo{pool: pool, logger: logger}
 }
 
 // Pool returns the underlying pgx pool. Exposed so the service layer can
@@ -28,14 +35,14 @@ func (r *DecisionCardRepo) Pool() *pgxpool.Pool {
 }
 
 // cardColumns enumerates every column selected when scanning a DecisionCard.
-// Keep the order in sync with scanCard / createDecisionCardRow below.
+// Keep the order in sync with scanCardRow / insertDecisionCardSQL below.
 const cardColumns = `decision_card_id, user_id, holding_id,
 	asset_code, asset_name, asset_type,
 	cost_price, position_ratio,
 	trend_direction, trend_summary,
 	position_direction, position_summary,
 	catalyst_direction, catalyst_summary,
-	confidence, recommendation,
+	confidence,
 	action_advice, detailed_advice, risk_warnings,
 	today_highlights,
 	weight_trend, weight_position, weight_catalyst,
@@ -50,7 +57,10 @@ type rowScanner interface {
 
 // scanCardRow reads a full decision card row into a model.DecisionCard.
 // Handles JSONB deserialization for risk_warnings and recommendation_json.
-func scanCardRow(row rowScanner) (*model.DecisionCard, error) {
+// A failure to decode recommendation_json is logged at warn level so badge
+// diffs that depend on the structured recommendation cannot silently degrade
+// to zero values.
+func (r *DecisionCardRepo) scanCardRow(row rowScanner) (*model.DecisionCard, error) {
 	var card model.DecisionCard
 	var riskData []byte
 	var recData []byte
@@ -61,7 +71,7 @@ func scanCardRow(row rowScanner) (*model.DecisionCard, error) {
 		&card.TrendDirection, &card.TrendSummary,
 		&card.PositionDirection, &card.PositionSummary,
 		&card.CatalystDirection, &card.CatalystSummary,
-		&card.Confidence, &card.Recommendation,
+		&card.Confidence,
 		&card.ActionAdvice, &card.DetailedAdvice, &riskData,
 		&card.TodayHighlights,
 		&card.WeightTrend, &card.WeightPosition, &card.WeightCatalyst,
@@ -76,15 +86,15 @@ func scanCardRow(row rowScanner) (*model.DecisionCard, error) {
 		card.RiskWarnings = nil
 	}
 	if len(recData) > 0 {
-		// Ignore decode errors so a malformed legacy row does not break reads.
-		_ = json.Unmarshal(recData, &card.RecommendationJSON)
+		if jsonErr := json.Unmarshal(recData, &card.Recommendation); jsonErr != nil {
+			r.logger.Warn("decode recommendation_json failed",
+				zap.Int64("card_id", card.CardID),
+				zap.Int64("holding_id", card.HoldingID),
+				zap.Error(jsonErr),
+			)
+		}
 	}
 	return &card, nil
-}
-
-// scanCard is retained as a thin wrapper for callers that pass a pgx.Row.
-func scanCard(row pgx.Row) (*model.DecisionCard, error) {
-	return scanCardRow(row)
 }
 
 // insertDecisionCardQuerier is the minimal subset of pgxpool.Pool / pgx.Tx
@@ -100,7 +110,7 @@ const insertDecisionCardSQL = `INSERT INTO decision_cards
 	  trend_direction, trend_summary,
 	  position_direction, position_summary,
 	  catalyst_direction, catalyst_summary,
-	  confidence, recommendation,
+	  confidence,
 	  action_advice, detailed_advice, risk_warnings,
 	  today_highlights,
 	  weight_trend, weight_position, weight_catalyst,
@@ -108,11 +118,11 @@ const insertDecisionCardSQL = `INSERT INTO decision_cards
 	  recommendation_json, action_level, target_position_ratio,
 	  badge_state, confidence_delta, prev_card_id, execution_fingerprint)
 	 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12,
-	         $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23,
-	         $24, $25, $26, $27, $28, $29, $30)
+	         $13, $14, $15, $16, $17, $18, $19, $20, $21, $22,
+	         $23, $24, $25, $26, $27, $28, $29)
 	 RETURNING ` + cardColumns
 
-func insertDecisionCardOn(
+func (r *DecisionCardRepo) insertDecisionCardOn(
 	ctx context.Context, q insertDecisionCardQuerier, card *model.DecisionCard,
 ) (*model.DecisionCard, error) {
 	riskJSON, err := card.RiskWarningsJSON()
@@ -130,7 +140,7 @@ func insertDecisionCardOn(
 		card.TrendDirection, card.TrendSummary,
 		card.PositionDirection, card.PositionSummary,
 		card.CatalystDirection, card.CatalystSummary,
-		card.Confidence, card.Recommendation,
+		card.Confidence,
 		card.ActionAdvice, card.DetailedAdvice, riskJSON,
 		card.TodayHighlights,
 		card.WeightTrend, card.WeightPosition, card.WeightCatalyst,
@@ -138,7 +148,7 @@ func insertDecisionCardOn(
 		recJSON, card.ActionLevel, card.TargetPositionRatio,
 		card.BadgeState, card.ConfidenceDelta, card.PrevCardID, card.ExecutionFingerprint,
 	)
-	inserted, err := scanCardRow(row)
+	inserted, err := r.scanCardRow(row)
 	if err != nil {
 		return nil, fmt.Errorf("insert decision card: %w", err)
 	}
@@ -151,14 +161,14 @@ func insertDecisionCardOn(
 func (r *DecisionCardRepo) CreateDecisionCard(
 	ctx context.Context, card *model.DecisionCard,
 ) (*model.DecisionCard, error) {
-	return insertDecisionCardOn(ctx, r.pool, card)
+	return r.insertDecisionCardOn(ctx, r.pool, card)
 }
 
 // CreateDecisionCardTx inserts a decision card inside an existing transaction.
 func (r *DecisionCardRepo) CreateDecisionCardTx(
 	ctx context.Context, tx pgx.Tx, card *model.DecisionCard,
 ) (*model.DecisionCard, error) {
-	return insertDecisionCardOn(ctx, tx, card)
+	return r.insertDecisionCardOn(ctx, tx, card)
 }
 
 // GetLatestByHolding returns the most recent decision card for a holding
@@ -176,7 +186,7 @@ func (r *DecisionCardRepo) GetLatestByHolding(
 		 LIMIT 1`,
 		holdingID,
 	)
-	card, err := scanCard(row)
+	card, err := r.scanCardRow(row)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil
@@ -201,7 +211,7 @@ func (r *DecisionCardRepo) GetLatestByHoldingTx(
 		 FOR UPDATE`,
 		holdingID,
 	)
-	card, err := scanCard(row)
+	card, err := r.scanCardRow(row)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil
@@ -219,7 +229,7 @@ func (r *DecisionCardRepo) GetByID(ctx context.Context, cardID int64) (*model.De
 		 WHERE decision_card_id = $1 AND is_deleted = 0`,
 		cardID,
 	)
-	card, err := scanCard(row)
+	card, err := r.scanCardRow(row)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil
@@ -245,7 +255,7 @@ func (r *DecisionCardRepo) ListLatestByUser(ctx context.Context, userID int64) (
 
 	var cards []model.DecisionCard
 	for rows.Next() {
-		card, scanErr := scanCardRow(rows)
+		card, scanErr := r.scanCardRow(rows)
 		if scanErr != nil {
 			return nil, fmt.Errorf("scan decision card: %w", scanErr)
 		}
@@ -274,7 +284,7 @@ func (r *DecisionCardRepo) ListHistory(ctx context.Context, userID int64, limit 
 
 	var cards []model.DecisionCard
 	for rows.Next() {
-		card, scanErr := scanCardRow(rows)
+		card, scanErr := r.scanCardRow(rows)
 		if scanErr != nil {
 			return nil, fmt.Errorf("scan decision card: %w", scanErr)
 		}

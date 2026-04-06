@@ -304,7 +304,6 @@ func (s *Service) AnalyzeHolding(
 		CatalystDirection:    string(catResult.Direction),
 		CatalystSummary:      synthOutput.CatalystSummary,
 		Confidence:           conf,
-		Recommendation:       string(rec),
 		ActionAdvice:         synthOutput.ActionAdvice,
 		DetailedAdvice:       synthOutput.DetailedAdvice,
 		RiskWarnings:         synthOutput.RiskWarnings,
@@ -313,7 +312,9 @@ func (s *Service) AnalyzeHolding(
 		WeightPosition:       weights.Position,
 		WeightCatalyst:       weights.Catalyst,
 		AnalyzedAt:           now,
-		RecommendationJSON:   synthOutput.Recommendation,
+		// Recommendation is the structured object; the legacy VARCHAR
+		// recommendation column was removed in migration 009.
+		Recommendation:       synthOutput.Recommendation,
 		ActionLevel:          synthOutput.Recommendation.ActionLevel,
 		TargetPositionRatio:  synthOutput.Recommendation.TargetPositionPct / 100,
 		ExecutionFingerprint: fingerprint,
@@ -355,9 +356,11 @@ func (s *Service) AnalyzeHolding(
 
 // persistDecisionCardWithDiff wraps the previous-card lookup and new-card
 // insert inside a single transaction so concurrent analyses on the same
-// holding cannot produce interleaved prev_card_id chains. The caller must
-// have already populated every field on card except PrevCardID, BadgeState,
-// and ConfidenceDelta, which are computed here from diff.Compute.
+// holding cannot produce interleaved prev_card_id chains. The caller passes a
+// fully populated card except for PrevCardID, BadgeState, and ConfidenceDelta,
+// which are computed here from diff.Compute. The caller's pointer is left
+// untouched: a local copy is mutated and persisted so a tx rollback never
+// leaves stale diff fields on the original.
 func (s *Service) persistDecisionCardWithDiff(
 	ctx context.Context, card *model.DecisionCard,
 ) (*model.DecisionCard, error) {
@@ -372,8 +375,10 @@ func (s *Service) persistDecisionCardWithDiff(
 	if err != nil {
 		return nil, fmt.Errorf("begin tx: %w", err)
 	}
+	// Use a background context for rollback so a cancelled request context
+	// does not prevent pgx from releasing the tx on the server side.
 	defer func() {
-		_ = tx.Rollback(ctx)
+		_ = tx.Rollback(context.Background())
 	}()
 
 	prev, err := s.cardRepo.GetLatestByHoldingTx(ctx, tx, card.HoldingID)
@@ -381,15 +386,21 @@ func (s *Service) persistDecisionCardWithDiff(
 		return nil, fmt.Errorf("get latest card: %w", err)
 	}
 
-	badge, delta := computeCardDiff(card, prev, false)
-	card.BadgeState = string(badge)
-	card.ConfidenceDelta = delta
+	// Work on a local copy so the caller's pointer is not mutated when the
+	// transaction rolls back.
+	toPersist := *card
+	// TODO(degraded): wire datasource.AssetData.Degraded into computeCardDiff
+	// once the fetcher exposes a per-asset degraded flag. Until then the
+	// data_degraded badge can never fire.
+	badge, delta := computeCardDiff(&toPersist, prev, false)
+	toPersist.BadgeState = string(badge)
+	toPersist.ConfidenceDelta = delta
 	if prev != nil {
 		prevID := prev.CardID
-		card.PrevCardID = &prevID
+		toPersist.PrevCardID = &prevID
 	}
 
-	saved, err := s.cardRepo.CreateDecisionCardTx(ctx, tx, card)
+	saved, err := s.cardRepo.CreateDecisionCardTx(ctx, tx, &toPersist)
 	if err != nil {
 		return nil, fmt.Errorf("insert decision card: %w", err)
 	}
@@ -417,17 +428,16 @@ func computeCardDiff(
 }
 
 // buildCardSnapshot converts a model.DecisionCard into a diff.CardSnapshot.
-// It exists to keep the explicit string conversions in one place so typos in
-// direction field mapping surface at the helper level instead of at every
-// call site.
+// Dimension directions are stored as plain strings in the model; the diff
+// algorithm compares them verbatim.
 func buildCardSnapshot(card *model.DecisionCard) diff.CardSnapshot {
 	return diff.CardSnapshot{
 		ActionLevel:          card.ActionLevel,
 		TargetPositionPct:    card.TargetPositionRatio * 100,
 		Confidence:           card.Confidence,
-		TrendDirection:       string(card.TrendDirection),
-		PositionDirection:    string(card.PositionDirection),
-		CatalystDirection:    string(card.CatalystDirection),
+		TrendDirection:       card.TrendDirection,
+		PositionDirection:    card.PositionDirection,
+		CatalystDirection:    card.CatalystDirection,
 		ExecutionFingerprint: card.ExecutionFingerprint,
 	}
 }

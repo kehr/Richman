@@ -1,0 +1,2 @@
+ALTER TABLE decision_cards
+    ADD COLUMN IF NOT EXISTS recommendation VARCHAR(32) NOT NULL DEFAULT '';

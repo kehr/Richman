@@ -82,7 +82,7 @@ func main() {
 	assetRepo := repo.NewAssetRepo(dbPool)
 	holdingRepo := repo.NewHoldingRepo(dbPool)
 	tradeRepo := repo.NewTradeRepo(dbPool)
-	cardRepo := repo.NewDecisionCardRepo(dbPool)
+	cardRepo := repo.NewDecisionCardRepo(dbPool, zapLogger)
 	resultRepo := repo.NewAnalysisResultRepo(dbPool)
 	taskRepo := repo.NewAnalysisTaskRepo(dbPool)
 	notifChannelRepo := repo.NewNotificationChannelRepo(dbPool)

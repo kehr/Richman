@@ -24,7 +24,6 @@ type DecisionCard struct {
 	CatalystDirection string    `json:"catalystDirection"`
 	CatalystSummary   string    `json:"catalystSummary"`
 	Confidence        float64   `json:"confidence"`
-	Recommendation    string    `json:"recommendation"`
 	ActionAdvice      string    `json:"actionAdvice"`
 	DetailedAdvice    string    `json:"detailedAdvice"`
 	RiskWarnings      []string  `json:"riskWarnings"`
@@ -36,8 +35,8 @@ type DecisionCard struct {
 	CreatedAt         time.Time `json:"createdAt"`
 
 	// Structured recommendation and badge diff fields (migration 006).
-	// RecommendationJSON is serialized into the recommendation_json JSONB column.
-	RecommendationJSON   recommendation.Recommendation `json:"recommendation_detail"`
+	// Recommendation is serialized into the recommendation_json JSONB column.
+	Recommendation       recommendation.Recommendation `json:"recommendation"`
 	ActionLevel          int                           `json:"actionLevel"`
 	TargetPositionRatio  float64                       `json:"targetPositionRatio"`
 	BadgeState           string                        `json:"badgeState"`
@@ -49,7 +48,7 @@ type DecisionCard struct {
 // RecommendationDetailJSON returns the structured recommendation as a JSON
 // byte slice for DB storage in the recommendation_json JSONB column.
 func (d *DecisionCard) RecommendationDetailJSON() ([]byte, error) {
-	return json.Marshal(d.RecommendationJSON)
+	return json.Marshal(d.Recommendation)
 }
 
 // RiskWarningsJSON returns the risk warnings as a JSON byte slice for DB storage.
