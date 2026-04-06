@@ -40,3 +40,5 @@ Thumbs.db
 
 # Superpowers brainstorm artifacts
 .superpowers/
+.claude/worktrees/
+.claude/launch.json
