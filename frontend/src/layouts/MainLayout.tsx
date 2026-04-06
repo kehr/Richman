@@ -1,6 +1,5 @@
 import { clearAuth } from "@/domain/auth/storage";
 import { useCurrentUser } from "@/domain/auth/use-current-user";
-import { useThemeMode } from "@/domain/ui/use-theme";
 import {
 	Avatar,
 	BellOutlined,
@@ -9,13 +8,10 @@ import {
 	FundOutlined,
 	LineChartOutlined,
 	LogoutOutlined,
-	MoonOutlined,
 	PieChartOutlined,
 	ProLayout,
 	SettingOutlined,
 	Space,
-	SunOutlined,
-	Switch,
 	UserOutlined,
 } from "@/ui-kit/eat";
 import { useState } from "react";
@@ -36,7 +32,6 @@ const menuRoutes = {
 export function MainLayout() {
 	const navigate = useNavigate();
 	const location = useLocation();
-	const { mode, toggle } = useThemeMode();
 	const { data: userData } = useCurrentUser();
 	const [collapsed, setCollapsed] = useState(false);
 
@@ -69,14 +64,6 @@ export function MainLayout() {
 				</a>
 			)}
 			actionsRender={() => [
-				<Switch
-					key="theme"
-					checkedChildren={<MoonOutlined />}
-					unCheckedChildren={<SunOutlined />}
-					checked={mode === "dark"}
-					onChange={toggle}
-					size="small"
-				/>,
 				<Dropdown
 					key="user"
 					menu={{
