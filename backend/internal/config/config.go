@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -197,15 +198,18 @@ func (c *Config) validate() error {
 }
 
 // IsDev returns true if the application is running in development mode.
+// The APP_ENV comparison is case-insensitive.
 func (c *Config) IsDev() bool {
-	return c.App.Env == "dev"
+	return strings.EqualFold(c.App.Env, "dev")
 }
 
 // IsProduction returns true if the application is running in production mode.
-// Any APP_ENV other than "dev", "test", or "staging" is treated as production
-// to fail closed on misconfiguration.
+// Any APP_ENV other than "dev", "test", or "staging" (case-insensitive) is
+// treated as production to fail closed on misconfiguration. This function is
+// the single source of truth for dev-only feature gates such as the
+// onboarding reset endpoint.
 func (c *Config) IsProduction() bool {
-	switch c.App.Env {
+	switch strings.ToLower(c.App.Env) {
 	case "dev", "test", "staging":
 		return false
 	default:

@@ -44,10 +44,18 @@ type Service struct {
 	env   EnvGuard
 }
 
-// NewService constructs the onboarding Service. env must not be nil; pass a
-// config.Config directly since *Config already implements EnvGuard via
-// IsProduction().
+// NewService constructs the onboarding Service. Both users and env must be
+// non-nil; pass *config.Config directly for env since it already implements
+// EnvGuard via IsProduction(). A nil env would make Reset always-allowed,
+// which would defeat the production guard, so we fail fast at wiring time
+// rather than silently open the hole.
 func NewService(users UserRepo, env EnvGuard) *Service {
+	if users == nil {
+		panic("onboarding.NewService: users repository must not be nil")
+	}
+	if env == nil {
+		panic("onboarding.NewService: env guard must not be nil")
+	}
 	return &Service{users: users, env: env}
 }
 
@@ -80,9 +88,11 @@ func (s *Service) MarkCompleted(ctx context.Context, userID int64) (*Status, err
 
 // Reset clears onboarding_completed_at back to NULL. It is only permitted in
 // non-production environments; callers from production get a
-// ONBOARDING_RESET_FORBIDDEN AppError mapped to 403 by the handler.
+// ONBOARDING_RESET_FORBIDDEN AppError mapped to 403 by the handler. The env
+// check runs first so a missing user in production still returns 403 rather
+// than leaking the existence of the user via 404.
 func (s *Service) Reset(ctx context.Context, userID int64) (*Status, error) {
-	if s.env != nil && s.env.IsProduction() {
+	if s.env.IsProduction() {
 		return nil, model.NewAppError(
 			http.StatusForbidden,
 			"ONBOARDING_RESET_FORBIDDEN",

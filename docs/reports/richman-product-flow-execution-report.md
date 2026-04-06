@@ -435,4 +435,47 @@ Spec: ✅ Pass。Code quality: **Approve with follow-ups**（0 Critical, 4 Impor
 | M11 | newTestRouter 直接写 ContextKeyUserID | 测试辅助可接受 |
 
 ### Step 07 状态: **COMPLETED** ✅
-- Commits: `ea5d712` → `bf5e218` → `<inline fixes pending>`
+- Commits: `ea5d712` → `bf5e218` → `0f12a48`（inline fixes）
+
+## Step 08 Onboarding 服务与 API
+
+### 实施结果
+- Commits:
+  - `e98f5fe` feat(onboarding): add status service with mark and reset
+  - `f9533ea` feat(api): expose onboarding endpoints with prod-mode reset guard
+- 创建 `service/onboarding/service.go` + test（GetStatus/MarkCompleted/Reset 3 个方法）
+- 创建 `api/v1/onboarding.go` + test（GET/POST/DELETE 路由）
+- 修改 `repo/user_repo.go` 新增 `ClearOnboardingCompleted`
+- 修改 `config/config.go` 新增 `IsProduction()` fail-closed helper
+- 修改 `cmd/server/main.go` wire onboardingService
+- 关键设计：
+  - `EnvGuard` 窄接口（1 方法），`*config.Config` 直接满足
+  - `UserRepo` 窄接口（3 方法），测试用 fake
+  - Reset 在 production 直接返 `ONBOARDING_RESET_FORBIDDEN` 403
+  - Mark/Reset 返回 `*Status` 让 handler 无需二次 GET
+- 测试：11 个 service 测试 + 6 个 API 测试 + IsProduction/IsDev 专项测试
+
+### Review 反馈与修复（controller inline）
+
+Spec: ✅ Pass。Code quality: **Approve with follow-ups**（0 Critical, 2 Important, 8 Minor）。
+
+**2 Important + 1 Minor 已 inline 修复:**
+
+| 编号 | 问题 | 修复 |
+|---|---|---|
+| I1 | `IsProduction` 大小写敏感，`APP_ENV=DEV` 会被误判为 prod | 改为 `strings.ToLower(c.App.Env)` 比较；`IsDev` 同步改为 `strings.EqualFold`。新增 `config_test.go`，12 组用例覆盖 dev/test/staging/prod/空/大小写变体 |
+| I2 | Reset 的 `s.env != nil` 防御让 nil env 变成"永远允许重置" | `NewService` 改为 fail-fast：nil users / nil env 都直接 panic；`Reset` 移除 nil check；新增 `TestNewService_PanicsOnNilDeps` + `TestReset_ProductionTakesPrecedenceOverNotFound` 两个测试固化契约 |
+| Minor #3 | Reset "prod 优先于 not-found" 的顺序未固化测试 | 新增 `TestReset_ProductionTakesPrecedenceOverNotFound` 覆盖"用户不存在 + prod 环境 → 403 而非 404"（防止通过错误码泄露用户存在） |
+
+### 延后项（7 条 Minor）
+
+| 编号 | 处理 |
+|---|---|
+| M4 | `*Status` 返回值（ergonomic，保留） |
+| M5 | router.go 未修改（handler 自注册，与其他 handler 一致） |
+| M6 | fakeUserRepo 的 copy 语义注释 |
+| M7 | `statusFromUser` 的 ts copy 注释 |
+| M8-M10 | 风格项 |
+
+### Step 08 状态: **COMPLETED** ✅
+- Commits: `e98f5fe` → `f9533ea` → `<inline fixes pending>`

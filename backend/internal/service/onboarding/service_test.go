@@ -3,6 +3,7 @@ package onboarding
 import (
 	"context"
 	"errors"
+	"net/http"
 	"testing"
 	"time"
 
@@ -208,4 +209,52 @@ func TestReset_RepoError(t *testing.T) {
 	if _, err := s.Reset(context.Background(), 42); err == nil {
 		t.Fatal("expected error")
 	}
+}
+
+// TestReset_ProductionTakesPrecedenceOverNotFound verifies that the
+// production guard runs BEFORE the repo lookup, so a missing user in
+// production still surfaces 403 rather than 404. This prevents leaking
+// whether a user exists via the error code on the reset endpoint.
+func TestReset_ProductionTakesPrecedenceOverNotFound(t *testing.T) {
+	// Empty repo (no user present) combined with production env. If the
+	// ordering were wrong, the repo would return nil and the service would
+	// map to 404 USER_NOT_FOUND. Correct ordering short-circuits at the
+	// env check and returns 403 ONBOARDING_RESET_FORBIDDEN.
+	s := NewService(&fakeUserRepo{}, fakeEnv{prod: true})
+	_, err := s.Reset(context.Background(), 42)
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	var appErr *model.AppError
+	if !errors.As(err, &appErr) {
+		t.Fatalf("expected AppError, got %T", err)
+	}
+	if appErr.StatusCode != http.StatusForbidden {
+		t.Errorf("expected 403, got %d", appErr.StatusCode)
+	}
+	if appErr.Code != "ONBOARDING_RESET_FORBIDDEN" {
+		t.Errorf("expected ONBOARDING_RESET_FORBIDDEN, got %q", appErr.Code)
+	}
+}
+
+// TestNewService_PanicsOnNilDeps verifies the fail-fast wiring guard: a nil
+// users or env parameter must panic at construction time so a production
+// process cannot start with a broken onboarding service.
+func TestNewService_PanicsOnNilDeps(t *testing.T) {
+	t.Run("nil_users", func(t *testing.T) {
+		defer func() {
+			if r := recover(); r == nil {
+				t.Error("expected panic")
+			}
+		}()
+		_ = NewService(nil, fakeEnv{})
+	})
+	t.Run("nil_env", func(t *testing.T) {
+		defer func() {
+			if r := recover(); r == nil {
+				t.Error("expected panic")
+			}
+		}()
+		_ = NewService(&fakeUserRepo{}, nil)
+	})
 }
