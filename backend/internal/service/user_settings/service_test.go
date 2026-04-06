@@ -301,8 +301,46 @@ func TestPatchUserSettings_NotFound(t *testing.T) {
 
 func TestPatchUserSettings_RepoError(t *testing.T) {
 	s := NewService(&fakeUserRepo{user: baseUser(), patchErr: errors.New("db down")})
-	_, err := s.PatchUserSettings(context.Background(), 42, &PatchUserSettings{})
+	// Use a non-empty patch so the service actually invokes UpdateUserSettings
+	// and surfaces the repo error. Empty patches are short-circuited to GetUserSettings.
+	pref := "aggressive"
+	_, err := s.PatchUserSettings(context.Background(), 42, &PatchUserSettings{RiskPreference: &pref})
 	if err == nil {
 		t.Fatal("expected error")
+	}
+}
+
+func TestPatchUserSettings_EmptyPatchShortCircuit(t *testing.T) {
+	// An empty patch must NOT trigger UpdateUserSettings. It should return the
+	// current settings without bumping updated_at. The fake repo is poisoned so
+	// that any UpdateUserSettings call would fail loudly.
+	s := NewService(&fakeUserRepo{user: baseUser(), patchErr: errors.New("should not be called")})
+	got, err := s.PatchUserSettings(context.Background(), 42, &PatchUserSettings{})
+	if err != nil {
+		t.Fatalf("unexpected error on empty patch: %v", err)
+	}
+	if got == nil || got.UserID != 42 {
+		t.Fatalf("expected current settings, got %+v", got)
+	}
+}
+
+func TestPatchUserSettings_ClearFlagOverridesValue(t *testing.T) {
+	// When both ClearTotalCapitalCNY and TotalCapitalCNY are provided, the
+	// clear flag must win and the provided value must be ignored.
+	fake := &fakeUserRepo{user: baseUser()}
+	s := NewService(fake)
+	val := 100000.0
+	_, err := s.PatchUserSettings(context.Background(), 42, &PatchUserSettings{
+		TotalCapitalCNY:      &val,
+		ClearTotalCapitalCNY: true,
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if fake.lastPatch == nil {
+		t.Fatal("expected repo patch to be set")
+	}
+	if !fake.lastPatch.ClearTotalCapitalCNY {
+		t.Error("expected ClearTotalCapitalCNY=true in repo patch")
 	}
 }

@@ -104,6 +104,13 @@ func (s *Service) PatchUserSettings(
 		return nil, err
 	}
 
+	// Short-circuit no-op patches: if the caller provided an empty patch object
+	// (no fields set, no clear flag), skip the UPDATE round trip and avoid
+	// bumping updated_at on a true no-op call. Return the current settings.
+	if isEmptyPatch(patch) {
+		return s.GetUserSettings(ctx, userID)
+	}
+
 	repoPatch := &repo.UserSettingsPatch{
 		TotalCapitalCNY:      patch.TotalCapitalCNY,
 		ClearTotalCapitalCNY: patch.ClearTotalCapitalCNY,
@@ -157,6 +164,18 @@ func validatePatch(patch *PatchUserSettings) error {
 	}
 
 	return nil
+}
+
+// isEmptyPatch reports whether the patch carries no fields to apply. An
+// empty patch should not produce an UPDATE round trip or bump updated_at.
+func isEmptyPatch(patch *PatchUserSettings) bool {
+	if patch == nil {
+		return true
+	}
+	return patch.TotalCapitalCNY == nil &&
+		!patch.ClearTotalCapitalCNY &&
+		patch.RiskPreference == nil &&
+		patch.Categories == nil
 }
 
 // toUserSettings projects a model.User into the service-level DTO.
