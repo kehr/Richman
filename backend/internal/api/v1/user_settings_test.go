@@ -28,6 +28,14 @@ func (f *fakeSettingsRepo) GetUserByID(_ context.Context, _ int64) (*model.User,
 	return &cp, nil
 }
 
+func (f *fakeSettingsRepo) GetTotalCapitalCNY(_ context.Context, _ int64) (*float64, error) {
+	if f.user == nil || f.user.TotalCapitalCNY == nil {
+		return nil, nil
+	}
+	v := *f.user.TotalCapitalCNY
+	return &v, nil
+}
+
 func (f *fakeSettingsRepo) UpdateUserSettings(
 	_ context.Context, _ int64, patch *repo.UserSettingsPatch,
 ) (*model.User, error) {

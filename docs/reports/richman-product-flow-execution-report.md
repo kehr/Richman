@@ -478,4 +478,48 @@ Spec: ✅ Pass。Code quality: **Approve with follow-ups**（0 Critical, 2 Impor
 | M8-M10 | 风格项 |
 
 ### Step 08 状态: **COMPLETED** ✅
-- Commits: `e98f5fe` → `f9533ea` → `<inline fixes pending>`
+- Commits: `e98f5fe` → `f9533ea` → `61f6501`（inline fixes）
+
+## Step 09 API DTO alignment
+
+### 实施结果
+- Commits:
+  - `d294b85` feat(holding): expose category column on model and repo
+  - `4d4f2cf` feat(api): project holdings to DTO with category and position amount
+  - `d2fa59e` feat(api): expose structured recommendation fields and amount projection on decision cards
+  - `b7863a3` feat(api): add user settings endpoints and total capital lookup
+  - `4f907dc` test(notification): assert adapter Message carries no capital info
+- 关键设计：
+  - DTO 定义在 api/v1 package（handler 旁边），不污染 model 层
+  - `CapitalProvider` 窄接口（单方法）在 consumer package 声明，service 满足
+  - 优雅降级：capital 读取失败时返回 nil，Amount 字段 omitempty
+  - notification adapter.Message 审计后确认 4 个 string 字段全部合规，无需重构，测试锁定契约
+- 测试：5 个 user_settings API 测试 + notification leakage 测试 + 全部现有测试通过
+
+### Review 反馈与修复（controller inline）
+
+Spec: ✅ Pass。Code quality: **Approve with minor fixes**（0 Critical, 3 Important, 7 Minor）。
+
+**3 Important 全部 inline 修复:**
+
+| 编号 | 问题 | 修复 |
+|---|---|---|
+| I1 | `categoryArg any` 写入隐式依赖 pgx 把 untyped nil 映射为 SQL NULL | 改为 `sql.NullString` 对称读写，与 scan 侧一致，加注释说明 |
+| I2 | `GetTotalCapitalCNY` 名义 "cheap read" 但实际调 `GetUserByID` 加载完整用户行 | 在 `repo/user_repo.go` 新增专用 `GetTotalCapitalCNY(ctx, userID) (*float64, error)` 单列查询；service 改为直接调新方法；更新 UserRepo interface + 两个 fake repo |
+| I3 | `ClearTotalCapitalCNY=true + TotalCapitalCNY=非 nil` 的矛盾组合被 service 静默接受 | `validatePatch` 新增明确拒绝，返回 400 `INVALID_TOTAL_CAPITAL`；将原 `TestPatchUserSettings_ClearFlagOverridesValue` 改写为 `TestPatchUserSettings_ClearAndSetConflictRejected` 验证 400 响应和 repo 未被调用 |
+
+### 延后项（7 条 Minor）
+
+| 编号 | 处理 |
+|---|---|
+| M4 | portfolio.go / decision_card.go 行数增长，后续 step 可拆 dto.go |
+| M5 | CapitalProvider 可迁到独立 file |
+| M6 | resolveCapital 在两个 handler 重复 |
+| M7 | 缺直接的 DTO 投影测试 |
+| M8 | resolveCapital signature 略不一致（context.Context vs *gin.Context） |
+| M9 | main.go wiring 顺序注释 |
+| M10 | user_settings handler PATCH 400 分支未走 handleServiceError |
+
+### Step 09 状态: **COMPLETED** ✅
+- Commits: `d294b85` → `4d4f2cf` → `d2fa59e` → `b7863a3` → `4f907dc` → `<inline fixes pending>`
+- **Phase 3（后端阶段）全部完成**

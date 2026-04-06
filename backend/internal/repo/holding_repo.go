@@ -105,9 +105,11 @@ func (r *HoldingRepo) CreateHolding(
 ) (*model.Holding, error) {
 	var h model.Holding
 	var category sql.NullString
-	var categoryArg any
+	// Use sql.NullString symmetrically on write side to match the read side.
+	// A nil input.Category maps to SQL NULL via Valid=false.
+	categoryArg := sql.NullString{}
 	if input.Category != nil {
-		categoryArg = *input.Category
+		categoryArg = sql.NullString{String: *input.Category, Valid: true}
 	}
 	err := r.pool.QueryRow(ctx,
 		`INSERT INTO holdings
@@ -141,9 +143,12 @@ func (r *HoldingRepo) UpdateHolding(
 ) (*model.Holding, error) {
 	var h model.Holding
 	var category sql.NullString
-	var categoryArg any
+	// Symmetric NullString on write side matches the read path. For sparse
+	// updates, a nil Category means "leave unchanged" thanks to the
+	// COALESCE($4, category) guard in the SQL below.
+	categoryArg := sql.NullString{}
 	if input.Category != nil {
-		categoryArg = *input.Category
+		categoryArg = sql.NullString{String: *input.Category, Valid: true}
 	}
 	err := r.pool.QueryRow(ctx,
 		`UPDATE holdings SET

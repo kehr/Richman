@@ -143,6 +143,32 @@ func (r *UserRepo) GetRiskPreference(ctx context.Context, userID int64) (string,
 	return pref, nil
 }
 
+// GetTotalCapitalCNY fetches only the user's total_capital_cny column. This
+// is the cheap read used by API handlers that need to attach amount
+// projections without loading the full user row. Returns nil when the user
+// does not exist or has not set a total capital, so callers can treat both
+// cases identically as "no capital configured".
+func (r *UserRepo) GetTotalCapitalCNY(ctx context.Context, userID int64) (*float64, error) {
+	var cap decimal.NullDecimal
+	err := r.pool.QueryRow(ctx,
+		`SELECT total_capital_cny
+		 FROM users
+		 WHERE user_id = $1 AND is_deleted = 0`,
+		userID,
+	).Scan(&cap)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("query user total capital: %w", err)
+	}
+	if !cap.Valid {
+		return nil, nil
+	}
+	v, _ := cap.Decimal.Float64()
+	return &v, nil
+}
+
 // UpdateUserSettings applies a sparse patch to the user_settings-managed
 // profile columns and returns the updated user row. Fields whose patch value
 // is nil are left unchanged. TotalCapitalCNY can be cleared to NULL by setting

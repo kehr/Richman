@@ -41,6 +41,7 @@ var allowedCategories = map[string]struct{}{
 // interface exists so unit tests can stub the data layer without a live DB.
 type UserRepo interface {
 	GetUserByID(ctx context.Context, userID int64) (*model.User, error)
+	GetTotalCapitalCNY(ctx context.Context, userID int64) (*float64, error)
 	UpdateUserSettings(
 		ctx context.Context, userID int64, patch *repo.UserSettingsPatch,
 	) (*model.User, error)
@@ -78,19 +79,16 @@ func NewService(users UserRepo) *Service {
 	return &Service{users: users}
 }
 
-// GetTotalCapitalCNY loads only the user's optional total capital. It is
-// the cheap read used by API handlers (decision_card, portfolio) to attach
-// *Amount projections via money.AttachAmounts. Returns nil when the user
-// does not exist or has not set a total capital.
+// GetTotalCapitalCNY loads only the user's optional total capital using a
+// single-column SELECT to keep the hot path used by API handlers (decision_card,
+// portfolio, etc.) light. Returns nil when the user does not exist or has
+// not set a total capital.
 func (s *Service) GetTotalCapitalCNY(ctx context.Context, userID int64) (*float64, error) {
-	u, err := s.users.GetUserByID(ctx, userID)
+	cap, err := s.users.GetTotalCapitalCNY(ctx, userID)
 	if err != nil {
-		return nil, fmt.Errorf("load user: %w", err)
+		return nil, fmt.Errorf("load total capital: %w", err)
 	}
-	if u == nil {
-		return nil, nil
-	}
-	return u.TotalCapitalCNY, nil
+	return cap, nil
 }
 
 // GetUserSettings loads the full settings snapshot for the given user.
@@ -145,6 +143,14 @@ func (s *Service) PatchUserSettings(
 
 // validatePatch enforces domain rules before touching the database.
 func validatePatch(patch *PatchUserSettings) error {
+	// Reject the contradictory combination "clear and set at the same time"
+	// explicitly rather than silently preferring one over the other. This
+	// matches the intent documented on PatchUserSettings.
+	if patch.ClearTotalCapitalCNY && patch.TotalCapitalCNY != nil {
+		return model.NewAppError(http.StatusBadRequest,
+			"INVALID_TOTAL_CAPITAL",
+			"total_capital_cny cannot be set and cleared in the same patch")
+	}
 	if patch.TotalCapitalCNY != nil && !patch.ClearTotalCapitalCNY {
 		if *patch.TotalCapitalCNY < 0 {
 			return model.NewAppError(http.StatusBadRequest,

@@ -31,6 +31,17 @@ func (f *fakeUserRepo) GetUserByID(_ context.Context, _ int64) (*model.User, err
 	return &copy, nil
 }
 
+func (f *fakeUserRepo) GetTotalCapitalCNY(_ context.Context, _ int64) (*float64, error) {
+	if f.getErr != nil {
+		return nil, f.getErr
+	}
+	if f.user == nil || f.user.TotalCapitalCNY == nil {
+		return nil, nil
+	}
+	v := *f.user.TotalCapitalCNY
+	return &v, nil
+}
+
 func (f *fakeUserRepo) UpdateUserSettings(
 	_ context.Context, _ int64, patch *repo.UserSettingsPatch,
 ) (*model.User, error) {
@@ -324,9 +335,10 @@ func TestPatchUserSettings_EmptyPatchShortCircuit(t *testing.T) {
 	}
 }
 
-func TestPatchUserSettings_ClearFlagOverridesValue(t *testing.T) {
-	// When both ClearTotalCapitalCNY and TotalCapitalCNY are provided, the
-	// clear flag must win and the provided value must be ignored.
+func TestPatchUserSettings_ClearAndSetConflictRejected(t *testing.T) {
+	// Providing both ClearTotalCapitalCNY=true and a non-nil TotalCapitalCNY is
+	// contradictory. The service must reject it with 400 INVALID_TOTAL_CAPITAL
+	// rather than silently preferring one over the other.
 	fake := &fakeUserRepo{user: baseUser()}
 	s := NewService(fake)
 	val := 100000.0
@@ -334,13 +346,21 @@ func TestPatchUserSettings_ClearFlagOverridesValue(t *testing.T) {
 		TotalCapitalCNY:      &val,
 		ClearTotalCapitalCNY: true,
 	})
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
+	if err == nil {
+		t.Fatal("expected validation error")
 	}
-	if fake.lastPatch == nil {
-		t.Fatal("expected repo patch to be set")
+	var appErr *model.AppError
+	if !errors.As(err, &appErr) {
+		t.Fatalf("expected AppError, got %T", err)
 	}
-	if !fake.lastPatch.ClearTotalCapitalCNY {
-		t.Error("expected ClearTotalCapitalCNY=true in repo patch")
+	if appErr.StatusCode != 400 {
+		t.Errorf("expected 400, got %d", appErr.StatusCode)
+	}
+	if appErr.Code != "INVALID_TOTAL_CAPITAL" {
+		t.Errorf("expected INVALID_TOTAL_CAPITAL, got %q", appErr.Code)
+	}
+	// Repo must not have been touched.
+	if fake.lastPatch != nil {
+		t.Error("expected repo patch to NOT be set on validation failure")
 	}
 }
