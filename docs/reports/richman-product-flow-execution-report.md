@@ -198,7 +198,40 @@ Reviewer 结论：**Approve with minor follow-ups requested**。无 Critical，5
 | Minor #8 | `insertDecisionCardSQL` 的 `$1..$30` 手工维护 | YAGNI，只有下次加列时才值得 | 等下次加列时一起 |
 | Minor #9 | tx 错误 wrap 缺 `holding_id` 上下文 | 日志便利性，非功能 | 不修复 |
 
+### Step 03 fix implementer 执行结果
+
+**Commits:**
+- `16537ec` feat(decision-card): drop legacy recommendation column and harden persistence
+- `29128d9` chore(analysis): drop dead debugRecommendation helper and update test name
+
+**Fixes 全部落地:**
+- Fix 1 (Rule A): migration 009 drop legacy column；model 字段重命名为 `Recommendation recommendation.Recommendation` 带 `json:"recommendation"` tag；repo/service/tests 全部同步
+- Fix 2: `persistDecisionCardWithDiff` 用 `toPersist := *card` 局部副本，不污染 caller 输入
+- Fix 3: `DecisionCardRepo` 新增 `*zap.Logger` 字段，`NewDecisionCardRepo(pool, logger)`，recommendation_json 解析失败记 zap.Warn（含 card_id / holding_id），cmd/server/main.go 已同步传入
+- Fix 4: computeCardDiff call site 加 `// TODO(degraded):` 注释
+- Fix 5: `debugRecommendation` 删除（含相关 `fmt` import）
+- Fix 6: `scanCard` wrapper 删除，全部 caller 改为直接调 `scanCardRow`
+- Fix 7: `buildCardSnapshot` 去掉 no-op string cast，加说明注释；测试名同步更新
+- Fix 8: `defer func() { _ = tx.Rollback(context.Background()) }()` 保证 rollback 不受 ctx 取消影响
+
+**Grep 验证全清:**
+- `card.Recommendation` 作为 legacy string 字段：0 match
+- `recommendation_detail` JSON tag：0 match
+- `debugRecommendation`：0 match
+- `scanCard`（独立函数）：0 match
+- `string(card.TrendDirection)` 系列 no-op cast：0 match
+
+**验证结果:**
+- `make migrate-down` → `make migrate-up` roundtrip 通过
+- `go build ./... && go vet ./... && go test ./...` 全绿
+
+**Implementer 发现的 latent bug（超出本次 fix 范围，记录待后续处理）:**
+- 项目 migration runner 的 `internal/migration/runner.go` `splitStatements` 函数不会剥离 down migration 文件开头的 `--` 注释行，导致带头注释的 down migration 会在 pgx 层语法错误
+- 这次 009_*.down.sql 初版带注释失败，按 001-008 down 文件的无注释惯例改回
+- **建议:** 后续独立 issue 修复 runner 的 splitStatements 逻辑，使其与 up 文件保持一致的注释处理
+
 ### Review 结果
-- Spec compliance: ✅ Pass
-- Code quality: ✅ Approve with minor follow-ups
-- Step 03 fix implementer（Rule A + 5 项 quick fix）：待派发
+- Spec compliance (main Step 03): ✅ Pass
+- Code quality (main Step 03): ✅ Approve with minor follow-ups（已在 fix pass 中全部处理）
+- **Step 03 fix pass**: **用户直接接受**，跳过额外 review 循环（决策原因：fix implementer 已完成 grep 全清验证 + 测试全绿 + migration roundtrip 通过，且用户指示立即进入冷却执行后续任务）
+- Step 03 状态: **completed**
