@@ -43,6 +43,7 @@ import (
 	analysisService "github.com/richman/backend/internal/service/analysis"
 	decisioncard "github.com/richman/backend/internal/service/decision_card"
 	notificationSvc "github.com/richman/backend/internal/service/notification"
+	onboardingSvc "github.com/richman/backend/internal/service/onboarding"
 	screenshotSvc "github.com/richman/backend/internal/service/screenshot"
 )
 
@@ -123,6 +124,7 @@ func main() {
 		zapLogger.Info("llm vision provider initialized", zap.String("provider", visionProvider.Name()))
 	}
 	screenshotService := screenshotSvc.NewService(visionProvider, zapLogger, screenshotSvc.Options{})
+	onboardingService := onboardingSvc.NewService(userRepo, cfg)
 
 	// Fallback synthesizer when LLM is not available.
 	if llmSynthesizer == nil {
@@ -205,6 +207,7 @@ func main() {
 	cardHandler := v1.NewDecisionCardHandler(cardService)
 	notifHandler := v1.NewNotificationHandler(notifService)
 	screenshotHandler := v1.NewScreenshotHandler(screenshotService)
+	onboardingHandler := v1.NewOnboardingHandler(onboardingService)
 
 	// Setup Gin
 	if !cfg.IsDev() {
@@ -234,6 +237,7 @@ func main() {
 	cardHandler.RegisterRoutes(apiV1, authMiddleware)
 	notifHandler.RegisterRoutes(apiV1, authMiddleware)
 	screenshotHandler.RegisterRoutes(apiV1, authMiddleware)
+	onboardingHandler.RegisterRoutes(apiV1, authMiddleware)
 
 	// Start scheduler
 	scheduler.Start()
