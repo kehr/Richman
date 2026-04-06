@@ -1,7 +1,7 @@
+import { useOnboardingStatus } from "@/features/user-settings";
 import { Spin } from "@/ui-kit/eat";
 import { type ReactNode, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router";
-import { useOnboardingStatus } from "./use-onboarding-status";
 
 interface OnboardingGuardProps {
 	children: ReactNode;

@@ -3,9 +3,11 @@ import { MemoryRouter } from "react-router";
 import { describe, expect, it, vi } from "vitest";
 import { OnboardingGuard } from "./onboarding-guard";
 
-// Mock the status hook so each test can inject its own state.
+// Mock the status hook so each test can inject its own state. The guard
+// imports it from @/features/user-settings (barrel), so the mock must target
+// that same module specifier.
 const mockStatus = vi.fn();
-vi.mock("./use-onboarding-status", () => ({
+vi.mock("@/features/user-settings", () => ({
 	useOnboardingStatus: () => mockStatus(),
 }));
 
