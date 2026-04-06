@@ -43,6 +43,7 @@ import (
 	analysisService "github.com/richman/backend/internal/service/analysis"
 	decisioncard "github.com/richman/backend/internal/service/decision_card"
 	notificationSvc "github.com/richman/backend/internal/service/notification"
+	screenshotSvc "github.com/richman/backend/internal/service/screenshot"
 )
 
 func main() {
@@ -108,6 +109,20 @@ func main() {
 		llmSynthesizer = synthesis.NewSynthesizer(llmProvider, zapLogger)
 		zapLogger.Info("llm provider initialized", zap.String("provider", llmProvider.Name()))
 	}
+
+	// Initialize vision provider (optional; screenshot recognition
+	// degrades to a "failed" response when the provider is unavailable).
+	var visionProvider llm.VisionProvider
+	visionProvider, err = llm.NewVisionProvider(cfg, zapLogger)
+	if err != nil {
+		zapLogger.Warn("llm vision provider not available, screenshot recognition will degrade",
+			zap.Error(err),
+		)
+	}
+	if visionProvider != nil {
+		zapLogger.Info("llm vision provider initialized", zap.String("provider", visionProvider.Name()))
+	}
+	screenshotService := screenshotSvc.NewService(visionProvider, zapLogger, screenshotSvc.Options{})
 
 	// Fallback synthesizer when LLM is not available.
 	if llmSynthesizer == nil {
@@ -189,6 +204,7 @@ func main() {
 	taskHandler := v1.NewTaskHandler(taskStore)
 	cardHandler := v1.NewDecisionCardHandler(cardService)
 	notifHandler := v1.NewNotificationHandler(notifService)
+	screenshotHandler := v1.NewScreenshotHandler(screenshotService)
 
 	// Setup Gin
 	if !cfg.IsDev() {
@@ -217,6 +233,7 @@ func main() {
 	taskHandler.RegisterRoutes(apiV1, authMiddleware)
 	cardHandler.RegisterRoutes(apiV1, authMiddleware)
 	notifHandler.RegisterRoutes(apiV1, authMiddleware)
+	screenshotHandler.RegisterRoutes(apiV1, authMiddleware)
 
 	// Start scheduler
 	scheduler.Start()
