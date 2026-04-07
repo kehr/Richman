@@ -93,7 +93,11 @@ export default function DashboardPage() {
 	};
 
 	const handleAddHolding = () => {
-		navigate("/portfolio/new");
+		// Step 16 deleted /portfolio/new in favour of an in-page Add Holding
+		// Drawer on the Portfolio list. Route the empty hero CTA to the list
+		// so the user can open the drawer themselves. Future polish: pass a
+		// query param so the drawer auto-opens on arrival.
+		navigate("/portfolio");
 	};
 
 	// Empty holdings branch: once holdings finish loading and the list is

@@ -813,4 +813,50 @@ Spec: ✅ Pass（修复 1 个 emoji 后）。Code quality: **Approved after C1 f
 - `pnpm build` PASS（vite build 3.42s）
 
 ### Step 15 状态: **COMPLETED** ✅
-- Commits: `449752f` → `df930be` → `b86c955` → `96e4f49` → `<inline fix pending>`
+- Commits: `449752f` → `df930be` → `b86c955` → `96e4f49` → `96285f9`
+
+## Step 16 Portfolio 列表与 Add Holding Drawer（Phase 7）
+
+### 实施结果
+- Commits:
+  - `a940243` feat(ui-kit): export Steps, FormInstance, camera and left icons
+  - `5c4d0a6` feat(portfolio): extract HoldingTable and TotalCapitalRow for list refresh
+  - `d9acddb` feat(portfolio): add two-step AddHoldingDrawer with quick holding form
+  - `4038023` feat(portfolio): rewrite list page header and drop new-holding route
+  - `<inline fixes>`
+- PortfolioListPage 重写：header + 5/N 计数 + 添加/截图按钮 + TotalCapitalRow + HoldingTable + AddHoldingDrawer
+- 8 个新组件文件 + 1 个 page rewrite + 1 个 page deletion (PortfolioNewPage) + routes.tsx 移除 /portfolio/new
+- 组件放置策略：`pages/portfolio/components/`（不是 features/，因为这些是 page-specific composition widgets，需要跨多个 features）
+- ui-kit/eat barrel 新增：Steps / FormInstance / CameraOutlined / LeftOutlined
+- 75 个测试通过（新增 9 个）
+
+### Review 反馈与修复（controller inline）
+
+Spec: ✅ Pass。Code quality: **Approve after C1+C2 fix**（2 Critical, 6 Important, 10 Minor）。
+
+**2 Critical + 4 Important 全部 inline 修复:**
+
+| 编号 | 问题 | 修复 |
+|---|---|---|
+| C1 | DashboardPage `handleAddHolding` navigates to `/portfolio/new` 死路由（Step 16 已删），catch-all 会静默回 dashboard | 改为 `navigate("/portfolio")`，加注释说明未来 polish 可以加 query param 自动打开 drawer |
+| C2 | 遗留 `HoldingForm` 用 `max=1` 0..1 范围，新的 HoldingTable / DashboardPage / QuickHoldingForm 全部用 0..100，row click "编辑" 进入会导致表单不一致 | 改 HoldingForm 的 InputNumber 为 `min=0 max=100 step=1`，label 加 "(%)"，加 tooltip 说明 Step 16 统一 percent |
+| I1 | 组件放置 plan 写 features/，实际放 pages/ | beneficial deviation，记录到执行报告说明 |
+| I2 | AssetTypeStep search 无 debounce，每次 keystroke 触发 fetch + 可能 stale response 闪烁 | 新增 `SEARCH_DEBOUNCE_MS = 250`；`useEffect` debounce setKeyword → setDebouncedKeyword；useAssets 用 debouncedKeyword |
+| I3 | 计数器 copy 缺 PRD §4.1 的 MVP 上下文 | 改为 `{count}/{HOLDING_LIMIT} 个 · MVP 每用户最多 {HOLDING_LIMIT} 个标的`；测试断言改为部分匹配 (0/5 + MVP) |
+| I4 | 明细 tab tooltip 写"Step 16 后续"是错的步骤号，且 antd 禁用 tab 时 pointer-events:none 让 tooltip 不可达 | 文本简化为"即将推出"；label span 加 `pointer-events: auto` 让 tooltip 在 disabled tab 上仍可见 |
+
+### 延后项
+
+| 编号 | 处理 |
+|---|---|
+| I5 | 与 I4 同时处理 |
+| I6 | useDecisionCards 排序不变量未文档化 | 后续注释加 |
+| M1-M10 | 风格 / 测试 polish | Step 21 |
+
+### 验证
+- `pnpm lint:all` PASS（Biome + tsc + depcruise 全绿，122 modules / 368 deps）
+- `pnpm test --run` PASS（16 files / 75 tests）
+- `pnpm build` PASS（vite build 3.26s）
+
+### Step 16 状态: **COMPLETED** ✅
+- Commits: `a940243` → `5c4d0a6` → `d9acddb` → `4038023` → `<inline fix pending>`

@@ -83,7 +83,8 @@ describe("PortfolioListPage", () => {
 
 	it("renders the header counter, total capital row and add buttons", () => {
 		renderPage();
-		expect(screen.getByTestId("holding-counter")).toHaveTextContent("0/5 个持仓");
+		expect(screen.getByTestId("holding-counter")).toHaveTextContent("0/5");
+		expect(screen.getByTestId("holding-counter")).toHaveTextContent("MVP");
 		expect(screen.getByTestId("total-capital-row")).toBeInTheDocument();
 		expect(screen.getByTestId("add-holding-button")).toBeEnabled();
 		expect(screen.getByTestId("screenshot-import-button")).toBeDisabled();
@@ -97,7 +98,7 @@ describe("PortfolioListPage", () => {
 			isLoading: false,
 		};
 		renderPage();
-		expect(screen.getByTestId("holding-counter")).toHaveTextContent("5/5 个持仓");
+		expect(screen.getByTestId("holding-counter")).toHaveTextContent("5/5");
 		expect(screen.getByTestId("add-holding-button")).toBeDisabled();
 	});
 

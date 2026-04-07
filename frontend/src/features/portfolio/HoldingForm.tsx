@@ -108,11 +108,12 @@ export function HoldingForm({ initialValues, onSuccess, renderAssetPicker }: Hol
 				</Form.Item>
 
 				<Form.Item
-					label="Position Ratio"
+					label="Position Ratio (%)"
 					name="positionRatio"
 					rules={[{ required: true, message: "Please enter position ratio" }]}
+					tooltip="0-100 percent. Must agree with HoldingTable / DashboardPage / decision card consumers (Step 16 unified to percent)."
 				>
-					<InputNumber min={0} max={1} step={0.01} style={{ width: "100%" }} />
+					<InputNumber min={0} max={100} step={1} style={{ width: "100%" }} />
 				</Form.Item>
 
 				<Form.Item>

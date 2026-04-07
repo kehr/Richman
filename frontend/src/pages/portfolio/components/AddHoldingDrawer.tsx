@@ -86,8 +86,16 @@ export function AddHoldingDrawer({ open, onClose, onCreated }: AddHoldingDrawerP
 		{
 			key: "detail",
 			label: (
-				<Tooltip title="即将推出（Step 16 后续）">
-					<span data-testid="tab-detail-disabled">明细</span>
+				// antd disables pointer events on disabled tab labels, so the
+				// Tooltip will not actually open on hover. Wrap the label span
+				// in pointerEvents:auto so the hint is still reachable.
+				<Tooltip title="即将推出">
+					<span
+						data-testid="tab-detail-disabled"
+						style={{ display: "inline-block", pointerEvents: "auto" }}
+					>
+						明细
+					</span>
 				</Tooltip>
 			),
 			disabled: true,
@@ -96,8 +104,13 @@ export function AddHoldingDrawer({ open, onClose, onCreated }: AddHoldingDrawerP
 		{
 			key: "screenshot",
 			label: (
-				<Tooltip title="即将推出（Step 17）">
-					<span data-testid="tab-screenshot-disabled">截图</span>
+				<Tooltip title="即将推出">
+					<span
+						data-testid="tab-screenshot-disabled"
+						style={{ display: "inline-block", pointerEvents: "auto" }}
+					>
+						截图
+					</span>
 				</Tooltip>
 			),
 			disabled: true,

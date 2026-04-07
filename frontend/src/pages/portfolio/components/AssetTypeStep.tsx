@@ -6,7 +6,14 @@ import {
 	useAssets,
 } from "@/features/asset-catalog";
 import { Empty, Radio, Select, Space, Spin, Typography } from "@/ui-kit/eat";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+
+// SEARCH_DEBOUNCE_MS is the keystroke-to-fetch delay for the asset search
+// box. The backend endpoint is cheap but back-to-back keystrokes still race
+// because TanStack Query does not guarantee response ordering, so a short
+// debounce both reduces upstream load and prevents stale results from
+// flashing in the dropdown.
+const SEARCH_DEBOUNCE_MS = 250;
 
 // AssetTypeStep is step 1 of the AddHoldingDrawer (PRD §4.2). The user first
 // picks an asset category tab then searches the catalog via a Select with
@@ -26,8 +33,19 @@ interface AssetTypeStepProps {
 export function AssetTypeStep({ onSelect }: AssetTypeStepProps) {
 	const [category, setCategory] = useState<AssetCategory>(ASSET_CATEGORIES[0]);
 	const [keyword, setKeyword] = useState("");
+	const [debouncedKeyword, setDebouncedKeyword] = useState(keyword);
 
-	const { data: assets, isLoading } = useAssets({ type: category, keyword });
+	// Debounce the search keyword so rapid typing doesn't fire one fetch
+	// per keystroke and the dropdown doesn't flicker with stale results
+	// when slower responses arrive after newer ones.
+	useEffect(() => {
+		const handle = window.setTimeout(() => {
+			setDebouncedKeyword(keyword);
+		}, SEARCH_DEBOUNCE_MS);
+		return () => window.clearTimeout(handle);
+	}, [keyword]);
+
+	const { data: assets, isLoading } = useAssets({ type: category, keyword: debouncedKeyword });
 
 	// Build Select options from the latest assets response. useMemo keeps the
 	// option array stable across renders when the underlying data does not

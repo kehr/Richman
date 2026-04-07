@@ -109,12 +109,16 @@ export default function PortfolioListPage() {
 						我的持仓
 					</Typography.Title>
 					<Typography.Text type="secondary" data-testid="holding-counter">
-						{count}/{HOLDING_LIMIT} 个持仓
+						{count}/{HOLDING_LIMIT} 个 · MVP 每用户最多 {HOLDING_LIMIT} 个标的
 					</Typography.Text>
 				</Space>
 				<Space>
-					{atLimit ? <Tooltip title="MVP 最多 5 个标的">{addButton}</Tooltip> : addButton}
-					<Tooltip title="即将推出（Step 17）">
+					{atLimit ? (
+						<Tooltip title={`MVP 最多 ${HOLDING_LIMIT} 个标的`}>{addButton}</Tooltip>
+					) : (
+						addButton
+					)}
+					<Tooltip title="即将推出">
 						<Button icon={<CameraOutlined />} disabled data-testid="screenshot-import-button">
 							截图批量导入
 						</Button>
