@@ -4,6 +4,7 @@
 export {
 	App,
 	Avatar,
+	Breadcrumb,
 	Button,
 	Card,
 	Checkbox,
@@ -46,8 +47,11 @@ export {
 	Result,
 	Segmented,
 	Flex,
+	Image,
 	theme,
 } from "antd";
+
+export type { UploadProps, UploadFile } from "antd";
 
 export type { ThemeConfig, FormInstance } from "antd";
 
@@ -92,4 +96,6 @@ export {
 	QuestionCircleOutlined,
 	CameraOutlined,
 	LeftOutlined,
+	InboxOutlined,
+	UploadOutlined,
 } from "@ant-design/icons";
