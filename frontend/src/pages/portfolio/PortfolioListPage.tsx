@@ -16,6 +16,7 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import { AddHoldingDrawer } from "./components/AddHoldingDrawer";
 import { HoldingTable } from "./components/HoldingTable";
+import { ScreenshotImportModal } from "./components/ScreenshotImportModal";
 import { TotalCapitalRow } from "./components/TotalCapitalRow";
 
 // PortfolioListPage renders the new PRD §4.1 layout: title + counter +
@@ -23,8 +24,9 @@ import { TotalCapitalRow } from "./components/TotalCapitalRow";
 // table. Row click on a holding navigates to the latest decision card for
 // that holding when one exists, otherwise to the edit page.
 //
-// The screenshot import button is wired up but disabled in Step 16; Step 17
-// will activate it and open the screenshot-import drawer.
+// Step 17 activates the screenshot import button and wires it up to the
+// full-screen ScreenshotImportModal which drives the bulk recognize/confirm
+// flow from PRD §4.3.
 
 const HOLDING_LIMIT = 5;
 
@@ -34,6 +36,7 @@ export default function PortfolioListPage() {
 	const { data: decisionCards } = useDecisionCards();
 	const deleteMutation = useDeleteHolding();
 	const [drawerOpen, setDrawerOpen] = useState(false);
+	const [screenshotOpen, setScreenshotOpen] = useState(false);
 
 	const holdingsList = holdings ?? [];
 	const count = holdingsList.length;
@@ -118,11 +121,14 @@ export default function PortfolioListPage() {
 					) : (
 						addButton
 					)}
-					<Tooltip title="即将推出">
-						<Button icon={<CameraOutlined />} disabled data-testid="screenshot-import-button">
-							截图批量导入
-						</Button>
-					</Tooltip>
+					<Button
+						icon={<CameraOutlined />}
+						disabled={atLimit}
+						onClick={() => setScreenshotOpen(true)}
+						data-testid="screenshot-import-button"
+					>
+						截图批量导入
+					</Button>
 				</Space>
 			</Flex>
 
@@ -138,6 +144,12 @@ export default function PortfolioListPage() {
 			/>
 
 			<AddHoldingDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />
+			<ScreenshotImportModal
+				open={screenshotOpen}
+				onClose={() => setScreenshotOpen(false)}
+				currentHoldingCount={count}
+				holdingLimit={HOLDING_LIMIT}
+			/>
 		</PageContainer>
 	);
 }

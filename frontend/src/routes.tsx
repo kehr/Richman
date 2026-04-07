@@ -14,6 +14,7 @@ const FirstAnalysisPage = lazy(() => import("@/pages/onboarding/FirstAnalysisPag
 const DashboardPage = lazy(() => import("@/pages/dashboard/DashboardPage"));
 const PortfolioListPage = lazy(() => import("@/pages/portfolio/PortfolioListPage"));
 const PortfolioEditPage = lazy(() => import("@/pages/portfolio/PortfolioEditPage"));
+const PortfolioTransactionsPage = lazy(() => import("@/pages/portfolio/PortfolioTransactionsPage"));
 const DecisionCardDetailPage = lazy(() => import("@/pages/decision-cards/DecisionCardDetailPage"));
 const SettingsPage = lazy(() => import("@/pages/settings/SettingsPage"));
 const HelpPage = lazy(() => import("@/pages/help/HelpPage"));
@@ -77,10 +78,7 @@ export function AppRoutes() {
 					<Route path="/dashboard" element={<DashboardPage />} />
 					<Route path="/portfolio" element={<PortfolioListPage />} />
 					<Route path="/portfolio/:id" element={<PortfolioEditPage />} />
-					{/* TODO(step17): replace PortfolioEditPage alias with a real
-					    TransactionsPage that shows trade history for a single holding
-					    (PRD §4.4). */}
-					<Route path="/portfolio/:id/transactions" element={<PortfolioEditPage />} />
+					<Route path="/portfolio/:id/transactions" element={<PortfolioTransactionsPage />} />
 					<Route path="/decision-cards/:id" element={<DecisionCardDetailPage />} />
 					<Route path="/settings" element={<SettingsPage />} />
 					<Route path="/help" element={<HelpPage />} />

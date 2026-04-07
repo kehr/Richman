@@ -31,6 +31,7 @@ vi.mock("@/features/portfolio", async () => {
 		useHoldings: () => holdingsState,
 		useDeleteHolding: () => ({ mutateAsync: deleteMutate, isPending: false }),
 		useCreateHolding: () => ({ mutateAsync: vi.fn(), isPending: false }),
+		useScreenshotImport: () => ({ mutateAsync: vi.fn(), isPending: false }),
 	};
 });
 
@@ -87,7 +88,7 @@ describe("PortfolioListPage", () => {
 		expect(screen.getByTestId("holding-counter")).toHaveTextContent("MVP");
 		expect(screen.getByTestId("total-capital-row")).toBeInTheDocument();
 		expect(screen.getByTestId("add-holding-button")).toBeEnabled();
-		expect(screen.getByTestId("screenshot-import-button")).toBeDisabled();
+		expect(screen.getByTestId("screenshot-import-button")).toBeEnabled();
 	});
 
 	it("disables the add button when at the 5-holding limit", () => {
