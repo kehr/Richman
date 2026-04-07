@@ -21,7 +21,7 @@ import {
 	Typography,
 	message,
 } from "@/ui-kit/eat";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import { OnboardingLayout } from "./components/OnboardingLayout";
 
@@ -164,6 +164,15 @@ function TotalCapitalCollapse() {
 	const { data: settings } = useUserSettings();
 	const patch = usePatchUserSettings();
 	const [value, setValue] = useState<number | null>(settings?.totalCapitalCny ?? null);
+
+	// Sync local state once the settings query resolves after mount. Without
+	// this effect, users arriving on the page before the query completes see
+	// an empty input even when the server already has a total capital value.
+	useEffect(() => {
+		if (settings?.totalCapitalCny != null) {
+			setValue(settings.totalCapitalCny);
+		}
+	}, [settings?.totalCapitalCny]);
 
 	const handleSave = async () => {
 		if (value == null || value <= 0) {

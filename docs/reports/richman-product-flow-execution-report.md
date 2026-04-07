@@ -663,5 +663,60 @@ Spec: ✅ Pass。Code quality: **Approve with minor revisions**（0 Critical, 4 
 - `pnpm test --run` PASS（6 files / 43 tests）
 
 ### Step 12 状态: **COMPLETED** ✅
-- Commits: `0da6bff` → `df9e7f0` → `adda990` → `67a4738` → `<inline fix pending>`
+- Commits: `0da6bff` → `df9e7f0` → `adda990` → `67a4738` → `448314b`
 - **Phase 4（前端基础）全部完成**
+
+## Step 13 Onboarding 4 步流程（Phase 5）
+
+### 实施结果
+- Commits:
+  - `cabc359` feat(onboarding): add welcome and categories pages with asset-catalog feature
+  - `a0c6db5` feat(onboarding): add first holding page with quick mode
+  - `e14323d` feat(onboarding): add first analysis progress page with auto redirect
+  - `<inline review fixes>`
+- 完整实现 PRD §2.3 要求的 4 页 onboarding 流程，替换 Step 10 占位
+- 新增 `features/asset-catalog/` feature 包（api/types/hook/barrel）
+- 新增 OnboardingLayout + StepIndicator 共享组件
+- StrictMode double-fire 守卫 refs（startedRef / completedRef）
+- Collapse 加入 ui-kit/eat barrel；matchMedia polyfill 加入 test/setup.ts
+- 47 个测试通过（新增 4 个 onboarding 测试）
+
+### Review 反馈与修复（controller inline）
+
+Spec: ✅ Pass。Code quality: **Approve with changes**（0 Critical, 5 Important, 10 Minor）。
+
+**6 项必修全部 inline 处理:**
+
+| 编号 | 问题 | 修复 |
+|---|---|---|
+| M1 + M2 + M3 | `features/asset-catalog/AssetPicker.tsx` 带 Next.js `"use client"` 死指令、category 枚举与 backend 契约不一致、且 Step 13 没有消费 (YAGNI) | 删除 AssetPicker.tsx 和 barrel 的对应 export；PortfolioNewPage 删除 renderAssetPicker prop（Step 16 将重写整个 Portfolio Add Drawer） |
+| I1 | `useAssetCatalog` query key `["assets", params]` vs `["assets", code]` 语义冲突，devtools 难以区分 list / detail | 改为命名空间 key `["assets", "list", type, keyword]` + `["assets", "detail", code]`；invalidateQueries 可以按前缀清理 |
+| I4 | `FirstAnalysisPage.handleRetry` 的 `startedRef = false` / `= true` 前后矛盾（mount effect 已 done，重置 ref 无用） | 删除死代码 `startedRef.current = false/true`，只保留 `completedRef = false` 和直接 `mutateAsync()`；finalize effect 加 biome-ignore 注释说明 markCompleted / navigate 稳定引用无需入依赖 |
+| M5 | `TotalCapitalCollapse` 初始 state 依赖 useState 同步捕获，settings 异步 resolve 后不会更新，用户会看到空输入框 | 新增 `useEffect` 监听 `settings?.totalCapitalCny`，settings 到达后同步 state |
+| M7 | `CategoriesPage` 的 `Card hoverable + onClick` 对键盘/SR 不可达 | 外层包裹 native `<button type="button">`，`aria-pressed` 反映选中状态，`aria-label` 组合描述，Card 保留视觉效果 |
+
+**其他 inline 处理:**
+- Biome a11y 规则拒绝 `role="checkbox"` 和 `role="button"` 要求真 `<input>/<button>`，最终方案是 native `<button>` 包裹 Card
+- pnpm biome format --write 处理格式化小问题
+- PortfolioNewPage 删除对已删除 AssetPicker 的引用
+
+### 延后项（8 条）
+
+| 编号 | 处理 |
+|---|---|
+| I2 | `useAssets` params 对象稳定性 | 已在 I1 修复中顺手处理（改为 primitive tuple key） |
+| I3 | Select search 未 debounce | 接受现状（MVP，backend cheap），Step 16 真正 Portfolio add drawer 时再优化 |
+| M4 | WelcomePage `<br/>` 换行 | 风格小事 |
+| M6 | `existingCount` alert copy "Step 16/17" 泄漏实现细节 | 已在 inline 中改为不带步号 |
+| M8 | OnboardingLayout description spacing 小抖动 | 不影响 |
+| M9 | onSuccess callback 每 render 重建 | 未 memoize，接受 |
+| M10 | skip 路径 markCompleted 失败无 warning | OnboardingGuard 会把用户拉回，可接受 |
+| FirstHoldingPage / FirstAnalysisPage 单测缺失 | Step 21 E2E 统一补 |
+
+### 验证
+- `pnpm lint:all` PASS（Biome + tsc + depcruise 全绿，98 modules / 266 deps）
+- `pnpm build` PASS（vite build 3.18s）
+- `pnpm test --run` PASS（47/47）
+
+### Step 13 状态: **COMPLETED** ✅
+- Commits: `cabc359` → `a0c6db5` → `e14323d` → `<inline fix pending>`

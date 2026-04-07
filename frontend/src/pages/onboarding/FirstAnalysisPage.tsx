@@ -56,6 +56,10 @@ export default function FirstAnalysisPage() {
 	// Finalise onboarding once every step has been shown AND the trigger
 	// mutation has settled (success or error handled below). completedRef
 	// guards against the mark-completed mutation being fired more than once.
+	// `markCompleted` and `navigate` are stable references from TanStack Query
+	// and React Router v7, so the effect only needs to react to the currentStep
+	// counter, the error state, and the mutation's pending flag.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: markCompleted and navigate are stable
 	useEffect(() => {
 		if (completedRef.current) return;
 		if (error) return;
@@ -74,16 +78,14 @@ export default function FirstAnalysisPage() {
 				// better failure mode than an infinite spinner.
 				navigate("/dashboard", { replace: true });
 			});
-	}, [currentStep, error, rerunAnalysis.isPending, markCompleted, navigate]);
+	}, [currentStep, error, rerunAnalysis.isPending]);
 
 	const handleRetry = () => {
+		// Reset UI state and re-fire the mutation directly; the mount-only
+		// effect above will not re-run (empty deps), so startedRef stays true.
 		setError(null);
 		setCurrentStep(0);
-		startedRef.current = false;
 		completedRef.current = false;
-		// Retrigger the mutation right away; the first effect will no longer
-		// run because startedRef has been reset above.
-		startedRef.current = true;
 		rerunAnalysis.mutateAsync().catch((err: unknown) => {
 			const msg = err instanceof Error ? err.message : "分析触发失败";
 			setError(msg);

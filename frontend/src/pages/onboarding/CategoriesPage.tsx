@@ -56,27 +56,46 @@ export default function CategoriesPage() {
 					const isSelected = selected.includes(key);
 					return (
 						<Col xs={24} sm={12} key={key}>
-							<Card
+							{/*
+							  The card is wrapped in a native <button> so keyboard users
+							  reach it via Tab and toggle with Enter/Space, while the
+							  outer Card keeps its visual treatment. aria-pressed communicates
+							  the multi-select toggle state to assistive tech.
+							*/}
+							<button
+								type="button"
 								data-testid={`category-card-${key}`}
 								data-selected={isSelected ? "true" : "false"}
-								hoverable
+								aria-pressed={isSelected}
+								aria-label={`${meta.label} ${meta.description}`}
 								onClick={() => toggle(key)}
 								style={{
+									width: "100%",
+									padding: 0,
+									background: "none",
+									border: "none",
+									textAlign: "left",
 									cursor: "pointer",
-									borderColor: isSelected ? "#000" : undefined,
-									borderWidth: isSelected ? 2 : 1,
-									backgroundColor: isSelected ? "#f5f5f5" : undefined,
-									transition: "all 0.15s",
 								}}
 							>
-								<Title level={4} style={{ marginTop: 0, marginBottom: 4 }}>
-									{meta.label}
-								</Title>
-								<Text type="secondary" style={{ display: "block", marginBottom: 8 }}>
-									{meta.description}
-								</Text>
-								<Text style={{ fontSize: 12, color: "#8c8c8c" }}>例如：{meta.examples}</Text>
-							</Card>
+								<Card
+									hoverable
+									style={{
+										borderColor: isSelected ? "#000" : undefined,
+										borderWidth: isSelected ? 2 : 1,
+										backgroundColor: isSelected ? "#f5f5f5" : undefined,
+										transition: "all 0.15s",
+									}}
+								>
+									<Title level={4} style={{ marginTop: 0, marginBottom: 4 }}>
+										{meta.label}
+									</Title>
+									<Text type="secondary" style={{ display: "block", marginBottom: 8 }}>
+										{meta.description}
+									</Text>
+									<Text style={{ fontSize: 12, color: "#8c8c8c" }}>例如：{meta.examples}</Text>
+								</Card>
+							</button>
 						</Col>
 					);
 				})}
