@@ -13,7 +13,6 @@ const FirstHoldingPage = lazy(() => import("@/pages/onboarding/FirstHoldingPage"
 const FirstAnalysisPage = lazy(() => import("@/pages/onboarding/FirstAnalysisPage"));
 const DashboardPage = lazy(() => import("@/pages/dashboard/DashboardPage"));
 const PortfolioListPage = lazy(() => import("@/pages/portfolio/PortfolioListPage"));
-const PortfolioNewPage = lazy(() => import("@/pages/portfolio/PortfolioNewPage"));
 const PortfolioEditPage = lazy(() => import("@/pages/portfolio/PortfolioEditPage"));
 const DecisionCardDetailPage = lazy(() => import("@/pages/decision-cards/DecisionCardDetailPage"));
 const SettingsPage = lazy(() => import("@/pages/settings/SettingsPage"));
@@ -77,7 +76,6 @@ export function AppRoutes() {
 					<Route path="/" element={<Navigate to="/dashboard" replace />} />
 					<Route path="/dashboard" element={<DashboardPage />} />
 					<Route path="/portfolio" element={<PortfolioListPage />} />
-					<Route path="/portfolio/new" element={<PortfolioNewPage />} />
 					<Route path="/portfolio/:id" element={<PortfolioEditPage />} />
 					{/* TODO(step17): replace PortfolioEditPage alias with a real
 					    TransactionsPage that shows trade history for a single holding
