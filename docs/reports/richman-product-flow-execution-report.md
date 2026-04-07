@@ -612,4 +612,56 @@ Spec: ✅ Pass。Code quality: **Approve with 1 critical follow-up required**（
 - `pnpm test --run` PASS（24/24）
 
 ### Step 11 状态: **COMPLETED** ✅
-- Commits: `a0aa013` → `ec21717` → `<inline fix pending>`
+- Commits: `a0aa013` → `ec21717` → `0430db2`
+
+## Step 12 决策卡组件库
+
+### 实施结果
+- Commits:
+  - `0da6bff` feat(decision-card): add api and hooks
+  - `df9e7f0` feat(decision-card): add change badge and dimension badges
+  - `adda990` feat(decision-card): add execution plan strip
+  - `67a4738` feat(decision-card): add summary card composing sub components
+  - `<inline fixes>` review follow-ups
+- 创建 features/decision-card/ 完整 feature 包（types/api/3 hooks/4 components + tests/barrel）
+- 清理 pre-existing 的 useDecisionCard / DecisionCardView / ConfidenceBadge（老 DTO shape 不兼容）
+- DecisionCardDetailPage 更新为 placeholder 使用新组件（Step 15 将重写）
+- BADGE_TEXT 常量从 barrel 导出以供 Step 19 帮助页复用
+- 43 个测试全部通过（新增 19 个）
+
+### Review 反馈与修复（controller inline）
+
+Spec: ✅ Pass。Code quality: **Approve with minor revisions**（0 Critical, 4 Important, 10 Minor）。
+
+**4 Important + 2 accessibility Minor 已 inline 修复:**
+
+| 编号 | 问题 | 修复 |
+|---|---|---|
+| I1 | `formatPnlLabel` 是 identity 死代码，且 "金额:" label 与 positionAmount (市值) 数据语义不符 | 删除 `formatPnlLabel` wrapper；label 改为 "市值:"；变量名同步改为 `marketValueText`；test-id 改 `card-market-value` |
+| I2 | `DimensionBadges` 稳态下一律 "default" 颜色，"稳定 bullish" 和 "稳定 bearish" 失去视觉区分 | `colorForValue(current)` 不管是否 flip 都应用，flip 状态仍叠加 strikethrough + arrow 作为"变化"额外提示 |
+| I3 | `recommendation.label \|\| card.actionAdvice` fallback 掩盖 backend 契约问题（Go 端 Label 非可选） | 删除 fallback，直接信任 backend 契约 |
+| I4 | Dimension flip 仅识别英文字面值，未文档化契约 | 注释明确 backend 契约：`bullish`/`bearish`/`neutral` 英文字面值来自 `analysis/recommendation.go`，未知值 fall through 到 default |
+| M7 | "+还有 N 步" link 无键盘可访问性 | 加 `role="button"` + `tabIndex={0}` + `onKeyDown` (Enter/Space) + `stopPropagation` 防止气泡触发 card onClick |
+| M8 | "查看完整推理" 看似链接但实际无对应交互，card 级 hoverable 对屏幕阅读器不透明 | Card 改为 `role="button"` + `tabIndex={0}` + `onKeyDown` (Enter/Space) + `aria-label={assetName} {assetCode} 查看完整推理`，让 SR 宣告整卡为单一交互单元 |
+
+### 延后项（10 Minor 中的剩余部分）
+
+| 编号 | 处理 |
+|---|---|
+| M5 | `recommendation.label \|\|` → `??` 风格 | 已在 I3 修复时一并处理（改为无 fallback） |
+| M6 | one-shot slice(0,1) 静默丢弃 | 防御性默认，不修 |
+| M9 | formatDeltaPct 无 up/down icon 配对 | Step 15 详情页可增强 |
+| M10 | STEP_COLORS 注释与代码语义不一致 | 已修正注释为 "clamp to last color" |
+| M11 | ChangeBadge `#000000` vs antd token | 项目当前固定亮色主题，保留 |
+| M12 | DecisionCardSummary `#fafafa` 背景同上 | 同上 |
+| M13 | useMoney stub 重复 | 可后续抽 testing helper |
+| M14 | api.ts comment drift | 不修 |
+
+### 验证
+- `pnpm lint:all` PASS（Biome + tsc + depcruise 全绿，94 modules / 233 deps）
+- `pnpm build` PASS（vite build 3.24s）
+- `pnpm test --run` PASS（6 files / 43 tests）
+
+### Step 12 状态: **COMPLETED** ✅
+- Commits: `0da6bff` → `df9e7f0` → `adda990` → `67a4738` → `<inline fix pending>`
+- **Phase 4（前端基础）全部完成**

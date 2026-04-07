@@ -4,9 +4,10 @@ import type { Execution, Step } from "../types";
 
 const { Text } = Typography;
 
-// STEP_COLORS is the gradient used for the numbered step circles. The index
-// wraps past position 3 so very long staged plans still produce legible
-// circles; in practice we cap the visible steps to 3 anyway.
+// STEP_COLORS is the gradient used for the numbered step circles. The
+// index is clamped to the last color for any step beyond position 3 so
+// very long staged plans still produce legible circles; in practice the
+// visible steps are capped at `maxSteps` (default 3).
 const STEP_COLORS = ["#1677ff", "#4096ff", "#69b1ff", "#91caff"];
 
 function stepCircleStyle(index: number): CSSProperties {
@@ -94,7 +95,27 @@ export function ExecutionPlanStrip({
 				<Text
 					type="secondary"
 					style={{ cursor: onShowAll ? "pointer" : "default" }}
-					onClick={onShowAll}
+					onClick={
+						onShowAll
+							? (event) => {
+									event.stopPropagation();
+									onShowAll();
+								}
+							: undefined
+					}
+					onKeyDown={
+						onShowAll
+							? (event) => {
+									if (event.key === "Enter" || event.key === " ") {
+										event.preventDefault();
+										event.stopPropagation();
+										onShowAll();
+									}
+								}
+							: undefined
+					}
+					role={onShowAll ? "button" : undefined}
+					tabIndex={onShowAll ? 0 : undefined}
 					data-testid="plan-more-link"
 				>
 					+ 还有 {hidden} 步

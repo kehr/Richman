@@ -1,10 +1,11 @@
 import { Space, Tag } from "@/ui-kit/eat";
 
 // DimensionValue is the canonical 3-way label for one of the three decision
-// card dimensions (trend / position / catalyst). The backend sends these as
-// free strings (e.g. "bullish", "bearish", "neutral") so we do not restrict
-// the prop type — the component just compares current vs previous for the
-// flip effect and renders the raw value.
+// card dimensions (trend / position / catalyst). The backend contract is
+// that direction values are English canonical strings ("bullish" | "bearish"
+// | "neutral") produced by analysis/recommendation.go; new labels added in
+// future backend versions fall through to the neutral style rather than
+// crash the UI.
 export interface DimensionValue {
 	label: string;
 	current: string;
@@ -17,9 +18,11 @@ interface DimensionBadgesProps {
 	catalyst: DimensionValue;
 }
 
-// colorForValue maps the canonical 3-way labels to antd Tag colors. Unknown
-// values fall through to the neutral default so forward-compatible labels
-// from future backend versions do not crash the UI.
+// colorForValue maps the canonical 3-way labels to antd Tag colors. This
+// color is applied in both the steady-state and flip-state renders so a
+// stable "bullish" position is still visually distinct from a stable
+// "bearish" one; the flip state adds an arrow + strikethrough on top of
+// the base color to draw the eye to the change.
 function colorForValue(value: string): string {
 	switch (value) {
 		case "bullish":
@@ -33,14 +36,15 @@ function colorForValue(value: string): string {
 	}
 }
 
-// DimensionBadge renders a single labelled badge with optional flip styling.
-// When a non-null previous value differs from the current value we render
-// the previous value with a strikethrough followed by an arrow and the new
-// value; the surrounding Tag is colored by the current value so the eye is
-// drawn to the new state.
+// DimensionBadge renders a single labelled badge. The Tag color is always
+// driven by the current value so tri-color semantics survive across renders
+// (reviewer called out that gating color on flipped-state removed product
+// signal). When a non-null previous value differs from the current value
+// we add a strikethrough old value + arrow to layer the flip affordance
+// on top of the base color.
 function DimensionBadge({ value }: { value: DimensionValue }) {
 	const flipped = value.previous != null && value.previous !== value.current;
-	const color = flipped ? colorForValue(value.current) : "default";
+	const color = colorForValue(value.current);
 	return (
 		<Tag color={color} data-testid={`dim-${value.label.toLowerCase()}`}>
 			<span style={{ marginRight: 4 }}>{value.label}:</span>

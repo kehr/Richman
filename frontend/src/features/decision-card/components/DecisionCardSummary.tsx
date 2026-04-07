@@ -18,26 +18,22 @@ interface DecisionCardSummaryProps {
 	onShowFullPlan?: (card: DecisionCardDTO) => void;
 }
 
-// formatPnl formats a signed profit-and-loss amount. Returns null when the
-// caller should hide the pnl display (no amount configured). The sign is
-// kept explicit so the UI can color positive and negative values.
-function formatPnlLabel(amount: string | null): string | null {
-	return amount;
-}
-
 // DecisionCardSummary composes the four sub-components into the full card
 // shape defined in PRD §3.2. Layout from top to bottom:
 //
 //   1. Header: asset name / code / type tag / change badge
-//   2. Cost + position row (formatted via useMoney)
+//   2. Cost + position row + market value (formatted via useMoney)
 //   3. Dimension badges (trend / position / catalyst)
 //   4. Recommendation label + execution plan strip
 //   5. Today's highlights paragraph
-//   6. Confidence + "查看完整推理 →" footer
+//   6. Confidence + "查看完整推理" footer
 //
 // The outer Card is `hoverable` when an `onClick` handler is provided so
 // the Dashboard list gets the lift effect while the detail page (which
-// embeds the same component without navigation) stays static.
+// embeds the same component without navigation) stays static. The whole
+// card acts as a single interactive surface: an `aria-label` exposes the
+// asset name + "查看完整推理" to screen readers and keyboard-Enter works
+// through the native Card focus behaviour.
 export function DecisionCardSummary({
 	card,
 	previousCard,
@@ -46,12 +42,26 @@ export function DecisionCardSummary({
 }: DecisionCardSummaryProps) {
 	const money = useMoney();
 	const positionText = money.format(card.positionRatio, card.positionAmount);
-	const pnlText = formatPnlLabel(money.formatAmountOnly(card.positionAmount));
+	const marketValueText = money.formatAmountOnly(card.positionAmount);
+	const interactive = Boolean(onClick);
+
+	const handleKeyDown = interactive
+		? (event: React.KeyboardEvent<HTMLDivElement>) => {
+				if (event.key === "Enter" || event.key === " ") {
+					event.preventDefault();
+					onClick?.(card);
+				}
+			}
+		: undefined;
 
 	return (
 		<Card
-			hoverable={Boolean(onClick)}
+			hoverable={interactive}
 			onClick={onClick ? () => onClick(card) : undefined}
+			onKeyDown={handleKeyDown}
+			role={interactive ? "button" : undefined}
+			tabIndex={interactive ? 0 : undefined}
+			aria-label={interactive ? `${card.assetName} ${card.assetCode} 查看完整推理` : undefined}
 			data-testid={`decision-card-${card.cardId}`}
 		>
 			<div
@@ -73,9 +83,9 @@ export function DecisionCardSummary({
 					<Space size="middle" wrap>
 						<Text type="secondary">成本: {card.costPrice.toFixed(2)}</Text>
 						<Text type="secondary">仓位: {positionText}</Text>
-						{pnlText && (
-							<Text type="secondary" data-testid="card-pnl">
-								金额: {pnlText}
+						{marketValueText && (
+							<Text type="secondary" data-testid="card-market-value">
+								市值: {marketValueText}
 							</Text>
 						)}
 					</Space>
@@ -113,7 +123,7 @@ export function DecisionCardSummary({
 				data-testid="card-recommendation-box"
 			>
 				<Title level={5} style={{ margin: 0, marginBottom: 8 }}>
-					{card.recommendation.label || card.actionAdvice}
+					{card.recommendation.label}
 				</Title>
 				<ExecutionPlanStrip
 					execution={card.recommendation.execution}
