@@ -1,0 +1,12 @@
+/*
+ * Highlight pulse applied to a decision card when the user clicks its
+ * matching row in the change-anchor list. The class is added by
+ * ChangeAnchorList click handler and removed 1.5s later via setTimeout
+ * (see ChangeAnchorList.tsx). The transition softens the on/off edges
+ * so a quick re-click does not strobe.
+ */
+.dashboard-change-anchor-highlight {
+	box-shadow: 0 0 0 2px #1677ff;
+	border-radius: 8px;
+	transition: box-shadow 0.25s ease-in, border-radius 0.25s ease-in;
+}

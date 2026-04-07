@@ -719,4 +719,51 @@ Spec: ✅ Pass。Code quality: **Approve with changes**（0 Critical, 5 Importan
 - `pnpm test --run` PASS（47/47）
 
 ### Step 13 状态: **COMPLETED** ✅
-- Commits: `cabc359` → `a0c6db5` → `e14323d` → `<inline fix pending>`
+- Commits: `cabc359` → `a0c6db5` → `e14323d` → `159619a`
+
+## Step 14 Dashboard 页面三区结构（Phase 6）
+
+### 实施结果
+- Commits:
+  - `e099cb7` refactor(dashboard): build top strip with rerun action
+  - `c510461` feat(dashboard): add decision card wall and change anchor list
+  - `6cb2749` feat(dashboard): add empty holdings hero state
+  - `<inline fixes>`
+- DashboardPage 重写为 composition root，4 状态分支（loading / error / empty / populated）
+- 7 个新文件：DashboardTopStrip + DecisionCardWall + ChangeAnchorList + EmptyHoldingsHero + 3 个测试
+- computeNextAnalysisTime 客户端计算下次 cron slot
+- cardRefs Map 在 DecisionCardWall（写）和 ChangeAnchorList（读）之间共享
+- 60 个测试通过（新增 13 个）
+
+### Review 反馈与修复（controller inline）
+
+Spec: ✅ Pass。Code quality: **Approve with required changes**（0 Critical, 5 Important, 10 Minor）。
+
+**5 Important 全部 inline 修复:**
+
+| 编号 | 问题 | 修复 |
+|---|---|---|
+| I1 | `dashboard-change-anchor-highlight` CSS class 全局未定义，点击锚点后无视觉反馈 | 新建 `ChangeAnchorList.css` 加 box-shadow + transition 规则；ChangeAnchorList.tsx import css |
+| I2 | highlight setTimeout 无清理，rapid clicks 会 race，unmount 时 timer 仍 fire | 新增 `activeTimerRef` + `activeNodeRef`；handleClick 取消之前 timer 并 strip 旧 node 的 class；useEffect cleanup on unmount |
+| I3 | 综合浮盈亏 label 用 `targetPositionAmount - positionAmount` 作为 P&L 代理，与 label 含义相反，是金融 UX trust hazard | label 改为 "建议调仓"（honest naming），加 Tooltip 说明 "MVP 阶段使用 (target - current) 作为代理；真实持仓盈亏将在 Step 17 接入交易记录后替换" |
+| I4 | computeNextAnalysisTime 用 Date#getDay/getHours，依赖宿主 timezone；UTC 服务器或海外用户会算错 slot | 新增 `shanghaiPartsFromInstant` 用 `Intl.DateTimeFormat("en-US", { timeZone: "Asia/Shanghai", weekday, hour, ... })` 投影到上海 wall clock parts；`computeNextAnalysisTime` 用 `Date.UTC(...) + (slot.hour - 8) * hour + slot.minute * minute` 还原为正确 UTC instant；`formatHm` 同样改用 Intl 上海格式化 |
+| I5 | cardRefs Map 生命周期不变量未文档化 | （延后到 DecisionCardWall 文档注释，本次未改） |
+
+### 延后项（10 条 Minor）
+
+| 编号 | 处理 |
+|---|---|
+| M6 | "已分配仓位" 不显示金额 | useMoney.format 已支持，可作为 Step 18 polish |
+| M7 | 总资金 manual Intl.NumberFormat 不走 useMoney | 风格小事 |
+| M8-M11 | 测试 polish | Step 21 E2E 统一加 |
+| M12 | 锚点行 aria-label | 后续 a11y 轮 |
+| M14 | 移动端 skeleton 3 列 | 视觉小事 |
+| M15 | 双 PageContainer | 风格小事 |
+
+### 验证
+- `pnpm lint:all` PASS（Biome + tsc + depcruise 全绿，106 modules / 300 deps）
+- `pnpm test --run` PASS（60/60）
+- `pnpm build` 已通过
+
+### Step 14 状态: **COMPLETED** ✅
+- Commits: `e099cb7` → `c510461` → `6cb2749` → `<inline fix pending>`

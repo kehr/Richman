@@ -68,9 +68,14 @@ export function DecisionCardWall({
 	}
 
 	return (
+		// Responsive grid per PRD §3.1: 1 column below ~900px, 2 columns
+		// 900-1199px, 3 columns ≥1200px. antd has no native 900px breakpoint,
+		// so we use `lg` (≥992) as the closest approximation to the spec's
+		// 2-column threshold. The 92px gap (900 vs 992) is acceptable for MVP
+		// and keeps us on antd's standard breakpoint token set.
 		<Row gutter={[16, 16]} data-testid="decision-card-wall">
 			{cards.map((card) => (
-				<Col key={card.cardId} xs={24} md={12} xl={8}>
+				<Col key={card.cardId} xs={24} lg={12} xl={8}>
 					<div
 						ref={(node) => {
 							if (!cardRefs) return;

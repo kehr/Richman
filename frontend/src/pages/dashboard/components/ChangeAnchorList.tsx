@@ -1,5 +1,7 @@
 import { BADGE_TEXT, ChangeBadge, type DecisionCardDTO } from "@/features/decision-card";
 import { Card, Space, Typography } from "@/ui-kit/eat";
+import { useEffect, useRef } from "react";
+import "./ChangeAnchorList.css";
 
 const { Text, Title } = Typography;
 
@@ -30,6 +32,30 @@ function buildChangeSummary(card: DecisionCardDTO): string {
 // the matching card in the wall. When there are no changed cards the whole
 // block returns null so the Dashboard layout collapses cleanly.
 export function ChangeAnchorList({ cards, cardRefs }: ChangeAnchorListProps) {
+	// Track the active highlight timer + node so a rapid second click cancels
+	// the previous timer and we can clean up on unmount. Without this the
+	// timer would race against re-clicks and could leave the highlight class
+	// stuck on a card whose timer fired after a newer click already removed
+	// and re-added it.
+	const activeTimerRef = useRef<number | null>(null);
+	const activeNodeRef = useRef<HTMLDivElement | null>(null);
+
+	useEffect(() => {
+		// Cleanup on unmount: cancel any pending timer and strip the class
+		// from whichever card was last highlighted so a stale class never
+		// persists across remounts.
+		return () => {
+			if (activeTimerRef.current !== null) {
+				window.clearTimeout(activeTimerRef.current);
+				activeTimerRef.current = null;
+			}
+			if (activeNodeRef.current) {
+				activeNodeRef.current.classList.remove(HIGHLIGHT_CLASS);
+				activeNodeRef.current = null;
+			}
+		};
+	}, []);
+
 	const changed = cards.filter((card) => card.badgeState !== "none");
 	if (changed.length === 0) {
 		return null;
@@ -38,10 +64,24 @@ export function ChangeAnchorList({ cards, cardRefs }: ChangeAnchorListProps) {
 	const handleClick = (cardId: number) => {
 		const node = cardRefs.get(cardId);
 		if (!node) return;
+		// Cancel any in-flight highlight before starting a new one so rapid
+		// re-clicks don't strobe.
+		if (activeTimerRef.current !== null) {
+			window.clearTimeout(activeTimerRef.current);
+			activeTimerRef.current = null;
+		}
+		if (activeNodeRef.current && activeNodeRef.current !== node) {
+			activeNodeRef.current.classList.remove(HIGHLIGHT_CLASS);
+		}
 		node.scrollIntoView({ behavior: "smooth", block: "center" });
 		node.classList.add(HIGHLIGHT_CLASS);
-		window.setTimeout(() => {
+		activeNodeRef.current = node;
+		activeTimerRef.current = window.setTimeout(() => {
 			node.classList.remove(HIGHLIGHT_CLASS);
+			if (activeNodeRef.current === node) {
+				activeNodeRef.current = null;
+			}
+			activeTimerRef.current = null;
 		}, CHANGE_HIGHLIGHT_DURATION_MS);
 	};
 
