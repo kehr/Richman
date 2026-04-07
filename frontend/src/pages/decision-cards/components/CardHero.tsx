@@ -8,28 +8,31 @@ interface CardHeroProps {
 	card: DecisionCardDTO;
 }
 
-// formatPnl renders a signed percentage P&L number with color hint. The
-// backend does not yet expose realized P&L per card, so the displayed value
-// uses (currentPrice - costPrice) / costPrice if available; in absence of a
-// current price field we fall back to (target - current) ratio as a
-// best-effort placeholder consistent with DashboardPage's aggregate proxy.
-function computePnlPct(card: DecisionCardDTO): number {
+// computeTargetGapPct renders the suggested reallocation magnitude as a
+// percentage of the current allocated capital. This is NOT profit-and-loss:
+// it expresses how far the model wants the user to move from their current
+// position size to the recommended target. We display it as a neutral
+// metric (no red/green coloring) so users do not confuse it with realized
+// P&L. Real realized P&L will be wired in once the backend exposes mark
+// price + cost basis on the decision_card DTO.
+function computeTargetGapPct(card: DecisionCardDTO): number | null {
 	if (card.targetPositionAmount != null && card.positionAmount != null && card.positionAmount > 0) {
 		return ((card.targetPositionAmount - card.positionAmount) / card.positionAmount) * 100;
 	}
-	return 0;
+	return null;
 }
 
 // CardHero renders the top hero block of the decision card detail page per
-// PRD section 5: type tag + asset code + large asset name + cost / current /
-// position / amount summary line + P&L number on the left, and the change
-// badge on the right.
+// PRD section 5: type tag + asset code + large asset name + cost + position
+// summary + suggested reallocation magnitude on the left, and the change
+// badge on the right. Current price and realized P&L are intentionally
+// omitted until the backend DTO carries them; the file-level comment on
+// computeTargetGapPct documents the placeholder semantics.
 export function CardHero({ card }: CardHeroProps) {
 	const money = useMoney();
 	const positionText = money.format(card.positionRatio, card.positionAmount);
-	const pnlPct = computePnlPct(card);
-	const pnlColor = pnlPct > 0 ? "#cf1322" : pnlPct < 0 ? "#3f8600" : undefined;
-	const pnlSign = pnlPct > 0 ? "+" : "";
+	const targetGapPct = computeTargetGapPct(card);
+	const gapSign = targetGapPct != null && targetGapPct > 0 ? "+" : "";
 
 	return (
 		<div
@@ -53,10 +56,10 @@ export function CardHero({ card }: CardHeroProps) {
 					<Text type="secondary">成本: {card.costPrice.toFixed(2)}</Text>
 					<Text type="secondary">仓位: {positionText}</Text>
 				</Space>
-				{pnlPct !== 0 && (
-					<Text strong style={{ color: pnlColor, fontSize: 16 }} data-testid="card-hero-pnl">
-						盈亏: {pnlSign}
-						{pnlPct.toFixed(2)}%
+				{targetGapPct != null && targetGapPct !== 0 && (
+					<Text type="secondary" data-testid="card-hero-target-gap">
+						目标偏离: {gapSign}
+						{targetGapPct.toFixed(2)}%（建议调仓幅度，非盈亏）
 					</Text>
 				)}
 			</Space>

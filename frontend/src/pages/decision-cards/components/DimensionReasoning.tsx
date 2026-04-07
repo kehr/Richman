@@ -82,8 +82,8 @@ function DimensionCard({ view, flipped }: { view: DimensionView; flipped: boolea
 				</Text>
 				<Paragraph style={{ margin: 0 }}>{view.summary || "(暂无说明)"}</Paragraph>
 				{flipped && (
-					<Text type="warning" data-testid={`dimension-flip-note-${view.key}`}>
-						📌 此维度发生翻转是本次建议升级的主要驱动因素
+					<Text type="warning" strong data-testid={`dimension-flip-note-${view.key}`}>
+						提示：此维度发生翻转是本次建议升级的主要驱动因素
 					</Text>
 				)}
 			</Space>

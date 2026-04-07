@@ -14,6 +14,8 @@ export {
 } from "./use-decision-card-detail";
 export { useRerunAnalysis } from "./use-rerun-analysis";
 
+export { computeNextAnalysisTime, formatHm } from "./analysis-schedule";
+
 export { ChangeBadge, BADGE_TEXT } from "./components/ChangeBadge";
 export { DimensionBadges } from "./components/DimensionBadges";
 export { ExecutionPlanStrip } from "./components/ExecutionPlanStrip";

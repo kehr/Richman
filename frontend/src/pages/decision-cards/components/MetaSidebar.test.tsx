@@ -1,9 +1,9 @@
-import type { DecisionCardDTO } from "@/features/decision-card";
+import { type DecisionCardDTO, computeNextAnalysisTime } from "@/features/decision-card";
 import { renderWithProviders } from "@/test/utils";
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import { MetaSidebar, computeNextAnalysisTime } from "./MetaSidebar";
+import { MetaSidebar } from "./MetaSidebar";
 
 function makeCard(overrides: Partial<DecisionCardDTO> = {}): DecisionCardDTO {
 	return {
@@ -52,14 +52,16 @@ function makeCard(overrides: Partial<DecisionCardDTO> = {}): DecisionCardDTO {
 }
 
 describe("MetaSidebar", () => {
-	it("renders analysis time, next analysis, data sources and disclaimer", () => {
+	it("renders analysis time, next analysis, data source placeholder and disclaimer", () => {
 		renderWithProviders(<MetaSidebar card={makeCard()} />);
 		// Analyzed at 2026-04-07T00:30:00Z = 08:30 Asia/Shanghai
 		expect(screen.getByTestId("meta-analyzed-at")).toHaveTextContent("2026-04-07 08:30");
 		expect(screen.getByTestId("meta-next-analysis")).toBeInTheDocument();
-		expect(screen.getByText("AKShare")).toBeInTheDocument();
-		expect(screen.getByText("Yahoo Finance")).toBeInTheDocument();
-		expect(screen.getByText("Polymarket")).toBeInTheDocument();
+		// Data source health is intentionally a placeholder until the backend
+		// exposes per-source freshness; the block must not claim "正常".
+		expect(screen.getByTestId("meta-data-source")).toHaveTextContent(
+			"数据源健康检查将在后续版本开放",
+		);
 		expect(screen.getByTestId("meta-disclaimer")).toBeInTheDocument();
 	});
 

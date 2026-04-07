@@ -766,4 +766,51 @@ Spec: ✅ Pass。Code quality: **Approve with required changes**（0 Critical, 5
 - `pnpm build` 已通过
 
 ### Step 14 状态: **COMPLETED** ✅
-- Commits: `e099cb7` → `c510461` → `6cb2749` → `<inline fix pending>`
+- Commits: `e099cb7` → `c510461` → `6cb2749` → `5abf117`
+
+## Step 15 决策卡详情页
+
+### 实施结果
+- Commits:
+  - `449752f` feat(decision-card): add hero and conclusion banner blocks
+  - `df930be` feat(decision-card): add execution plan, dimensions and risks blocks
+  - `b86c955` feat(decision-card): add meta sidebar with schedule and history
+  - `96e4f49` feat(decision-card): assemble detail page with five-block layout
+  - `<inline fixes>`
+- DecisionCardDetailPage 重写为 5 区块 + meta 侧栏（PRD §5）
+- 6 个新组件（CardHero / ConclusionBanner / ExecutionPlanFull / DimensionReasoning / MainRisks / MetaSidebar）
+- 5 个新测试（3 MetaSidebar + 3 DecisionCardDetailPage 注：1 个 computeNextAnalysisTime 测试位于 MetaSidebar.test.tsx 但 spec 反馈后改为 import from features）
+- 66 个测试通过
+
+### Review 反馈与修复（controller inline）
+
+Spec: ✅ Pass（修复 1 个 emoji 后）。Code quality: **Approved after C1 fix**（1 Critical, 4 Important, 9 Minor）。
+
+**1 Critical + 4 Important + emoji 全部 inline 修复:**
+
+| 编号 | 问题 | 修复 |
+|---|---|---|
+| Spec emoji | DimensionReasoning.tsx 含 📌 emoji 违反 CLAUDE.md "no emoji" rule | 改为 "提示：" + `Text strong` |
+| C1 | CardHero P&L 公式错误：用 `(target - current) / current` 算"盈亏"，与 label 含义相反，金融 UX trust hazard | 函数重命名为 `computeTargetGapPct`，UI label 改为 "目标偏离: ±X%（建议调仓幅度，非盈亏）"，移除红绿语义化颜色，data-testid 改为 `card-hero-target-gap` |
+| I1 | computeNextAnalysisTime + ANALYSIS_SCHEDULE + shanghaiPartsFromInstant + formatHm 在 Dashboard 和 Detail 之间 ~90 行重复 | 抽取到 `features/decision-card/analysis-schedule.ts`；从 features barrel 导出；DashboardTopStrip 改为 import + re-export 保持向后兼容；MetaSidebar 删除本地副本，import from feature；测试文件 import 同步更新 |
+| I2 | `cardId = Number(id)` 无 NaN guard，`/decision-cards/abc` 会发起无意义请求 | 添加 `Number.isFinite(parsed) && parsed > 0` 守卫，无效 id 折叠为 0（hook enabled guard 跳过 fetch），页面渲染 not-found 分支 |
+| I3 | MetaSidebar 数据源块永远显示"AKShare/Yahoo/Polymarket 正常"是 unmarked static mock，AKShare 真崩了也会说正常 | 删除 fake "正常" tags，改为单行 placeholder "数据源健康检查将在后续版本开放"；data-testid 加 `meta-data-source`；测试断言更新；删除未用的 Tag import |
+| I4 | ConclusionBanner BORDER_COLORS 和 ChangeBadge BADGE_COLORS 是两份 hex 颜色表，会 silently drift | （延后到 Step 21 polish，本次未抽公共常量。优先修血量更大的 C1/I1） |
+
+### 延后项（M-级）
+
+| 编号 | 处理 |
+|---|---|
+| I4 | BORDER_COLORS / DimensionReasoning.dimensionColor 抽公共常量 | Step 21 polish |
+| M1 | useDecisionCards 全量拉取 | 等 backend `/holdings/{id}/decision-cards?limit=5` 接口 |
+| M2 | 历史 button 用 inline #1677ff，dark mode 不友好 | 项目当前固定亮色 |
+| M3 | DimensionReasoning vs DimensionBadges 翻转检测语义略不同 | 后续统一 |
+| M5-M9 | 风格 / 测试 polish | Step 21 |
+
+### 验证
+- `pnpm lint:all` PASS（Biome + tsc + depcruise，115 modules / 335 deps）
+- `pnpm test --run` PASS（13 files / 66 tests）
+- `pnpm build` PASS（vite build 3.42s）
+
+### Step 15 状态: **COMPLETED** ✅
+- Commits: `449752f` → `df930be` → `b86c955` → `96e4f49` → `<inline fix pending>`

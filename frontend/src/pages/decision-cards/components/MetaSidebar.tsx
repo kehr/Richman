@@ -1,5 +1,5 @@
-import type { DecisionCardDTO } from "@/features/decision-card";
-import { Card, Divider, Space, Tag, Typography } from "@/ui-kit/eat";
+import { type DecisionCardDTO, computeNextAnalysisTime } from "@/features/decision-card";
+import { Card, Divider, Space, Typography } from "@/ui-kit/eat";
 import type { MouseEvent } from "react";
 
 const { Text, Paragraph } = Typography;
@@ -14,82 +14,9 @@ interface MetaSidebarProps {
 }
 
 // SHANGHAI_TZ mirrors backend/internal/service/analysis/scheduler.go. The
-// sidebar must render times in this timezone regardless of the viewer's
-// locale so "下一次分析" matches the schedule the backend actually uses.
+// sidebar renders times in this timezone regardless of the viewer's locale
+// so "下一次分析" matches the schedule the backend actually uses.
 const SHANGHAI_TZ = "Asia/Shanghai";
-
-interface ScheduleSlot {
-	hour: number;
-	minute: number;
-	weekdays: number[];
-}
-
-const ANALYSIS_SCHEDULE: ScheduleSlot[] = [
-	{ hour: 6, minute: 0, weekdays: [2, 3, 4, 5, 6] },
-	{ hour: 8, minute: 30, weekdays: [1, 2, 3, 4, 5] },
-	{ hour: 15, minute: 30, weekdays: [1, 2, 3, 4, 5] },
-];
-
-// shanghaiPartsFromInstant projects a UTC instant into Shanghai wall-clock
-// parts so we can index into the schedule correctly.
-function shanghaiPartsFromInstant(instant: Date): {
-	year: number;
-	month: number;
-	day: number;
-	hour: number;
-	minute: number;
-	weekday: number;
-} {
-	const fmt = new Intl.DateTimeFormat("en-US", {
-		timeZone: SHANGHAI_TZ,
-		year: "numeric",
-		month: "2-digit",
-		day: "2-digit",
-		hour: "2-digit",
-		minute: "2-digit",
-		weekday: "short",
-		hour12: false,
-	});
-	const parts = fmt.formatToParts(instant);
-	const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "0";
-	const weekdayMap: Record<string, number> = {
-		Sun: 0,
-		Mon: 1,
-		Tue: 2,
-		Wed: 3,
-		Thu: 4,
-		Fri: 5,
-		Sat: 6,
-	};
-	return {
-		year: Number.parseInt(get("year"), 10),
-		month: Number.parseInt(get("month"), 10),
-		day: Number.parseInt(get("day"), 10),
-		hour: Number.parseInt(get("hour"), 10) % 24,
-		minute: Number.parseInt(get("minute"), 10),
-		weekday: weekdayMap[get("weekday")] ?? 0,
-	};
-}
-
-// computeNextAnalysisTime returns the next scheduled analysis slot strictly
-// after `now`. Duplicated locally (not imported from dashboard) so the
-// decision card detail page does not gain a page-to-page dependency.
-export function computeNextAnalysisTime(now: Date): Date | null {
-	const start = shanghaiPartsFromInstant(now);
-	const startMinutes = start.hour * 60 + start.minute;
-	for (let offset = 0; offset < 7; offset += 1) {
-		const weekday = (start.weekday + offset) % 7;
-		for (const slot of ANALYSIS_SCHEDULE) {
-			if (!slot.weekdays.includes(weekday)) continue;
-			const slotMinutes = slot.hour * 60 + slot.minute;
-			if (offset === 0 && slotMinutes <= startMinutes) continue;
-			const baseUtcMs = Date.UTC(start.year, start.month - 1, start.day) + offset * 86400000;
-			const candidateUtcMs = baseUtcMs + (slot.hour - 8) * 3600000 + slot.minute * 60000;
-			return new Date(candidateUtcMs);
-		}
-	}
-	return null;
-}
 
 // formatShanghaiDateTime renders a Date as "YYYY-MM-DD HH:mm" in Shanghai
 // wall-clock. Returns a dash placeholder when input is null so the sidebar
@@ -137,22 +64,11 @@ export function MetaSidebar({ card, historicalCards = [], onSelectHistory }: Met
 					</div>
 				</div>
 
-				<div>
+				<div data-testid="meta-data-source">
 					<Text type="secondary">数据源状态</Text>
-					<Space direction="vertical" size={2} style={{ width: "100%" }}>
-						<Space>
-							<Tag color="green">AKShare</Tag>
-							<Text type="secondary">正常</Text>
-						</Space>
-						<Space>
-							<Tag color="green">Yahoo Finance</Tag>
-							<Text type="secondary">正常</Text>
-						</Space>
-						<Space>
-							<Tag color="green">Polymarket</Tag>
-							<Text type="secondary">正常</Text>
-						</Space>
-					</Space>
+					<Paragraph type="secondary" style={{ margin: 0 }}>
+						数据源健康检查将在后续版本开放
+					</Paragraph>
 				</div>
 
 				<div>

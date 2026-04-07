@@ -47,7 +47,12 @@ function formatBreadcrumbDateTime(iso: string | undefined): string {
 export default function DecisionCardDetailPage() {
 	const { id } = useParams<{ id: string }>();
 	const navigate = useNavigate();
-	const cardId = Number(id);
+	// Parse the route param defensively: a non-numeric or zero/negative id
+	// (bookmark typo, stale link) collapses to 0 which the hook's enabled
+	// guard treats as "do not fetch", so we render the not-found branch
+	// without a wasted network round-trip.
+	const parsed = Number(id);
+	const cardId = Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
 
 	const detailQuery = useDecisionCardDetail(cardId);
 	const card = detailQuery.data;
@@ -67,6 +72,23 @@ export default function DecisionCardDetailPage() {
 	const historicalCards = (cardsQuery.data ?? []).filter(
 		(c) => card != null && c.holdingId === card.holdingId,
 	);
+
+	// Invalid id parsed to 0 — short-circuit to the not-found branch before
+	// the hooks resolve. The detailQuery is disabled in this case so it
+	// will never produce data.
+	if (cardId === 0) {
+		return (
+			<PageContainer title="决策卡详情">
+				<Alert
+					type="warning"
+					showIcon
+					message="未找到决策卡"
+					description="链接无效或决策卡不存在。"
+					data-testid="detail-not-found"
+				/>
+			</PageContainer>
+		);
+	}
 
 	if (detailQuery.isLoading) {
 		return (
