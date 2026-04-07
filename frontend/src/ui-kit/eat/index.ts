@@ -8,6 +8,7 @@ export {
 	Card,
 	Checkbox,
 	Col,
+	Collapse,
 	ConfigProvider,
 	DatePicker,
 	Divider,
