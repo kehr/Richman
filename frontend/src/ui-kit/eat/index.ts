@@ -32,6 +32,7 @@ export {
 	Space,
 	Spin,
 	Statistic,
+	Steps,
 	Switch,
 	Table,
 	Tabs,
@@ -48,7 +49,7 @@ export {
 	theme,
 } from "antd";
 
-export type { ThemeConfig } from "antd";
+export type { ThemeConfig, FormInstance } from "antd";
 
 export {
 	ProLayout,
@@ -89,4 +90,6 @@ export {
 	BarChartOutlined,
 	StockOutlined,
 	QuestionCircleOutlined,
+	CameraOutlined,
+	LeftOutlined,
 } from "@ant-design/icons";
