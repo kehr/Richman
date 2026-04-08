@@ -949,3 +949,87 @@ Spec: ✅ Pass。Code quality: **Approve after C1+C2 fix**（2 Critical, 6 Impor
 
 ### Step 17 状态: **COMPLETED** ✅
 - Commits: `17894f8` → `a37f46b` → `10e5d84` → `26c5d5e` → `b0bc5f5` → `d5f31c5`
+
+## Step 18 Settings 页面 4 Tab（Phase 8）
+
+### 目标
+将 `SettingsPage` 从占位重写为 PRD §6 四 tab 结构：账户 / 推送渠道 / 偏好 / 订阅与额度，同时创建 `features/notification-channels` 以支持 ChannelsTab。
+
+### 实施提交
+1. `bca691f` feat(settings): add tabs layout and account tab
+2. `34df6ee` feat(settings): migrate notification channels into channels tab
+3. `14d8b0b` feat(settings): add preferences and subscription tabs
+4. `cb9db4b` fix(settings): apply step 18 spec review fixes
+5. `033046c` fix(settings): apply step 18 code review fixes
+
+### 新增文件
+Feature 层：
+- `frontend/src/features/notification-channels/api.ts`
+- `frontend/src/features/notification-channels/types.ts`
+- `frontend/src/features/notification-channels/use-channels.ts`
+- `frontend/src/features/notification-channels/index.ts`
+- `frontend/src/features/notification-channels/components/ChannelList.tsx`
+- `frontend/src/features/notification-channels/components/AddChannelDrawer.tsx`
+- `frontend/src/features/notification-channels/components/ChannelTestButton.tsx`
+
+Page 层：
+- `frontend/src/pages/settings/components/SettingsTabsLayout.tsx`
+- `frontend/src/pages/settings/tabs/AccountTab.tsx` + `AccountTab.test.tsx`
+- `frontend/src/pages/settings/tabs/ChannelsTab.tsx`
+- `frontend/src/pages/settings/tabs/PreferencesTab.tsx`
+- `frontend/src/pages/settings/tabs/SubscriptionTab.tsx`
+
+修改：
+- `frontend/src/pages/settings/SettingsPage.tsx`（从 coming-soon 占位改为 tabs composition root，`?tab=` 通过 `useSearchParams` 同步）
+
+### 关键决策
+- D1 WeChat config 形态按后端 adapter 源码使用 `{ openId, templateId }`，非 task prompt 里的 `{ webhookUrl }`——后端 `wechat.go` 明确是公众号模板消息
+- D2 ChannelTestButton 永久 disabled 并带 Tooltip「测试发送接口待后端补齐」，与 Step 17 trade-delete 同模式
+- D3「发送重置密码邮件」按钮同样 disabled 占位（后端无对应路由）
+- D4 PreferencesTab 的语言通过 `useLocale` 本地存储生效；时区 / 主题 / 数字格式为装饰性占位（UserSettings DTO 未含对应字段）
+- D5 URL query `?tab=account|channels|preferences|subscription`，`setSearchParams(..., { replace: true })` 避免污染 history 栈
+- D6 Reset onboarding 按钮通过 `import.meta.env.DEV` 门控，只在 Vite dev 模式下渲染
+
+### Review 轮次
+1. **Spec compliance review** → Pass with fixes
+   - Issue 1：AccountTab 邮箱硬编码为 `"—"`，违反 PRD §6.2；应读 `useCurrentUser().data?.data?.email`
+   - Issue 4：SubscriptionTab 渠道数用 `.length` 而非过滤 `enabled`，与 ChannelsTab 计数不一致
+   - Issue 5：升级按钮 Tooltip 在 disabled Button 上不触发（与 Step 16 I4 同模式未复用）
+2. **Code quality review** → Pass with fixes
+   - I1：ChannelsTab `<a href="/help#push">` 会触发全页刷新，应用 `react-router` `<Link>` 替代
+   - M2：ChannelsTab 未处理 `channelsQuery.isError` 分支
+   - M3：AccountTab.handleSaveCapital `validateFields` 在 try 外，潜在未捕获 rejection
+   - M6：`Number.isNaN(Number(raw))` 是 dead defensive（InputNumber 返回 `number | null`）
+   - N1：AccountTab.test 未显式 mock `useCurrentUser`，依赖内部 enabled 短路
+   - M1/M4/M5 为非阻塞优化（theme token / per-row pending / 加载骨架），未应用以保持节奏
+
+### 已修复问题
+| # | 问题 | 修复 |
+|---|------|------|
+| 1 | Email 硬编码 `"—"` 违反 PRD §6.2 | 引入 `useCurrentUser`，`email = currentUser.data?.data?.email ?? "—"` |
+| 2 | SubscriptionTab 渠道数与 ChannelsTab 计数不一致 | 改为 `.filter((c) => c.enabled).length` |
+| 3 | disabled 升级按钮 Tooltip 不触发 | 按 Step 16 I4 模式用 `inline-block` span + `pointerEvents: "none"` wrapper |
+| 4 | ChannelsTab `<a href>` 触发全页刷新 | 改用 `react-router` `<Link to="/help#push">` |
+| 5 | channelsQuery 错误状态无反馈 | 新增 `isError` 分支的 `<Alert>` |
+| 6 | handleSaveCapital 的 validateFields 未在 try 内 | 移入 try/catch，吞掉 antd `errorFields` 对象 |
+| 7 | Number.isNaN dead branch | 删除，InputNumber 已返回 `number \| null` |
+| 8 | AccountTab.test 依赖 useCurrentUser enabled 短路 | 显式 mock `useCurrentUser` + 断言渲染邮箱值 |
+
+### 观察但未处理（优先级低）
+- M1 SettingsTabsLayout 的 `#000` / `#f5f5f5` 可用 `theme.useToken()` 替换，留待全站 dark mode 统一处理
+- M4 ChannelList Switch / 删除按钮未在 mutation pending 时 disabled，需要 per-row 状态跟踪
+- M5 SubscriptionTab quota cards 无加载骨架
+- N2/N3/N4/N5 测试清理、键盘 focus-visible、DisabledTooltipButton 抽象、list key 规范化，均为 nice-to-have
+
+### 偏差记录
+- language / timezone / theme / 数字格式未持久化到后端：UserSettings DTO 目前仅含 `totalCapitalCny`、`riskPreference`、`categories`，MVP 后端未扩展；PreferencesTab 语言通过本地 `useLocale` 生效，其余字段为装饰性 UI
+- ChannelDrawer 实现为单屏 Radio + 条件表单，非 PRD 的两步 Step 1 / Step 2 明确分步
+- Modal/Drawer width 等视觉细节未严格等比对 PRD 截图
+
+### 验证
+- `pnpm lint:all` PASS（132 files / 146 modules / 462 deps，Biome + tsc + depcruise 全绿）
+- `pnpm test --run` PASS（19 files / 87 tests，新增 AccountTab 4 case）
+- `pnpm build` PASS（vite build 3.08s）
+
+### Step 18 状态: **COMPLETED** ✅
+- Commits: `bca691f` → `34df6ee` → `14d8b0b` → `cb9db4b` → `033046c`
