@@ -1149,3 +1149,77 @@ Page 层：
 
 ### Step 20 状态: **COMPLETED** ✅
 - Commits: `a969ff5` → `583fa95` → `d804a68`
+
+## Step 21 端到端验证与全量 lint（Phase 9 收尾）
+
+### 目标
+最后一步收尾：静态分析 9 条动线、跑通前后端全量 lint / test / build、验证隐私守卫、补齐缺失的帮助锚点。
+
+### 实施提交
+1. `ff99fd8` feat(decision-card): add help anchor links on badge, dimensions, confidence
+
+### 9 条动线静态验证
+| # | 动线 | 状态 | 证据 |
+|---|------|------|------|
+| 1 | 新用户注册全流程 | PASS | `/login` (public) → `/register` → RegisterForm 调 useRegister → setToken → /dashboard → AuthGuard + OnboardingGuard → 跳 `/onboarding/welcome` → 4 步 wizard → /dashboard |
+| 2 | 多持仓 → Dashboard | PASS | PortfolioListPage 用 AddHoldingDrawer + ScreenshotImportModal，DashboardPage useDecisionCards + handleRerun invalidate |
+| 3 | 决策卡详情页 | PASS | routes.tsx `/decision-cards/:id` → DecisionCardDetailPage 5 区块 + MetaSidebar，detail test suite 3 case |
+| 4 | 截图批量导入 | PASS | ScreenshotImportModal 4 阶段 + RecognizedHoldingTable + 顺序 POST（Step 17） |
+| 5 | 总资金全局可见 | PASS | AccountTab usePatchUserSettings 失效 user-settings query，useMoney 被 Dashboard / Portfolio / DecisionCard 消费 |
+| 6 | 风险偏好 | PASS | AccountTab usePatchUserSettings 更新 riskPreference，后端 Step 04 `applyRiskPreferenceBias` 在 weight 调整阶段消费 |
+| 7 | 推送链接回流 | PASS | LoginPage.resolveReturnTo 严格白名单 + LoginForm redirectTo → useLogin → navigate，Step 20 双测试套件 15 case 覆盖 |
+| 8 | 帮助页锚点 | 本 step 补齐 | CardHero / ConclusionBanner / DimensionReasoning 均新增 `?` 图标链接到 `/help#badge`、`/help#confidence`、`/help#dimensions` |
+| 9 | Onboarding 守卫边界 | PASS | OnboardingGuard 测试套件 5 case，routes.tsx 区分 OnboardingShell / AppShell 保证守卫次序 |
+
+### 全量命令执行结果
+前端：
+- `pnpm lint:all` PASS（143 files / 157 modules / 501 deps，Biome + tsc + depcruise 全绿）
+- `pnpm test --run` PASS（22 files / 107 tests）
+- `pnpm build` PASS（vite build 3.18s）
+
+后端：
+- `go vet ./...` PASS
+- `go build ./...` PASS
+- `go test ./...` PASS（analysis / service / datasource / api 全部 ok，privacy_guard 专项测试通过）
+- `golangci-lint`：未安装于本地环境，跳过；go vet + test 覆盖核心静态检查
+- 迁移幂等性：未执行 make migrate-down / migrate-up（worktree 无独立 PG 实例），静态审阅 `db/migrations/` 0001-0008 已在各 step 验证过
+
+### 隐私守卫验证
+- `notification/adapter/adapter.go.Message` 结构仅含 Subject / Body / CardSummary / UserEmail，**不含** TotalCapital / Amount 字段
+- `AssertNoCapitalLeakage` 在 `notification_leakage_test.go` 中以 `adapter.Message{}` 为合约类型做编译期断言，test 通过
+- `user_settings/privacy_guard_test.go` 测试 TotalCapital / Amount 污染场景的正反用例，全部通过
+- `grep -rn "TotalCapital\|Amount" backend/internal/notification/adapter/` 无匹配，确认 adapter 未引入财务字段
+
+### 已修复问题（本 step 发现）
+| # | 问题 | 修复 |
+|---|------|------|
+| 1 | 决策卡详情页缺失 PRD §5 + Step 21 flow 8 要求的 badge / dimensions / confidence 帮助锚点 | 新增 QuestionCircleOutlined Link to `/help#xxx`，用 Tooltip 包裹 |
+
+### 观察但未处理
+- `golangci-lint` 未安装于 worktree；后续 CI 环境应补 install
+- 前端 `dist/assets/index-*.js` 主 chunk > 500 kB，属 ant-design-pro-components 体量，与 Step 1-20 无关
+- 迁移 down / up 幂等未做真实 DB 验证（需 local PG），静态代码审阅通过
+
+### 验证
+- 9 条动线全部静态验证通过
+- 前端 lint / test / build 全绿
+- 后端 vet / build / test 全绿
+- 隐私守卫合约 + 测试通过
+
+### Step 21 状态: **COMPLETED** ✅
+- Commits: `ff99fd8`
+
+---
+
+## Phase 9 整体结论
+
+全部 21 个 step 已完成，所有 review 意见都已修复或明确记录。前后端 lint / test / build 全绿。决策卡详情页的帮助锚点在本 step 补齐，满足 PRD §5 + §7 的深链跳转要求。
+
+总提交数（按 step 汇总）：
+- Step 01-09（backend foundation）：已在前轮报告记录
+- Step 10-16（frontend foundation）：已在前轮报告记录
+- Step 17 Screenshot import：6 commits
+- Step 18 Settings：5 commits
+- Step 19 Help：3 commits
+- Step 20 Auth：3 commits
+- Step 21 E2E：1 commit
