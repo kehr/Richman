@@ -81,3 +81,35 @@
 - `ResetOnboarding` 方法的 comment 仍说「dev-only reset flows, service layer gating」，这是临时状态 —— step 03 会移除 service 的生产守卫同时更新注释
 
 ### Step 02 状态: COMPLETED
+
+## Step 03 Backend Service Layer
+
+### 目标
+扩展 `onboarding.Status`（追加 Skipped/SkippedAt）、新增 `MarkSkipped` service 方法、移除 `Reset` 的生产环境守卫和 `EnvGuard` 依赖、更新 `statusFromUser`，相应更新所有调用点和测试。
+
+### 实施提交
+- `cc67d1a` feat(backend): extend onboarding service with skip flow and user-facing reset
+
+### 修改文件
+- `backend/internal/service/onboarding/service.go`：Status 扩展 / UserRepo interface 新增 MarkOnboardingSkipped / 新增 MarkSkipped 方法 / Reset 移除生产守卫 / EnvGuard 接口和 Service.env 字段整体删除 / NewService 单参 / statusFromUser 投影两对字段
+- `backend/internal/service/onboarding/service_test.go`：fakeUserRepo 加 MarkOnboardingSkipped 方法且实现互斥语义 / 删除 fakeEnvGuard / 删除 TestReset_ForbiddenInProduction / 新增 8 个测试用例（含 6 个计划要求 + 2 个 NotFound/RepoError 错误路径）
+- `backend/internal/api/v1/onboarding_test.go`：fakeOnbUserRepo 同步对齐 / NewService 调用点去 env 参数
+- `backend/internal/repo/user_repo.go`：ResetOnboarding 注释重写为「user-facing atomic both-columns reset」
+- `backend/cmd/server/main.go`：`onboardingSvc.NewService(userRepo, cfg)` → `NewService(userRepo)`
+
+### Review 轮次
+1. **Inline 合并 review**（spec + code quality）→ PASS
+   - Spec：Status 字段 / MarkSkipped / Reset 守卫移除 / EnvGuard 整体清理 / 8 个新测试覆盖完整状态转换
+   - Code quality：注释英文、错误 wrap 风格对齐、commit message 无 AI 痕迹、scan 顺序正确（依赖 step02 已验证）
+   - 验证：`go vet ./...` / `go build ./...` / `go test ./...` 全绿；`go test ./internal/service/onboarding/... -v` 18 tests pass
+
+### 实施过程发现的 gap（已记录到 standards/design-review.md）
+- 原 Pass 2 文件不变量提取漏掉了 `service.go` 中 `EnvGuard` 守卫的存在，导致 step 17（前端 CTA 投放生产）原本会因后端 403 而失败
+- 修复：本 step 内移除生产守卫 + 删除 EnvGuard 接口 + 同步更新 docs/standards/design-review.md 添加「环境守卫 / 特性开关 / dev-only 门控」作为 Pass 2 必查契约类型 + 同步更新 step03 plan 文件明确 guard removal 范围（commit `7f9bfa5`）
+- 沉淀位置：项目级 standards（流程规则）+ 本报告记录（事件追溯）
+
+### 观察项
+- `EnvGuard` interface 已删除，但 `config.IsProduction()` 仍存在供未来其他场景使用（无当前调用方）
+- `make lint` golangci-lint 工具链问题持续存在，与本 step 无关，建议后续单独修复
+
+### Step 03 状态: COMPLETED
