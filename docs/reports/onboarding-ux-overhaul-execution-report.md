@@ -262,3 +262,32 @@ worktree 列表显示同时存在另外 2 个 sibling 的 CC 会话工作树（c
    - 验证：lint:all + test --run（121 tests）+ build 全绿
 
 ### Step 09 状态: COMPLETED
+
+## Step 10 OnboardingLayout 三段式重写
+
+### 目标
+重写 OnboardingLayout 为三段式（header bar + title/description + 动画内容区 + footer），接入 OnboardingBackground / OnboardingPageTransition / useOnboardingNav。挂载 OnboardingStateProvider 到 OnboardingShell 路由边界。新增全局键盘 handler、skip 确认 Modal、shake 反馈机制。StepIndicator 加可点击 + pulse。
+
+### 实施提交
+- `e70c177` feat(onboarding): rewrite OnboardingLayout with header bar and animations（7 files, +589/-66）
+
+### 修改文件
+- `frontend/src/pages/onboarding/components/OnboardingLayout.tsx`：完整重写
+- `frontend/src/pages/onboarding/components/StepIndicator.tsx`：additive 加 reachedStep + onStepClick 可选 props + active dot pulse
+- `frontend/src/pages/onboarding/components/OnboardingLayout.test.tsx`（新）：9 tests 覆盖渲染、back button hide、skip Modal、键盘事件、input focus 过滤
+- `frontend/src/routes.tsx`：OnboardingShell 内挂载 OnboardingStateProvider
+- `frontend/src/pages/onboarding/WelcomePage.test.tsx` + `CategoriesPage.test.tsx`：补 Provider wrap 和 user-settings mocks
+- `frontend/src/test/setup.ts`：filter `cssstyle.split` jsdom + framer-motion 兼容性 uncaughtException
+
+### Review 轮次
+1. **Inline 合并 review**（spec + code quality）→ PASS
+   - Spec: TRD §5.1 三段式 / 键盘 handler / skip Modal / shake key 全部实施；StepIndicator additive 不破坏既有调用
+   - Code quality: 注释解释 setTimeout(0) 缓解 focus trap、cssstyle filter 文档化、props 类型收敛
+   - 验证：lint:all PASS（0 errors）；test --run PASS（25 files / 130 tests，比 step 09 多 9 个新 layout test）；build OK（OnboardingLayout chunk 135.52 kB gzip 45 kB）
+
+### 关键决策
+- **静态 Modal.confirm → App.useApp().modal.confirm**：React 19 + antd 5 不带 compat 时静态 Modal 方法失效，按 DashboardPage 同样的解法
+- **keydown 监听重订阅**：nav 对象每次 render 是新引用，effect 跟随重订阅，每次导航 ~1 次 listener swap，可接受
+- **WelcomePage / CategoriesPage 测试 wrap Provider**：必要的副作用因为 OnboardingLayout 现在调 useOnboardingNav，依赖 Provider；不算页面改造，只是测试 setup 同步
+
+### Step 10 状态: COMPLETED
