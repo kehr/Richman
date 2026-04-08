@@ -191,3 +191,97 @@ func TestOnboardingAPI_GetStatusNotFound(t *testing.T) {
 		t.Fatalf("status: want 404, got %d body=%s", w.Code, w.Body.String())
 	}
 }
+
+func TestOnboardingAPI_SkipEndpoint_Success(t *testing.T) {
+	repo := &fakeOnbUserRepo{user: baseOnbUser()}
+	svc := onboarding.NewService(repo)
+	r := newOnboardingTestRouter(svc, 42)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/onboarding/skip", nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("status: want 200, got %d body=%s", w.Code, w.Body.String())
+	}
+	st := decodeStatus(t, w.Body.Bytes())
+	if !st.Skipped || st.SkippedAt == nil {
+		t.Errorf("expected skipped=true with timestamp, got %+v", st)
+	}
+	if st.Completed {
+		t.Errorf("expected completed=false after skip, got %+v", st)
+	}
+}
+
+func TestOnboardingAPI_SkipThenGetReflectsSkipped(t *testing.T) {
+	repo := &fakeOnbUserRepo{user: baseOnbUser()}
+	svc := onboarding.NewService(repo)
+	r := newOnboardingTestRouter(svc, 42)
+
+	// POST skip
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/onboarding/skip", nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+	if w.Code != http.StatusOK {
+		t.Fatalf("skip status: want 200, got %d body=%s", w.Code, w.Body.String())
+	}
+	skipStatus := decodeStatus(t, w.Body.Bytes())
+
+	// GET should reflect skipped state
+	req2 := httptest.NewRequest(http.MethodGet, "/api/v1/onboarding", nil)
+	w2 := httptest.NewRecorder()
+	r.ServeHTTP(w2, req2)
+	getStatus := decodeStatus(t, w2.Body.Bytes())
+
+	if !getStatus.Skipped {
+		t.Errorf("expected GetStatus to reflect skipped=true, got %+v", getStatus)
+	}
+	if skipStatus.SkippedAt == nil || getStatus.SkippedAt == nil || *skipStatus.SkippedAt != *getStatus.SkippedAt {
+		t.Errorf("skipped timestamp mismatch: skip response %v, get response %v", skipStatus.SkippedAt, getStatus.SkippedAt)
+	}
+}
+
+func TestOnboardingAPI_SkipThenCompleteClearSkipped(t *testing.T) {
+	repo := &fakeOnbUserRepo{user: baseOnbUser()}
+	svc := onboarding.NewService(repo)
+	r := newOnboardingTestRouter(svc, 42)
+
+	// POST skip
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/onboarding/skip", nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+	if w.Code != http.StatusOK {
+		t.Fatalf("skip status: want 200, got %d body=%s", w.Code, w.Body.String())
+	}
+
+	// POST complete should clear skipped
+	req2 := httptest.NewRequest(http.MethodPost, "/api/v1/onboarding/complete", nil)
+	w2 := httptest.NewRecorder()
+	r.ServeHTTP(w2, req2)
+	if w2.Code != http.StatusOK {
+		t.Fatalf("complete status: want 200, got %d body=%s", w2.Code, w2.Body.String())
+	}
+	st := decodeStatus(t, w2.Body.Bytes())
+
+	if !st.Completed {
+		t.Errorf("expected completed=true after complete, got %+v", st)
+	}
+	if st.Skipped {
+		t.Errorf("expected skipped=false after complete, got %+v", st)
+	}
+	if st.SkippedAt != nil {
+		t.Errorf("expected skippedAt to be nil/null after complete, got %v", st.SkippedAt)
+	}
+}
+
+func TestOnboardingAPI_SkipRequiresAuth(t *testing.T) {
+	svc := onboarding.NewService(&fakeOnbUserRepo{user: baseOnbUser()})
+	r := newOnboardingTestRouter(svc, 0)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/onboarding/skip", nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("status: want 401, got %d", w.Code)
+	}
+}
