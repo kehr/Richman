@@ -30,6 +30,16 @@ export function markOnboardingCompleted() {
 	});
 }
 
+// skipOnboarding stamps the onboarding_skipped_at column server side and
+// atomically clears onboarding_completed_at. Wired to the wizard's "Skip
+// for now" CTA — the user lands back on the dashboard with a persistent
+// re-entry nudge.
+export function skipOnboarding() {
+	return request<ApiResponse<OnboardingStatus>>("/onboarding/skip", {
+		method: "POST",
+	});
+}
+
 // resetOnboarding clears the completion timestamp. The backend rejects this
 // call with HTTP 403 in production builds; it is intended for the dev-only
 // "Re-run onboarding" action in Settings.

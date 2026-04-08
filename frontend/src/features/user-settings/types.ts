@@ -26,4 +26,6 @@ export interface PatchUserSettings {
 export interface OnboardingStatus {
 	completed: boolean;
 	completedAt?: string | null;
+	skipped: boolean;
+	skippedAt?: string | null;
 }

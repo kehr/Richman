@@ -10,6 +10,7 @@ export interface User {
 	riskPreference: string;
 	totalCapitalCny?: number | null;
 	onboardingCompletedAt?: string | null;
+	onboardingSkippedAt?: string | null;
 	categories: string[];
 	createdAt: string;
 	updatedAt: string;

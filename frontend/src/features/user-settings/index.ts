@@ -10,6 +10,7 @@ export {
 } from "./use-onboarding-status";
 export { useMarkOnboardingCompleted } from "./use-mark-onboarding-completed";
 export { useResetOnboarding } from "./use-reset-onboarding";
+export { useSkipOnboarding } from "./use-skip-onboarding";
 export {
 	USER_SETTINGS_QUERY_KEY,
 	usePatchUserSettings,
