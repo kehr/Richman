@@ -25,3 +25,28 @@
 ## Step 执行状态
 
 执行过程中逐条追加。
+
+## Step 01 DB migration 010_onboarding_skipped
+
+### 目标
+为 users 表追加 `onboarding_skipped_at TIMESTAMPTZ NULL` 字段。互斥约束由后续 step 的 SQL 写入路径保证。
+
+### 实施提交
+- `afbf5c8` feat(db): add migration 010 for onboarding_skipped_at column
+
+### 新增文件
+- `backend/db/migration/010_onboarding_skipped.up.sql`
+- `backend/db/migration/010_onboarding_skipped.down.sql`
+
+### Review 轮次
+1. **Inline 合并 review**（spec + code quality）→ PASS
+   - Spec: 与 TRD §2.1 / PRD §1.1 完全一致，无额外改动
+   - Code quality: 风格对齐既有 007 / 009 迁移文件，`IF NOT EXISTS` 幂等、英文注释、无 emoji、无 AI 痕迹
+   - 由于 scope 极小（2 个 SQL 文件共 6 行），未派发独立 subagent review，由主会话直接 Read + go vet 验证
+
+### 验证
+- `go vet ./...` PASS
+- `go build ./...` PASS（implementer 已验证）
+- 实际 `make migrate-up` 执行推迟到 step 02/03 有 repo/service 代码消费新字段时一并验证，避免在仅 schema 变更无代码依赖的中间状态跑迁移
+
+### Step 01 状态: COMPLETED
