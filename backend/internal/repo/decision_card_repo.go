@@ -279,6 +279,29 @@ func (r *DecisionCardRepo) ListLatestByUser(ctx context.Context, userID int64) (
 	return cards, nil
 }
 
+// NeedsReanalysis returns true when the user has at least one active
+// decision card whose synthesis_source is "template" or "mixed", meaning
+// the card was produced (partially or fully) by the deterministic
+// fallback and would benefit from a fresh LLM rerun once a provider is
+// healthy. The SQL uses EXISTS so the query short-circuits on the first
+// match and does not load every card into memory.
+func (r *DecisionCardRepo) NeedsReanalysis(ctx context.Context, userID int64) (bool, error) {
+	var needs bool
+	err := r.pool.QueryRow(ctx,
+		`SELECT EXISTS (
+		   SELECT 1 FROM decision_cards
+		   WHERE user_id = $1
+		     AND is_deleted = 0
+		     AND synthesis_source IN ('template', 'mixed')
+		 )`,
+		userID,
+	).Scan(&needs)
+	if err != nil {
+		return false, fmt.Errorf("query needs reanalysis: %w", err)
+	}
+	return needs, nil
+}
+
 // ListHistory returns the N most recent decision cards for a user across all holdings.
 func (r *DecisionCardRepo) ListHistory(ctx context.Context, userID int64, limit int) ([]model.DecisionCard, error) {
 	if limit <= 0 {
