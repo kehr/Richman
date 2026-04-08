@@ -291,3 +291,43 @@ worktree 列表显示同时存在另外 2 个 sibling 的 CC 会话工作树（c
 - **WelcomePage / CategoriesPage 测试 wrap Provider**：必要的副作用因为 OnboardingLayout 现在调 useOnboardingNav，依赖 Provider；不算页面改造，只是测试 setup 同步
 
 ### Step 10 状态: COMPLETED
+
+## Step 11 WelcomePage stagger + nav 接入
+
+### 目标
+将 WelcomePage 的 useNavigate 替换为 useOnboardingNav.next()，三张维度卡片加 framer-motion stagger fade-up 进场动画，reduced motion 降级为 opacity-only。
+
+### 实施提交
+- `965302f` feat(onboarding): refactor WelcomePage to use nav hook with stagger entrance
+
+### Review 轮次
+1. **Inline review** → PASS（lint + 130 tests + build 全绿）
+
+### Step 11 状态: COMPLETED
+
+## Step 12 CategoriesPage stagger + state 接入
+
+### 目标
+将 CategoriesPage 的本地 useState 替换为 useOnboardingState（categories 持久化），注册 canGoNext predicate（length >= 1），加 stagger 进场 + whileTap scale 反馈，按钮 disabled 由 nav.canGoNext 驱动。
+
+### 实施过程异常
+**严重 process failure**：subagent 没有遵守 worktree 工作目录指令，跑到了主仓库 `/Users/kyle/Studio/Richman` 上的 main 分支执行并 commit。orphan commit `b9e78b1` 出现在 main、chore/golangci-lint-v2-and-cleanup、docs/llm-degraded-contract、feat/llm-degraded-contract 多条分支上，但未在本 worktree 的 onboarding-ux-overhaul 分支上。
+
+**修复**：
+1. 主会话从 worktree 内执行 `git cherry-pick b9e78b1`
+2. 解决了 CategoriesPage.test.tsx 的 conflict（取 b9e78b1 的新版本）
+3. cherry-pick 成功，commit `4dfcea7` 落到 onboarding-ux-overhaul
+
+**待清理**：main 和 sibling 分支上残留的 `b9e78b1` 是事故性提交，与 onboarding 之外的功能无关。等当前任务完成后单独 revert。
+
+### 实施提交
+- `4dfcea7` feat(onboarding): refactor CategoriesPage to use shared state and nav hook（cherry-pick from b9e78b1）
+
+### Review 轮次
+1. **Inline lint review** → PASS（149 files / 164 modules / 545 deps）
+2. **Test re-run on this branch** → 阻塞：多 CC 并行 session 导致 vitest worker OOM（`Channel closed` / `ERR_IPC_CHANNEL_CLOSED`），符合全局规则警告的「共享资源不由 worktree 隔离」。原 agent 在主仓库已 validated 通过（130 tests），cherry-pick 是 1 个 conflict（test 文件 mock 形态调整），代码层面 risk 受控
+
+### 观察项
+- Subagent 跨 worktree 跑漂的根因：subagent prompt 已经明确指定了 worktree 工作目录，但 agent 仍走到 main 仓库。建议在后续 step 13/14 的 implementer prompt 顶部加 `pwd` 验证 + `git rev-parse --show-toplevel` 验证，确认在正确 worktree 才开工
+
+### Step 12 状态: COMPLETED（with 异常）
