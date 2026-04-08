@@ -4,6 +4,7 @@ import type { DecisionCardDTO } from "../types";
 import { ChangeBadge } from "./ChangeBadge";
 import { DimensionBadges } from "./DimensionBadges";
 import { ExecutionPlanStrip } from "./ExecutionPlanStrip";
+import { SourcePill } from "./SourcePill";
 
 const { Text, Title, Paragraph } = Typography;
 
@@ -90,7 +91,10 @@ export function DecisionCardSummary({
 						)}
 					</Space>
 				</Space>
-				<ChangeBadge badgeState={card.badgeState} />
+				<Space direction="vertical" size={4} align="end">
+					<SourcePill source={card.synthesisSource} provider={card.providerUsed} />
+					<ChangeBadge badgeState={card.badgeState} />
+				</Space>
 			</div>
 
 			<div style={{ marginTop: 12 }}>

@@ -26,6 +26,7 @@ export { ChangeBadge, BADGE_TEXT } from "./components/ChangeBadge";
 export { DimensionBadges } from "./components/DimensionBadges";
 export { ExecutionPlanStrip } from "./components/ExecutionPlanStrip";
 export { DecisionCardSummary } from "./components/DecisionCardSummary";
+export { SourcePill } from "./components/SourcePill";
 
 export type {
 	DecisionCardDTO,
