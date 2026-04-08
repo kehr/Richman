@@ -27,8 +27,8 @@ func (f *fakeUserRepo) GetUserByID(_ context.Context, _ int64) (*model.User, err
 	if f.user == nil {
 		return nil, nil
 	}
-	copy := *f.user
-	return &copy, nil
+	userCopy := *f.user
+	return &userCopy, nil
 }
 
 func (f *fakeUserRepo) GetTotalCapitalCNY(_ context.Context, _ int64) (*float64, error) {
@@ -85,8 +85,8 @@ func baseUser() *model.User {
 }
 
 func TestGetUserSettings_Default(t *testing.T) {
-	repo := &fakeUserRepo{user: baseUser()}
-	s := NewService(repo)
+	userRepo := &fakeUserRepo{user: baseUser()}
+	s := NewService(userRepo)
 
 	got, err := s.GetUserSettings(context.Background(), 42)
 	if err != nil {
@@ -153,7 +153,7 @@ func TestGetUserSettings_RepoError(t *testing.T) {
 }
 
 func TestPatchUserSettings_EachFieldIndividually(t *testing.T) {
-	cap := 12345.67
+	capital := 12345.67
 	risk := model.RiskPreferenceAggressive
 	cats := []string{model.AssetTypeGoldETF, model.AssetTypeAShareBroad}
 
@@ -164,10 +164,10 @@ func TestPatchUserSettings_EachFieldIndividually(t *testing.T) {
 	}{
 		{
 			name:  "total capital only",
-			patch: &PatchUserSettings{TotalCapitalCNY: &cap},
+			patch: &PatchUserSettings{TotalCapitalCNY: &capital},
 			checkFn: func(t *testing.T, got *UserSettings) {
-				if got.TotalCapitalCNY == nil || *got.TotalCapitalCNY != cap {
-					t.Errorf("TotalCapitalCNY: want %v, got %v", cap, got.TotalCapitalCNY)
+				if got.TotalCapitalCNY == nil || *got.TotalCapitalCNY != capital {
+					t.Errorf("TotalCapitalCNY: want %v, got %v", capital, got.TotalCapitalCNY)
 				}
 			},
 		},
@@ -204,28 +204,28 @@ func TestPatchUserSettings_EachFieldIndividually(t *testing.T) {
 }
 
 func TestPatchUserSettings_CombinedPatch(t *testing.T) {
-	cap := 10000.0
+	capital := 10000.0
 	risk := model.RiskPreferenceConservative
 	cats := []string{model.AssetTypeUSStock}
 
 	s := NewService(&fakeUserRepo{user: baseUser()})
 	got, err := s.PatchUserSettings(context.Background(), 42, &PatchUserSettings{
-		TotalCapitalCNY: &cap,
+		TotalCapitalCNY: &capital,
 		RiskPreference:  &risk,
 		Categories:      &cats,
 	})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if got.RiskPreference != risk || *got.TotalCapitalCNY != cap || len(got.Categories) != 1 {
+	if got.RiskPreference != risk || *got.TotalCapitalCNY != capital || len(got.Categories) != 1 {
 		t.Errorf("combined patch not applied: %+v", got)
 	}
 }
 
 func TestPatchUserSettings_ClearTotalCapital(t *testing.T) {
 	u := baseUser()
-	cap := 99.0
-	u.TotalCapitalCNY = &cap
+	capital := 99.0
+	u.TotalCapitalCNY = &capital
 
 	fr := &fakeUserRepo{user: u}
 	s := NewService(fr)

@@ -89,7 +89,12 @@ func TestParse_InvalidJSON(t *testing.T) {
 }
 
 func TestParse_StripsMarkdownCodeFence(t *testing.T) {
-	raw := "```json\n" + `{"holdings": [{"assetName": {"value": "A", "confidence": 0.9}, "assetCode": {"value": "", "confidence": 0}, "costPrice": {"value": "", "confidence": 0}, "positionPct": {"value": "", "confidence": 0}, "assetTypeGuess": ""}]}` + "\n```"
+	raw := "```json\n" + `{"holdings": [{` +
+		`"assetName": {"value": "A", "confidence": 0.9}, ` +
+		`"assetCode": {"value": "", "confidence": 0}, ` +
+		`"costPrice": {"value": "", "confidence": 0}, ` +
+		`"positionPct": {"value": "", "confidence": 0}, ` +
+		`"assetTypeGuess": ""}]}` + "\n```"
 	resp, err := Parse(raw)
 	if err != nil {
 		t.Fatalf("Parse returned error: %v", err)

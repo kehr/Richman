@@ -66,7 +66,10 @@ type Input struct {
 //
 // On the first analysis the confidence delta is defined as 0.0 because
 // there is no baseline to compare against.
-func Compute(in Input) (BadgeState, float64) {
+func Compute(in *Input) (badge BadgeState, confidenceDelta float64) {
+	if in == nil {
+		return BadgeNone, 0.0
+	}
 	// Rule 1: data quality trumps every other transition.
 	if in.DataSourceDegraded {
 		return BadgeDataDegraded, 0.0

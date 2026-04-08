@@ -1,6 +1,7 @@
 package claude
 
 import (
+	"bytes"
 	"context"
 	"encoding/base64"
 	"encoding/json"
@@ -27,8 +28,8 @@ func newTestVisionClient(t *testing.T, handler http.HandlerFunc) (*VisionClient,
 	return client, server
 }
 
-func sampleRequest() llm.VisionRequest {
-	return llm.VisionRequest{
+func sampleRequest() *llm.VisionRequest {
+	return &llm.VisionRequest{
 		SystemPrompt: "you are a parser",
 		UserPrompt:   "extract holdings",
 		ImageData:    []byte{0x89, 0x50, 0x4E, 0x47}, // PNG magic bytes
@@ -72,7 +73,7 @@ func TestVisionClient_AnalyzeImage_Success(t *testing.T) {
 		if err != nil {
 			t.Fatalf("base64 decode failed: %v", err)
 		}
-		if string(decoded) != string([]byte{0x89, 0x50, 0x4E, 0x47}) {
+		if !bytes.Equal(decoded, []byte{0x89, 0x50, 0x4E, 0x47}) {
 			t.Errorf("image bytes mismatch after base64 round-trip")
 		}
 		text := payload.Messages[0].Content[1]
@@ -155,7 +156,7 @@ func TestVisionClient_AnalyzeImage_BadJSON(t *testing.T) {
 
 func TestVisionClient_AnalyzeImage_ContextTimeout(t *testing.T) {
 	client, server := newTestVisionClient(t, func(w http.ResponseWriter, r *http.Request) {
-		// Block until the client context is cancelled so we exercise the
+		// Block until the client context is canceled so we exercise the
 		// timeout branch deterministically.
 		select {
 		case <-r.Context().Done():
@@ -195,12 +196,12 @@ func TestVisionClient_AnalyzeImage_ClientError(t *testing.T) {
 
 func TestVisionClient_AnalyzeImage_InvalidRequest(t *testing.T) {
 	client := NewVisionClient("k", zap.NewNop())
-	_, err := client.AnalyzeImage(context.Background(), llm.VisionRequest{ImageMIME: "image/png"})
+	_, err := client.AnalyzeImage(context.Background(), &llm.VisionRequest{ImageMIME: "image/png"})
 	if err == nil || !errors.Is(err, llm.ErrVisionInvalidRequest) {
 		t.Errorf("expected ErrVisionInvalidRequest for empty image, got %v", err)
 	}
 
-	_, err = client.AnalyzeImage(context.Background(), llm.VisionRequest{ImageData: []byte{0x01}})
+	_, err = client.AnalyzeImage(context.Background(), &llm.VisionRequest{ImageData: []byte{0x01}})
 	if err == nil || !errors.Is(err, llm.ErrVisionInvalidRequest) {
 		t.Errorf("expected ErrVisionInvalidRequest for empty mime, got %v", err)
 	}
@@ -208,7 +209,7 @@ func TestVisionClient_AnalyzeImage_InvalidRequest(t *testing.T) {
 
 func TestVisionClient_AnalyzeImage_RejectsUnsupportedMIME(t *testing.T) {
 	client := NewVisionClient("k", zap.NewNop())
-	_, err := client.AnalyzeImage(context.Background(), llm.VisionRequest{
+	_, err := client.AnalyzeImage(context.Background(), &llm.VisionRequest{
 		ImageData: []byte{0x01, 0x02},
 		ImageMIME: "image/bmp",
 	})
@@ -220,7 +221,7 @@ func TestVisionClient_AnalyzeImage_RejectsUnsupportedMIME(t *testing.T) {
 func TestVisionClient_AnalyzeImage_RejectsOversizedPayload(t *testing.T) {
 	client := NewVisionClient("k", zap.NewNop())
 	huge := make([]byte, maxVisionImageBytes+1)
-	_, err := client.AnalyzeImage(context.Background(), llm.VisionRequest{
+	_, err := client.AnalyzeImage(context.Background(), &llm.VisionRequest{
 		ImageData: huge,
 		ImageMIME: "image/png",
 	})

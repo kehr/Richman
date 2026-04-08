@@ -35,13 +35,13 @@ func TestAttachAmounts_NilCapitalIsNoop(t *testing.T) {
 }
 
 func TestAttachAmounts_FillsAllPctFields(t *testing.T) {
-	cap := 100000.0
+	capital := 100000.0
 	dto := &dashboardDTO{
 		PositionRatio:       30,
 		TargetPositionRatio: 45,
 		UnrealizedPct:       10,
 	}
-	AttachAmounts(dto, &cap)
+	AttachAmounts(dto, &capital)
 	if dto.PositionAmount == nil || *dto.PositionAmount != 30000 {
 		t.Errorf("PositionAmount: want 30000, got %v", dto.PositionAmount)
 	}
@@ -54,53 +54,53 @@ func TestAttachAmounts_FillsAllPctFields(t *testing.T) {
 }
 
 func TestAttachAmounts_NoPctFieldsUnchanged(t *testing.T) {
-	cap := 100000.0
+	capital := 100000.0
 	dto := &noPctFields{Name: "hi", Count: 3}
-	AttachAmounts(dto, &cap)
+	AttachAmounts(dto, &capital)
 	if dto.Name != "hi" || dto.Count != 3 {
 		t.Errorf("unrelated fields mutated: %+v", dto)
 	}
 }
 
 func TestAttachAmounts_NoMatchingAmountFieldSkipped(t *testing.T) {
-	cap := 100000.0
+	capital := 100000.0
 	dto := &percentOnly{SomePct: 50}
 	// Should not panic even though SomeAmount does not exist.
-	AttachAmounts(dto, &cap)
+	AttachAmounts(dto, &capital)
 	if dto.SomePct != 50 {
 		t.Errorf("SomePct mutated: %v", dto.SomePct)
 	}
 }
 
 func TestAttachAmounts_WrongAmountTypeSkipped(t *testing.T) {
-	cap := 100000.0
+	capital := 100000.0
 	dto := &wrongAmountType{FooPct: 25}
-	AttachAmounts(dto, &cap)
+	AttachAmounts(dto, &capital)
 	if dto.FooAmount != 0 {
 		t.Errorf("FooAmount (non-pointer) should be skipped, got %v", dto.FooAmount)
 	}
 }
 
 func TestAttachAmounts_NilDTOIsNoop(t *testing.T) {
-	cap := 100000.0
-	AttachAmounts(nil, &cap)
+	capital := 100000.0
+	AttachAmounts(nil, &capital)
 	var p *dashboardDTO
-	AttachAmounts(p, &cap) // typed nil pointer
+	AttachAmounts(p, &capital) // typed nil pointer
 }
 
 func TestAttachAmounts_NonPointerIsNoop(t *testing.T) {
-	cap := 100000.0
+	capital := 100000.0
 	dto := dashboardDTO{PositionRatio: 30}
-	AttachAmounts(dto, &cap) // value, not pointer
+	AttachAmounts(dto, &capital) // value, not pointer
 	if dto.PositionAmount != nil {
 		t.Errorf("value receiver should not be mutated")
 	}
 }
 
 func TestAttachAmounts_PointerToNonStructIsNoop(t *testing.T) {
-	cap := 100000.0
+	capital := 100000.0
 	x := 1
-	AttachAmounts(&x, &cap)
+	AttachAmounts(&x, &capital)
 }
 
 type pointerPct struct {
@@ -109,19 +109,19 @@ type pointerPct struct {
 }
 
 func TestAttachAmounts_PointerPctField(t *testing.T) {
-	cap := 100000.0
+	capital := 100000.0
 	pct := 40.0
 	dto := &pointerPct{PositionPct: &pct}
-	AttachAmounts(dto, &cap)
+	AttachAmounts(dto, &capital)
 	if dto.PositionAmount == nil || *dto.PositionAmount != 40000 {
 		t.Errorf("want 40000, got %v", dto.PositionAmount)
 	}
 }
 
 func TestAttachAmounts_NilPointerPctSkipped(t *testing.T) {
-	cap := 100000.0
+	capital := 100000.0
 	dto := &pointerPct{}
-	AttachAmounts(dto, &cap)
+	AttachAmounts(dto, &capital)
 	if dto.PositionAmount != nil {
 		t.Errorf("nil Pct pointer should not produce an Amount")
 	}
@@ -133,9 +133,9 @@ type float32Pct struct {
 }
 
 func TestAttachAmounts_Float32PctField(t *testing.T) {
-	cap := 100000.0
+	capital := 100000.0
 	dto := &float32Pct{FooPct: 25}
-	AttachAmounts(dto, &cap)
+	AttachAmounts(dto, &capital)
 	if dto.FooAmount == nil || *dto.FooAmount != 25000 {
 		t.Errorf("want 25000, got %v", dto.FooAmount)
 	}
@@ -148,9 +148,9 @@ type stringPct struct {
 }
 
 func TestAttachAmounts_NonNumericPctSkipped(t *testing.T) {
-	cap := 100000.0
+	capital := 100000.0
 	dto := &stringPct{WeirdPct: "hi"}
-	AttachAmounts(dto, &cap)
+	AttachAmounts(dto, &capital)
 	if dto.WeirdAmount != nil {
 		t.Errorf("non-numeric Pct should be skipped")
 	}

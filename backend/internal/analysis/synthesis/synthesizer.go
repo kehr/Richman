@@ -117,28 +117,28 @@ func (s *Synthesizer) Synthesize(ctx context.Context, input *SynthesisInput) (*S
 
 func buildSynthesisPrompt(input *SynthesisInput) string {
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("Generate a decision card summary for %s (%s, type: %s).\n\n",
-		input.AssetName, input.AssetCode, input.AssetType))
+	fmt.Fprintf(&sb, "Generate a decision card summary for %s (%s, type: %s).\n\n",
+		input.AssetName, input.AssetCode, input.AssetType)
 
 	sb.WriteString("Analysis data:\n")
-	sb.WriteString(fmt.Sprintf("- Trend: direction=%s, strength=%.2f\n",
-		input.Trend.Direction, input.Trend.Strength))
-	sb.WriteString(fmt.Sprintf("- Position: assessment=%s, percentile=%.2f\n",
-		input.Position.Assessment, input.Position.Percentile))
-	sb.WriteString(fmt.Sprintf("- Catalyst: direction=%s, score=%.2f\n",
-		input.Catalyst.Direction, input.Catalyst.Score))
-	sb.WriteString(fmt.Sprintf("- Weights: trend=%.2f, position=%.2f, catalyst=%.2f\n",
-		input.Weights.Trend, input.Weights.Position, input.Weights.Catalyst))
-	sb.WriteString(fmt.Sprintf("- Confidence: %.1f%%\n", input.Confidence))
-	sb.WriteString(fmt.Sprintf("- Recommendation: %s\n", input.Recommendation))
-	sb.WriteString(fmt.Sprintf("- User cost price: %.4f, position ratio: %.2f%%\n",
-		input.CostPrice, input.PositionRatio*100))
+	fmt.Fprintf(&sb, "- Trend: direction=%s, strength=%.2f\n",
+		input.Trend.Direction, input.Trend.Strength)
+	fmt.Fprintf(&sb, "- Position: assessment=%s, percentile=%.2f\n",
+		input.Position.Assessment, input.Position.Percentile)
+	fmt.Fprintf(&sb, "- Catalyst: direction=%s, score=%.2f\n",
+		input.Catalyst.Direction, input.Catalyst.Score)
+	fmt.Fprintf(&sb, "- Weights: trend=%.2f, position=%.2f, catalyst=%.2f\n",
+		input.Weights.Trend, input.Weights.Position, input.Weights.Catalyst)
+	fmt.Fprintf(&sb, "- Confidence: %.1f%%\n", input.Confidence)
+	fmt.Fprintf(&sb, "- Recommendation: %s\n", input.Recommendation)
+	fmt.Fprintf(&sb, "- User cost price: %.4f, position ratio: %.2f%%\n",
+		input.CostPrice, input.PositionRatio*100)
 
 	if len(input.Catalyst.Events) > 0 {
 		sb.WriteString("\nCatalyst events:\n")
 		for _, ev := range input.Catalyst.Events {
-			sb.WriteString(fmt.Sprintf("  - %s (prob: %.2f, impact: %s)\n",
-				ev.Title, ev.Probability, ev.Impact))
+			fmt.Fprintf(&sb, "  - %s (prob: %.2f, impact: %s)\n",
+				ev.Title, ev.Probability, ev.Impact)
 		}
 	}
 
@@ -174,16 +174,18 @@ func parseSynthesisResponse(content string) (*SynthesisOutput, error) {
 // templateFallback generates a basic output without LLM.
 func templateFallback(input *SynthesisInput) *SynthesisOutput {
 	trendDesc := "sideways"
-	if input.Trend.Direction == analysis.DirectionUpward {
+	switch input.Trend.Direction {
+	case analysis.DirectionUpward:
 		trendDesc = "upward"
-	} else if input.Trend.Direction == analysis.DirectionDownward {
+	case analysis.DirectionDownward:
 		trendDesc = "downward"
 	}
 
 	posDesc := "fairly valued"
-	if input.Position.Assessment == analysis.DirectionBullish {
+	switch input.Position.Assessment {
+	case analysis.DirectionBullish:
 		posDesc = "undervalued"
-	} else if input.Position.Assessment == analysis.DirectionBearish {
+	case analysis.DirectionBearish:
 		posDesc = "overvalued"
 	}
 

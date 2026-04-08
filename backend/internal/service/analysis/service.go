@@ -310,28 +310,28 @@ func (s *Service) AnalyzeHolding(
 	// Build decision card (prev_card_id, badge_state, confidence_delta are
 	// filled inside the persistence transaction below).
 	card := &model.DecisionCard{
-		UserID:               userID,
-		HoldingID:            holding.HoldingID,
-		AssetCode:            holding.AssetCode,
-		AssetName:            holding.AssetName,
-		AssetType:            holding.AssetType,
-		CostPrice:            costPrice,
-		PositionRatio:        posRatio,
-		TrendDirection:       string(trendResult.Direction),
-		TrendSummary:         synthOutput.TrendSummary,
-		PositionDirection:    string(posResult.Assessment),
-		PositionSummary:      synthOutput.PositionSummary,
-		CatalystDirection:    string(catResult.Direction),
-		CatalystSummary:      synthOutput.CatalystSummary,
-		Confidence:           conf,
-		ActionAdvice:         synthOutput.ActionAdvice,
-		DetailedAdvice:       synthOutput.DetailedAdvice,
-		RiskWarnings:         synthOutput.RiskWarnings,
-		TodayHighlights:      synthOutput.TodayHighlights,
-		WeightTrend:          weights.Trend,
-		WeightPosition:       weights.Position,
-		WeightCatalyst:       weights.Catalyst,
-		AnalyzedAt:           now,
+		UserID:            userID,
+		HoldingID:         holding.HoldingID,
+		AssetCode:         holding.AssetCode,
+		AssetName:         holding.AssetName,
+		AssetType:         holding.AssetType,
+		CostPrice:         costPrice,
+		PositionRatio:     posRatio,
+		TrendDirection:    string(trendResult.Direction),
+		TrendSummary:      synthOutput.TrendSummary,
+		PositionDirection: string(posResult.Assessment),
+		PositionSummary:   synthOutput.PositionSummary,
+		CatalystDirection: string(catResult.Direction),
+		CatalystSummary:   synthOutput.CatalystSummary,
+		Confidence:        conf,
+		ActionAdvice:      synthOutput.ActionAdvice,
+		DetailedAdvice:    synthOutput.DetailedAdvice,
+		RiskWarnings:      synthOutput.RiskWarnings,
+		TodayHighlights:   synthOutput.TodayHighlights,
+		WeightTrend:       weights.Trend,
+		WeightPosition:    weights.Position,
+		WeightCatalyst:    weights.Catalyst,
+		AnalyzedAt:        now,
 		// Recommendation is the structured object; the legacy VARCHAR
 		// recommendation column was removed in migration 009.
 		Recommendation:       synthOutput.Recommendation,
@@ -395,7 +395,7 @@ func (s *Service) persistDecisionCardWithDiff(
 	if err != nil {
 		return nil, fmt.Errorf("begin tx: %w", err)
 	}
-	// Use a background context for rollback so a cancelled request context
+	// Use a background context for rollback so a canceled request context
 	// does not prevent pgx from releasing the tx on the server side.
 	defer func() {
 		_ = tx.Rollback(context.Background())
@@ -437,14 +437,14 @@ func (s *Service) persistDecisionCardWithDiff(
 // branch without a database.
 func computeCardDiff(
 	current *model.DecisionCard, previous *model.DecisionCard, degraded bool,
-) (diff.BadgeState, float64) {
+) (badge diff.BadgeState, confidenceDelta float64) {
 	cur := buildCardSnapshot(current)
 	input := diff.Input{Current: cur, DataSourceDegraded: degraded}
 	if previous != nil {
 		prev := buildCardSnapshot(previous)
 		input.Previous = &prev
 	}
-	return diff.Compute(input)
+	return diff.Compute(&input)
 }
 
 // buildCardSnapshot converts a model.DecisionCard into a diff.CardSnapshot.

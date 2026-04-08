@@ -109,7 +109,7 @@ func TestOnboardingAPI_GetStatusDefault(t *testing.T) {
 	svc := onboarding.NewService(&fakeOnbUserRepo{user: baseOnbUser()})
 	r := newOnboardingTestRouter(svc, 42)
 
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/onboarding", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/onboarding", http.NoBody)
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
@@ -126,7 +126,7 @@ func TestOnboardingAPI_Unauthorized(t *testing.T) {
 	svc := onboarding.NewService(&fakeOnbUserRepo{user: baseOnbUser()})
 	r := newOnboardingTestRouter(svc, 0)
 
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/onboarding", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/onboarding", http.NoBody)
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 	if w.Code != http.StatusUnauthorized {
@@ -140,7 +140,7 @@ func TestOnboardingAPI_MarkCompletedThenGet(t *testing.T) {
 	r := newOnboardingTestRouter(svc, 42)
 
 	// POST complete
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/onboarding/complete", nil)
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/onboarding/complete", http.NoBody)
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 	if w.Code != http.StatusOK {
@@ -152,7 +152,7 @@ func TestOnboardingAPI_MarkCompletedThenGet(t *testing.T) {
 	}
 
 	// GET should now reflect completion.
-	req2 := httptest.NewRequest(http.MethodGet, "/api/v1/onboarding", nil)
+	req2 := httptest.NewRequest(http.MethodGet, "/api/v1/onboarding", http.NoBody)
 	w2 := httptest.NewRecorder()
 	r.ServeHTTP(w2, req2)
 	st2 := decodeStatus(t, w2.Body.Bytes())
@@ -168,7 +168,7 @@ func TestOnboardingAPI_ResetDev(t *testing.T) {
 	svc := onboarding.NewService(&fakeOnbUserRepo{user: u})
 	r := newOnboardingTestRouter(svc, 42)
 
-	req := httptest.NewRequest(http.MethodDelete, "/api/v1/onboarding", nil)
+	req := httptest.NewRequest(http.MethodDelete, "/api/v1/onboarding", http.NoBody)
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 	if w.Code != http.StatusOK {
@@ -180,11 +180,40 @@ func TestOnboardingAPI_ResetDev(t *testing.T) {
 	}
 }
 
+<<<<<<< HEAD
+=======
+func TestOnboardingAPI_ResetForbiddenInProduction(t *testing.T) {
+	u := baseOnbUser()
+	ts := time.Date(2026, 3, 1, 12, 0, 0, 0, time.UTC)
+	u.OnboardingCompletedAt = &ts
+	svc := onboarding.NewService(&fakeOnbUserRepo{user: u}, stubEnv{prod: true})
+	r := newOnboardingTestRouter(svc, 42)
+
+	req := httptest.NewRequest(http.MethodDelete, "/api/v1/onboarding", http.NoBody)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+	if w.Code != http.StatusForbidden {
+		t.Fatalf("status: want 403, got %d body=%s", w.Code, w.Body.String())
+	}
+	var envelope struct {
+		Error struct {
+			Code string `json:"code"`
+		} `json:"error"`
+	}
+	if err := json.Unmarshal(w.Body.Bytes(), &envelope); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if envelope.Error.Code != "ONBOARDING_RESET_FORBIDDEN" {
+		t.Errorf("code: want ONBOARDING_RESET_FORBIDDEN, got %q", envelope.Error.Code)
+	}
+}
+
+>>>>>>> a9dc778 (chore(lint): resolve 53 preexisting violations across backend)
 func TestOnboardingAPI_GetStatusNotFound(t *testing.T) {
 	svc := onboarding.NewService(&fakeOnbUserRepo{})
 	r := newOnboardingTestRouter(svc, 42)
 
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/onboarding", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/onboarding", http.NoBody)
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 	if w.Code != http.StatusNotFound {

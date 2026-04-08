@@ -13,6 +13,12 @@ import (
 )
 
 func main() {
+	if err := run(); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func run() error {
 	var direction string
 	flag.StringVar(&direction, "dir", "up", "migration direction: up or down")
 	flag.Parse()
@@ -21,17 +27,17 @@ func main() {
 		direction = arg
 	}
 	if direction != "up" && direction != "down" {
-		log.Fatalf("invalid direction %q (expected up or down)", direction)
+		return fmt.Errorf("invalid direction %q (expected up or down)", direction)
 	}
 
 	cfg, err := config.Load()
 	if err != nil {
-		log.Fatalf("load config: %v", err)
+		return fmt.Errorf("load config: %w", err)
 	}
 	ctx := context.Background()
 	pool, err := repo.NewDBPool(ctx, cfg)
 	if err != nil {
-		log.Fatalf("connect database: %v", err)
+		return fmt.Errorf("connect database: %w", err)
 	}
 	defer pool.Close()
 
@@ -43,8 +49,9 @@ func main() {
 		err = runner.Down(ctx)
 	}
 	if err != nil {
-		log.Fatalf("run migrations: %v", err)
+		return fmt.Errorf("run migrations: %w", err)
 	}
 
 	fmt.Printf("migrations %s complete\n", direction)
+	return nil
 }
