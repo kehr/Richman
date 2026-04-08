@@ -182,3 +182,28 @@
    - 验证：lint:all / test --run / build 全绿
 
 ### Step 06 状态: COMPLETED
+
+## Step 07 OnboardingStateProvider + useOnboardingNav
+
+### 目标
+新建 onboarding 状态管理基础设施：`OnboardingStateProvider`（Context + sessionStorage 持久化 + cross-tab 污染清理 + 返回用户 categories 适配 + holdingDraft cascade 清理）和 `useOnboardingNav`（统一导航 hook + canGoNext predicate registration + shake 事件 + reachedStep watermark）。Provider 和 hook 暂未挂载到任何页面，等 step 10-14 接入。
+
+### 实施提交
+- `2cd6027` feat(onboarding): add state provider and nav hook infrastructure（4 个新文件，815 行）
+
+### 新增文件
+- `frontend/src/pages/onboarding/state.tsx`：Provider + Context + 5 种初始化场景处理
+- `frontend/src/pages/onboarding/use-onboarding-nav.ts`：nav hook + 6 种行为契约
+- `frontend/src/pages/onboarding/state.test.tsx`：Provider 单元测试
+- `frontend/src/pages/onboarding/use-onboarding-nav.test.tsx`：nav hook 单元测试
+
+### Review 轮次
+1. **Inline 合并 review**（spec + code quality）→ PASS
+   - Spec：TRD §4.1-4.4 完整覆盖（OnboardingState 数据结构、Provider 初始化顺序、Context 导出、useOnboardingNav 契约）
+   - Code quality：注释详尽解释 why、try/catch 包 storage、predicate 容错（throwing predicate 视为 false）、reachedStep 单调递增不回退、debounced sessionStorage 写入
+   - 验证：`pnpm lint:all` PASS（146 files / 160 modules / 521 deps）；`pnpm test --run` PASS（24 files / **121 tests**，新增 13 个）；`pnpm build` 成功
+
+### 实施过程异常
+- Implementer subagent 生命周期最后未输出标准状态报告（"Not applicable"），但 4 个文件已创建在工作树（untracked），lint + test 全绿。主会话直接 inline 验证 + 提交，不重新 dispatch
+
+### Step 07 状态: COMPLETED
