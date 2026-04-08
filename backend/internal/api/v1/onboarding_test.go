@@ -180,35 +180,6 @@ func TestOnboardingAPI_ResetDev(t *testing.T) {
 	}
 }
 
-<<<<<<< HEAD
-=======
-func TestOnboardingAPI_ResetForbiddenInProduction(t *testing.T) {
-	u := baseOnbUser()
-	ts := time.Date(2026, 3, 1, 12, 0, 0, 0, time.UTC)
-	u.OnboardingCompletedAt = &ts
-	svc := onboarding.NewService(&fakeOnbUserRepo{user: u}, stubEnv{prod: true})
-	r := newOnboardingTestRouter(svc, 42)
-
-	req := httptest.NewRequest(http.MethodDelete, "/api/v1/onboarding", http.NoBody)
-	w := httptest.NewRecorder()
-	r.ServeHTTP(w, req)
-	if w.Code != http.StatusForbidden {
-		t.Fatalf("status: want 403, got %d body=%s", w.Code, w.Body.String())
-	}
-	var envelope struct {
-		Error struct {
-			Code string `json:"code"`
-		} `json:"error"`
-	}
-	if err := json.Unmarshal(w.Body.Bytes(), &envelope); err != nil {
-		t.Fatalf("unmarshal: %v", err)
-	}
-	if envelope.Error.Code != "ONBOARDING_RESET_FORBIDDEN" {
-		t.Errorf("code: want ONBOARDING_RESET_FORBIDDEN, got %q", envelope.Error.Code)
-	}
-}
-
->>>>>>> a9dc778 (chore(lint): resolve 53 preexisting violations across backend)
 func TestOnboardingAPI_GetStatusNotFound(t *testing.T) {
 	svc := onboarding.NewService(&fakeOnbUserRepo{})
 	r := newOnboardingTestRouter(svc, 42)
@@ -226,7 +197,7 @@ func TestOnboardingAPI_SkipEndpoint_Success(t *testing.T) {
 	svc := onboarding.NewService(repo)
 	r := newOnboardingTestRouter(svc, 42)
 
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/onboarding/skip", nil)
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/onboarding/skip", http.NoBody)
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
@@ -248,7 +219,7 @@ func TestOnboardingAPI_SkipThenGetReflectsSkipped(t *testing.T) {
 	r := newOnboardingTestRouter(svc, 42)
 
 	// POST skip
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/onboarding/skip", nil)
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/onboarding/skip", http.NoBody)
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 	if w.Code != http.StatusOK {
@@ -257,7 +228,7 @@ func TestOnboardingAPI_SkipThenGetReflectsSkipped(t *testing.T) {
 	skipStatus := decodeStatus(t, w.Body.Bytes())
 
 	// GET should reflect skipped state
-	req2 := httptest.NewRequest(http.MethodGet, "/api/v1/onboarding", nil)
+	req2 := httptest.NewRequest(http.MethodGet, "/api/v1/onboarding", http.NoBody)
 	w2 := httptest.NewRecorder()
 	r.ServeHTTP(w2, req2)
 	getStatus := decodeStatus(t, w2.Body.Bytes())
@@ -266,7 +237,10 @@ func TestOnboardingAPI_SkipThenGetReflectsSkipped(t *testing.T) {
 		t.Errorf("expected GetStatus to reflect skipped=true, got %+v", getStatus)
 	}
 	if skipStatus.SkippedAt == nil || getStatus.SkippedAt == nil || *skipStatus.SkippedAt != *getStatus.SkippedAt {
-		t.Errorf("skipped timestamp mismatch: skip response %v, get response %v", skipStatus.SkippedAt, getStatus.SkippedAt)
+		t.Errorf(
+			"skipped timestamp mismatch: skip response %v, get response %v",
+			skipStatus.SkippedAt, getStatus.SkippedAt,
+		)
 	}
 }
 
@@ -276,7 +250,7 @@ func TestOnboardingAPI_SkipThenCompleteClearSkipped(t *testing.T) {
 	r := newOnboardingTestRouter(svc, 42)
 
 	// POST skip
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/onboarding/skip", nil)
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/onboarding/skip", http.NoBody)
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 	if w.Code != http.StatusOK {
@@ -284,7 +258,7 @@ func TestOnboardingAPI_SkipThenCompleteClearSkipped(t *testing.T) {
 	}
 
 	// POST complete should clear skipped
-	req2 := httptest.NewRequest(http.MethodPost, "/api/v1/onboarding/complete", nil)
+	req2 := httptest.NewRequest(http.MethodPost, "/api/v1/onboarding/complete", http.NoBody)
 	w2 := httptest.NewRecorder()
 	r.ServeHTTP(w2, req2)
 	if w2.Code != http.StatusOK {
@@ -307,7 +281,7 @@ func TestOnboardingAPI_SkipRequiresAuth(t *testing.T) {
 	svc := onboarding.NewService(&fakeOnbUserRepo{user: baseOnbUser()})
 	r := newOnboardingTestRouter(svc, 0)
 
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/onboarding/skip", nil)
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/onboarding/skip", http.NoBody)
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 	if w.Code != http.StatusUnauthorized {
