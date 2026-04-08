@@ -24,6 +24,15 @@ vi.mock("@/features/auth", () => ({
 	useLogout: () => logoutSpy,
 }));
 
+// Mock useCurrentUser explicitly so the test does not depend on the real
+// `/auth/me` query's `enabled: !!getToken()` short-circuit.
+vi.mock("@/domain/auth/use-current-user", () => ({
+	useCurrentUser: () => ({
+		data: { data: { email: "tester@example.com" } },
+		isLoading: false,
+	}),
+}));
+
 function renderTab() {
 	return renderWithProviders(
 		<MemoryRouter>
@@ -49,7 +58,7 @@ describe("AccountTab", () => {
 
 	it("renders email, total capital input, risk preference select, and logout button", () => {
 		renderTab();
-		expect(screen.getByTestId("account-email")).toBeInTheDocument();
+		expect(screen.getByTestId("account-email")).toHaveTextContent("tester@example.com");
 		expect(screen.getByTestId("account-total-capital-input")).toBeInTheDocument();
 		expect(screen.getByTestId("account-risk-preference")).toBeInTheDocument();
 		expect(screen.getByTestId("account-logout")).toBeInTheDocument();

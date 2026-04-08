@@ -55,16 +55,19 @@ export function AccountTab() {
 	}, [capitalForm, settings]);
 
 	const handleSaveCapital = async () => {
-		const values = await capitalForm.validateFields();
-		const raw = values.totalCapitalCny;
 		try {
-			if (raw == null || Number.isNaN(Number(raw))) {
+			const values = await capitalForm.validateFields();
+			const raw = values.totalCapitalCny;
+			if (raw == null) {
 				await patchMutation.mutateAsync({ clearTotalCapitalCny: true });
 			} else {
-				await patchMutation.mutateAsync({ totalCapitalCny: Number(raw) });
+				await patchMutation.mutateAsync({ totalCapitalCny: raw });
 			}
 			message.success("总资金已保存");
-		} catch {
+		} catch (err) {
+			// antd throws an object with errorFields when validation fails; we
+			// ignore that case because the form already renders per-field errors.
+			if (err && typeof err === "object" && "errorFields" in err) return;
 			message.error("保存总资金失败");
 		}
 	};
