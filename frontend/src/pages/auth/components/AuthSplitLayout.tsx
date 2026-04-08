@@ -33,8 +33,8 @@ export function AuthSplitLayout({ form }: AuthSplitLayoutProps) {
 							src="/logo.svg"
 							alt="Richman logo"
 							className="auth-split-layout__brand-mark"
-							width={44}
-							height={44}
+							width={36}
+							height={36}
 						/>
 						<span className="auth-split-layout__brand-name">Richman</span>
 					</header>
@@ -115,8 +115,7 @@ const AUTH_SPLIT_LAYOUT_CSS = `
 	flex-direction: column;
 	justify-content: center;
 	gap: 44px;
-	margin-left: auto;
-	margin-right: clamp(40px, 6vw, 96px);
+	margin-inline: auto;
 	max-width: 520px;
 	width: calc(100% - 80px);
 	box-sizing: border-box;
@@ -124,17 +123,15 @@ const AUTH_SPLIT_LAYOUT_CSS = `
 .auth-split-layout__brand {
 	display: flex;
 	align-items: center;
-	gap: 14px;
+	gap: 12px;
 }
 .auth-split-layout__brand-mark {
 	display: block;
-	border-radius: 11px;
-	box-shadow: 0 6px 20px rgba(11, 11, 13, 0.18);
 }
 .auth-split-layout__brand-name {
-	font-size: 22px;
-	font-weight: 600;
-	letter-spacing: -0.01em;
+	font-size: 26px;
+	font-weight: 650;
+	letter-spacing: -0.02em;
 	color: #0b0b0d;
 }
 .auth-split-layout__hero {
@@ -169,8 +166,7 @@ const AUTH_SPLIT_LAYOUT_CSS = `
 	display: flex;
 	align-items: center;
 	gap: 10px;
-	margin-left: auto;
-	margin-right: clamp(40px, 6vw, 96px);
+	margin-inline: auto;
 	max-width: 520px;
 	width: calc(100% - 80px);
 	padding-top: 24px;
@@ -211,8 +207,7 @@ const AUTH_SPLIT_LAYOUT_CSS = `
 	);
 }
 .auth-split-layout__form-wrapper {
-	margin-right: auto;
-	margin-left: clamp(40px, 6vw, 96px);
+	margin-inline: auto;
 	max-width: 400px;
 	width: calc(100% - 80px);
 }
@@ -223,10 +218,6 @@ const AUTH_SPLIT_LAYOUT_CSS = `
 	.auth-split-layout__content,
 	.auth-split-layout__footer {
 		max-width: 440px;
-		margin-right: clamp(32px, 4vw, 56px);
-	}
-	.auth-split-layout__form-wrapper {
-		margin-left: clamp(32px, 4vw, 56px);
 	}
 }
 @media (min-width: 1200px) {
@@ -239,17 +230,11 @@ const AUTH_SPLIT_LAYOUT_CSS = `
 		padding: 48px 0 24px;
 	}
 	.auth-split-layout__content {
-		margin-left: auto;
-		margin-right: auto;
 		width: calc(100% - 48px);
-		max-width: 520px;
 		gap: 32px;
 	}
 	.auth-split-layout__footer {
-		margin-left: auto;
-		margin-right: auto;
 		width: calc(100% - 48px);
-		max-width: 520px;
 	}
 	.auth-split-layout__slogan {
 		font-size: clamp(28px, 6.5vw, 40px);
@@ -273,10 +258,7 @@ const AUTH_SPLIT_LAYOUT_CSS = `
 		);
 	}
 	.auth-split-layout__form-wrapper {
-		margin-left: auto;
-		margin-right: auto;
 		width: calc(100% - 48px);
-		max-width: 400px;
 	}
 }
 `;

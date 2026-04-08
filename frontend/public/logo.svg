@@ -1,30 +1,22 @@
 <svg viewBox="0 0 64 64" width="64" height="64" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="logoTitle logoDesc">
   <title id="logoTitle">Richman logo</title>
-  <desc id="logoDesc">Minimal geometric R monogram on a graphite tile.</desc>
+  <desc id="logoDesc">Solid sans-serif R monogram centered on a graphite tile.</desc>
   <defs>
-    <linearGradient id="tile" x1="8" y1="8" x2="56" y2="56" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#1A1A1D"/>
-      <stop offset="100%" stop-color="#0B0B0D"/>
-    </linearGradient>
+    <radialGradient id="tile" cx="32" cy="32" r="36" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#1f1f23"/>
+      <stop offset="100%" stop-color="#0a0a0c"/>
+    </radialGradient>
   </defs>
 
   <rect x="4" y="4" width="56" height="56" rx="16" fill="url(#tile)"/>
-  <rect x="5.5" y="5.5" width="53" height="53" rx="14.5" fill="none" stroke="#FFFFFF" stroke-opacity="0.09"/>
 
-  <path
-    d="M21 14.5
-       V49.5
-       M21 14.5
-       H33.5
-       C40.2 14.5 44.6 18.6 44.6 25.2
-       C44.6 31.9 40.2 36 33.5 36
-       H21
-       M33.7 36
-       L45.8 49.5"
-    fill="none"
-    stroke="#F5F5F7"
-    stroke-width="5.7"
-    stroke-linecap="round"
-    stroke-linejoin="round"
-  />
+  <text
+    x="32"
+    y="48"
+    font-family="'PingFang SC', 'Microsoft YaHei', -apple-system, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif"
+    font-size="46"
+    font-weight="700"
+    fill="#F5F5F7"
+    text-anchor="middle"
+  >R</text>
 </svg>

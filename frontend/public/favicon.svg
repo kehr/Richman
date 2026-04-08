@@ -1,27 +1,21 @@
 <svg viewBox="0 0 64 64" width="64" height="64" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="faviconTitle">
   <title id="faviconTitle">Richman favicon</title>
   <defs>
-    <linearGradient id="favTile" x1="10" y1="8" x2="54" y2="56" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#1A1A1D"/>
-      <stop offset="100%" stop-color="#0B0B0D"/>
-    </linearGradient>
+    <radialGradient id="favTile" cx="32" cy="32" r="36" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#1f1f23"/>
+      <stop offset="100%" stop-color="#0a0a0c"/>
+    </radialGradient>
   </defs>
 
-  <rect x="5" y="5" width="54" height="54" rx="16" fill="url(#favTile)"/>
-  <path
-    d="M21.5 16.5
-       V48
-       M21.5 16.5
-       H33
-       C39.1 16.5 43 20.2 43 26
-       C43 31.8 39.1 35.5 33 35.5
-       H21.5
-       M33 35.5
-       L44.3 48"
-    fill="none"
-    stroke="#F5F5F7"
-    stroke-width="5"
-    stroke-linecap="round"
-    stroke-linejoin="round"
-  />
+  <rect x="4" y="4" width="56" height="56" rx="16" fill="url(#favTile)"/>
+
+  <text
+    x="32"
+    y="48"
+    font-family="'PingFang SC', 'Microsoft YaHei', -apple-system, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif"
+    font-size="46"
+    font-weight="700"
+    fill="#F5F5F7"
+    text-anchor="middle"
+  >R</text>
 </svg>
