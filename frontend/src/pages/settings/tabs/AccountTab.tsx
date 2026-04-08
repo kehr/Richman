@@ -1,3 +1,4 @@
+import { useCurrentUser } from "@/domain/auth/use-current-user";
 import { useLogout } from "@/features/auth";
 import {
 	type RiskPreference,
@@ -37,11 +38,12 @@ export function AccountTab() {
 	const patchMutation = usePatchUserSettings();
 	const resetOnboarding = useResetOnboarding();
 	const logout = useLogout();
+	const currentUser = useCurrentUser();
 
 	const [capitalForm] = Form.useForm<CapitalFormValues>();
 
 	const settings = settingsQuery.data;
-	const email = "—";
+	const email = currentUser.data?.data?.email ?? "—";
 
 	// Sync form initial value with the loaded settings snapshot. We rely on
 	// setFieldsValue rather than initialValues so the form picks up the

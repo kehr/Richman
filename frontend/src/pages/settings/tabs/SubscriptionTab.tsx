@@ -26,7 +26,10 @@ export function SubscriptionTab() {
 	const channelsQuery = useChannels();
 
 	const holdingCount = holdingsQuery.data?.length ?? 0;
-	const channelCount = channelsQuery.data?.length ?? 0;
+	// Use the enabled-channel count so this tab stays consistent with the
+	// ChannelsTab header ("已启用 N 个渠道"). Disabled channels still occupy a
+	// row in the list but should not count against the invite-tier quota.
+	const channelCount = (channelsQuery.data ?? []).filter((c) => c.enabled).length;
 
 	return (
 		<Flex vertical gap={24} data-testid="subscription-tab">
@@ -75,9 +78,14 @@ export function SubscriptionTab() {
 			</Row>
 
 			<Tooltip title="敬请期待">
-				<Button disabled data-testid="subscription-upgrade">
-					申请升级
-				</Button>
+				{/* antd disabled Button has pointer-events: none which suppresses the
+				 * Tooltip hover — wrap in an inline-block span so the parent element
+				 * owns the hover region. Same pattern as Step 16 AddHoldingDrawer I4. */}
+				<span style={{ display: "inline-block", cursor: "not-allowed" }}>
+					<Button disabled style={{ pointerEvents: "none" }} data-testid="subscription-upgrade">
+						申请升级
+					</Button>
+				</span>
 			</Tooltip>
 		</Flex>
 	);
