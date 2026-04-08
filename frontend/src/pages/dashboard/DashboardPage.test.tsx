@@ -34,8 +34,23 @@ vi.mock("@/features/decision-card", async () => {
 		...actual,
 		useDecisionCards: () => ({ ...cardsState, refetch: vi.fn() }),
 		useRerunAnalysis: () => ({ mutateAsync: vi.fn(async () => undefined), isPending: false }),
+		useReanalyzeAll: () => ({ mutateAsync: vi.fn(async () => undefined), isPending: false }),
 	};
 });
+
+vi.mock("@/features/dashboard-summary", () => ({
+	useDashboardSummary: () => ({
+		data: {
+			llmStatus: {
+				configured: false,
+				userProviderHealth: "not_configured",
+				systemDefaultAvailable: false,
+				needsReanalysis: false,
+			},
+		},
+		isLoading: false,
+	}),
+}));
 
 vi.mock("@/features/user-settings", () => ({
 	useUserSettings: () => settingsState,

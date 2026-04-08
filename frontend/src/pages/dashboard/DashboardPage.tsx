@@ -1,4 +1,11 @@
-import { type DecisionCardDTO, useDecisionCards, useRerunAnalysis } from "@/features/decision-card";
+import { LLMStatusBanner } from "@/features/dashboard-llm-status";
+import { useDashboardSummary } from "@/features/dashboard-summary";
+import {
+	type DecisionCardDTO,
+	useDecisionCards,
+	useReanalyzeAll,
+	useRerunAnalysis,
+} from "@/features/decision-card";
 import { useHoldings } from "@/features/portfolio";
 import { useUserSettings } from "@/features/user-settings";
 import { App, PageContainer, Space } from "@/ui-kit/eat";
@@ -19,7 +26,9 @@ export default function DashboardPage() {
 	const holdingsQuery = useHoldings();
 	const cardsQuery = useDecisionCards();
 	const settingsQuery = useUserSettings();
+	const summaryQuery = useDashboardSummary();
 	const rerun = useRerunAnalysis();
+	const reanalyzeAll = useReanalyzeAll();
 
 	// cardRefs is shared between DecisionCardWall (which populates it) and
 	// ChangeAnchorList (which reads from it to scroll + highlight). A ref
@@ -100,6 +109,23 @@ export default function DashboardPage() {
 		navigate("/portfolio");
 	};
 
+	// staleCardCount counts the latest decision cards that still have
+	// synthesisSource in (template, mixed). The degraded-contract banner
+	// uses this number to tell the user how many holdings would be upgraded
+	// by a reanalyze-all call.
+	const staleCardCount = useMemo(
+		() =>
+			cards.filter((c) => c.synthesisSource === "template" || c.synthesisSource === "mixed").length,
+		[cards],
+	);
+
+	const llmStatus = summaryQuery.data?.llmStatus;
+	const needsReanalysis = llmStatus?.needsReanalysis ?? false;
+
+	const handleReanalyzeAll = async () => {
+		await reanalyzeAll.mutateAsync();
+	};
+
 	// Empty holdings branch: once holdings finish loading and the list is
 	// empty we show the hero instead of the regular three-region layout.
 	const holdingsReady = !holdingsQuery.isLoading;
@@ -114,6 +140,12 @@ export default function DashboardPage() {
 	return (
 		<PageContainer title="Dashboard" data-testid="dashboard-page">
 			<Space direction="vertical" size={16} style={{ width: "100%" }}>
+				<LLMStatusBanner
+					needsReanalysis={needsReanalysis}
+					staleCardCount={staleCardCount}
+					onReanalyze={handleReanalyzeAll}
+					isReanalyzing={reanalyzeAll.isPending}
+				/>
 				<DashboardTopStrip
 					holdingCount={holdings.length}
 					totalCapitalCny={settings?.totalCapitalCny}
