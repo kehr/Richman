@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -45,6 +46,14 @@ type LLMConfig struct {
 	ClaudeModel  string
 	OpenAIAPIKey string
 	OpenAIModel  string
+	// Vision capability settings. VisionAPIKey / VisionAPIEndpoint / VisionModel
+	// are optional; empty values fall back to provider defaults (e.g. reuse
+	// ClaudeAPIKey when the vision provider is "claude").
+	VisionProvider    string
+	VisionAPIKey      string
+	VisionAPIEndpoint string
+	VisionModel       string
+	VisionTimeout     time.Duration
 }
 
 // NotificationConfig holds notification channel settings.
@@ -112,6 +121,11 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("invalid ANALYSIS_MAX_CONCURRENT: %w", err)
 	}
 
+	visionTimeoutSeconds, err := strconv.Atoi(getEnv("LLM_VISION_TIMEOUT_SECONDS", "30"))
+	if err != nil {
+		return nil, fmt.Errorf("invalid LLM_VISION_TIMEOUT_SECONDS: %w", err)
+	}
+
 	cfg := &Config{
 		App: AppConfig{
 			Env:  getEnv("APP_ENV", "dev"),
@@ -125,11 +139,16 @@ func Load() (*Config, error) {
 			Expiry: time.Duration(jwtExpiryHours) * time.Hour,
 		},
 		LLM: LLMConfig{
-			Provider:     getEnv("LLM_PROVIDER", "claude"),
-			ClaudeAPIKey: getEnv("CLAUDE_API_KEY", ""),
-			ClaudeModel:  getEnv("CLAUDE_MODEL", ""),
-			OpenAIAPIKey: getEnv("OPENAI_API_KEY", ""),
-			OpenAIModel:  getEnv("OPENAI_MODEL", ""),
+			Provider:          getEnv("LLM_PROVIDER", "claude"),
+			ClaudeAPIKey:      getEnv("CLAUDE_API_KEY", ""),
+			ClaudeModel:       getEnv("CLAUDE_MODEL", ""),
+			OpenAIAPIKey:      getEnv("OPENAI_API_KEY", ""),
+			OpenAIModel:       getEnv("OPENAI_MODEL", ""),
+			VisionProvider:    getEnv("LLM_VISION_PROVIDER", "claude"),
+			VisionAPIKey:      getEnv("VISION_API_KEY", ""),
+			VisionAPIEndpoint: getEnv("VISION_API_ENDPOINT", ""),
+			VisionModel:       getEnv("VISION_MODEL", ""),
+			VisionTimeout:     time.Duration(visionTimeoutSeconds) * time.Second,
 		},
 		Notification: NotificationConfig{
 			WeChatAppID:     getEnv("WECHAT_APP_ID", ""),
@@ -179,8 +198,23 @@ func (c *Config) validate() error {
 }
 
 // IsDev returns true if the application is running in development mode.
+// The APP_ENV comparison is case-insensitive.
 func (c *Config) IsDev() bool {
-	return c.App.Env == "dev"
+	return strings.EqualFold(c.App.Env, "dev")
+}
+
+// IsProduction returns true if the application is running in production mode.
+// Any APP_ENV other than "dev", "test", or "staging" (case-insensitive) is
+// treated as production to fail closed on misconfiguration. This function is
+// the single source of truth for dev-only feature gates such as the
+// onboarding reset endpoint.
+func (c *Config) IsProduction() bool {
+	switch strings.ToLower(c.App.Env) {
+	case "dev", "test", "staging":
+		return false
+	default:
+		return true
+	}
 }
 
 // getEnv reads an environment variable or returns the fallback value.

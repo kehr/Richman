@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/richman/backend/internal/analysis"
+	"github.com/richman/backend/internal/analysis/recommendation"
 	"github.com/richman/backend/internal/llm"
 	"go.uber.org/zap"
 )
@@ -43,14 +44,15 @@ type SynthesisInput struct {
 
 // SynthesisOutput contains the generated content for a decision card.
 type SynthesisOutput struct {
-	TrendSummary     string   `json:"trendSummary"`
-	PositionSummary  string   `json:"positionSummary"`
-	CatalystSummary  string   `json:"catalystSummary"`
-	ActionAdvice     string   `json:"actionAdvice"`
-	DetailedAdvice   string   `json:"detailedAdvice"`
-	RiskWarnings     []string `json:"riskWarnings"`
-	TodayHighlights  string   `json:"todayHighlights"`
-	WeightAdjustment string   `json:"weightAdjustment"`
+	TrendSummary     string                        `json:"trendSummary"`
+	PositionSummary  string                        `json:"positionSummary"`
+	CatalystSummary  string                        `json:"catalystSummary"`
+	ActionAdvice     string                        `json:"actionAdvice"`
+	DetailedAdvice   string                        `json:"detailedAdvice"`
+	RiskWarnings     []string                      `json:"riskWarnings"`
+	TodayHighlights  string                        `json:"todayHighlights"`
+	WeightAdjustment string                        `json:"weightAdjustment"`
+	Recommendation   recommendation.Recommendation `json:"recommendation"`
 }
 
 // Synthesize generates structured decision card content.
@@ -81,6 +83,18 @@ func (s *Synthesizer) Synthesize(ctx context.Context, input *SynthesisInput) (*S
 			zap.Error(err),
 		)
 		return templateFallback(input), nil
+	}
+
+	// Try to parse the recommendation sub-object; fall back to template if
+	// the LLM omitted or mangled it. The main text fields stay LLM-generated.
+	if parsed := parseRecommendation(extractJSON(resp.Content)); parsed != nil {
+		ensureRecommendation(parsed, input)
+		output.Recommendation = *parsed
+	} else {
+		s.logger.Warn("llm recommendation sub-object missing or invalid, using fallback",
+			zap.String("asset", input.AssetCode),
+		)
+		output.Recommendation = fallbackRecommendation(input)
 	}
 
 	s.logger.Info("llm synthesis completed",
@@ -129,6 +143,7 @@ func buildSynthesisPrompt(input *SynthesisInput) string {
   "todayHighlights": "what changed since last analysis",
   "weightAdjustment": "why weights were adjusted (if any)"
 }`)
+	sb.WriteString(recommendationPromptSection())
 	return sb.String()
 }
 
@@ -175,6 +190,7 @@ func templateFallback(input *SynthesisInput) *SynthesisOutput {
 		DetailedAdvice:  "Detailed analysis unavailable. Please review manually.",
 		RiskWarnings:    []string{"Analysis generated without LLM enhancement; confidence may be lower."},
 		TodayHighlights: fmt.Sprintf("Analysis generated at %s.", time.Now().Format("2006-01-02 15:04")),
+		Recommendation:  fallbackRecommendation(input),
 	}
 }
 

@@ -6,10 +6,13 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/richman/backend/internal/analysis"
 	"github.com/richman/backend/internal/analysis/catalyst"
 	"github.com/richman/backend/internal/analysis/confidence"
+	"github.com/richman/backend/internal/analysis/diff"
 	"github.com/richman/backend/internal/analysis/position"
+	"github.com/richman/backend/internal/analysis/recommendation"
 	"github.com/richman/backend/internal/analysis/synthesis"
 	"github.com/richman/backend/internal/analysis/trend"
 	"github.com/richman/backend/internal/analysis/weight"
@@ -24,6 +27,7 @@ type Service struct {
 	holdingRepo     *repo.HoldingRepo
 	cardRepo        *repo.DecisionCardRepo
 	resultRepo      *repo.AnalysisResultRepo
+	userRepo        *repo.UserRepo
 	fetcher         *datasource.Fetcher
 	trendCalc       *trend.Calculator
 	posCalc         *position.Calculator
@@ -44,6 +48,7 @@ type Deps struct {
 	HoldingRepo     *repo.HoldingRepo
 	CardRepo        *repo.DecisionCardRepo
 	ResultRepo      *repo.AnalysisResultRepo
+	UserRepo        *repo.UserRepo
 	Fetcher         *datasource.Fetcher
 	TrendCalc       *trend.Calculator
 	PosCalc         *position.Calculator
@@ -73,6 +78,7 @@ func NewService(deps *Deps) *Service {
 		holdingRepo:     deps.HoldingRepo,
 		cardRepo:        deps.CardRepo,
 		resultRepo:      deps.ResultRepo,
+		userRepo:        deps.UserRepo,
 		fetcher:         deps.Fetcher,
 		trendCalc:       deps.TrendCalc,
 		posCalc:         deps.PosCalc,
@@ -232,7 +238,10 @@ func (s *Service) AnalyzeHolding(
 		}
 	}
 
-	// Step 6: Get weights.
+	// Step 6: Get weights, then layer the user's risk_preference bias on top
+	// of the base weights. A missing user or lookup error falls back to the
+	// neutral preference so weight selection stays available when the user
+	// repo is temporarily unreachable.
 	weights, err := s.weightMgr.GetBaseWeights(holding.AssetType)
 	if err != nil {
 		s.logger.Warn("failed to get weights, using equal weights",
@@ -241,6 +250,20 @@ func (s *Service) AnalyzeHolding(
 		)
 		weights = analysis.WeightConfig{Trend: 0.33, Position: 0.34, Catalyst: 0.33}
 	}
+
+	riskPref := model.RiskPreferenceNeutral
+	if s.userRepo != nil {
+		pref, prefErr := s.userRepo.GetRiskPreference(ctx, userID)
+		if prefErr != nil {
+			s.logger.Warn("failed to load risk preference, using neutral",
+				zap.Int64("user_id", userID),
+				zap.Error(prefErr),
+			)
+		} else if pref != "" {
+			riskPref = pref
+		}
+	}
+	weights = s.weightMgr.ApplyRiskBias(weights, holding.AssetType, riskPref)
 
 	// Step 7: Calculate confidence.
 	conf := s.confCalc.Calculate(confidence.Input{
@@ -251,7 +274,7 @@ func (s *Service) AnalyzeHolding(
 	})
 
 	// Step 8: Decide recommendation.
-	recommendation := s.matrix.Decide(trendResult, posResult, catResult, weights)
+	rec := s.matrix.Decide(trendResult, posResult, catResult, weights)
 
 	// Step 9: Synthesize card content.
 	costPrice, _ := holding.CostPrice.Float64()
@@ -266,7 +289,7 @@ func (s *Service) AnalyzeHolding(
 		Catalyst:       catResult,
 		Weights:        weights,
 		Confidence:     conf,
-		Recommendation: recommendation,
+		Recommendation: rec,
 		CostPrice:      costPrice,
 		PositionRatio:  posRatio,
 	})
@@ -276,34 +299,48 @@ func (s *Service) AnalyzeHolding(
 
 	now := time.Now()
 
-	// Build decision card.
+	// Compute execution fingerprint from the structured recommendation. The
+	// fingerprint is stable across LLM retries and feeds the badge diff
+	// algorithm's plan-adjustment check.
+	fingerprint := recommendation.Fingerprint(
+		synthOutput.Recommendation.TargetPositionPct,
+		synthOutput.Recommendation.Execution,
+	)
+
+	// Build decision card (prev_card_id, badge_state, confidence_delta are
+	// filled inside the persistence transaction below).
 	card := &model.DecisionCard{
-		UserID:            userID,
-		HoldingID:         holding.HoldingID,
-		AssetCode:         holding.AssetCode,
-		AssetName:         holding.AssetName,
-		AssetType:         holding.AssetType,
-		CostPrice:         costPrice,
-		PositionRatio:     posRatio,
-		TrendDirection:    string(trendResult.Direction),
-		TrendSummary:      synthOutput.TrendSummary,
-		PositionDirection: string(posResult.Assessment),
-		PositionSummary:   synthOutput.PositionSummary,
-		CatalystDirection: string(catResult.Direction),
-		CatalystSummary:   synthOutput.CatalystSummary,
-		Confidence:        conf,
-		Recommendation:    string(recommendation),
-		ActionAdvice:      synthOutput.ActionAdvice,
-		DetailedAdvice:    synthOutput.DetailedAdvice,
-		RiskWarnings:      synthOutput.RiskWarnings,
-		TodayHighlights:   synthOutput.TodayHighlights,
-		WeightTrend:       weights.Trend,
-		WeightPosition:    weights.Position,
-		WeightCatalyst:    weights.Catalyst,
-		AnalyzedAt:        now,
+		UserID:               userID,
+		HoldingID:            holding.HoldingID,
+		AssetCode:            holding.AssetCode,
+		AssetName:            holding.AssetName,
+		AssetType:            holding.AssetType,
+		CostPrice:            costPrice,
+		PositionRatio:        posRatio,
+		TrendDirection:       string(trendResult.Direction),
+		TrendSummary:         synthOutput.TrendSummary,
+		PositionDirection:    string(posResult.Assessment),
+		PositionSummary:      synthOutput.PositionSummary,
+		CatalystDirection:    string(catResult.Direction),
+		CatalystSummary:      synthOutput.CatalystSummary,
+		Confidence:           conf,
+		ActionAdvice:         synthOutput.ActionAdvice,
+		DetailedAdvice:       synthOutput.DetailedAdvice,
+		RiskWarnings:         synthOutput.RiskWarnings,
+		TodayHighlights:      synthOutput.TodayHighlights,
+		WeightTrend:          weights.Trend,
+		WeightPosition:       weights.Position,
+		WeightCatalyst:       weights.Catalyst,
+		AnalyzedAt:           now,
+		// Recommendation is the structured object; the legacy VARCHAR
+		// recommendation column was removed in migration 009.
+		Recommendation:       synthOutput.Recommendation,
+		ActionLevel:          synthOutput.Recommendation.ActionLevel,
+		TargetPositionRatio:  synthOutput.Recommendation.TargetPositionPct / 100,
+		ExecutionFingerprint: fingerprint,
 	}
 
-	// Step 10: Persist raw analysis result.
+	// Step 10: Persist raw analysis result (non-critical, runs outside tx).
 	rawResult := analysis.AnalysisResult{
 		AssetCode:      holding.AssetCode,
 		AssetType:      holding.AssetType,
@@ -312,7 +349,7 @@ func (s *Service) AnalyzeHolding(
 		Catalyst:       catResult,
 		Weights:        weights,
 		Confidence:     conf,
-		Recommendation: recommendation,
+		Recommendation: rec,
 		AnalyzedAt:     now,
 	}
 	rawJSON, _ := json.Marshal(rawResult)
@@ -321,19 +358,108 @@ func (s *Service) AnalyzeHolding(
 		s.logger.Warn("failed to save analysis result", zap.Error(saveErr))
 	}
 
-	// Step 11: Persist decision card.
-	saved, err := s.cardRepo.CreateDecisionCard(ctx, card)
+	// Step 11: Persist decision card with badge diff inside a transaction.
+	saved, err := s.persistDecisionCardWithDiff(ctx, card)
 	if err != nil {
 		return nil, fmt.Errorf("save decision card: %w", err)
 	}
 
 	s.logger.Info("analysis completed",
 		zap.Int64("holding_id", holding.HoldingID),
-		zap.String("recommendation", string(recommendation)),
+		zap.String("recommendation", string(rec)),
 		zap.Float64("confidence", conf),
+		zap.String("badge_state", saved.BadgeState),
 	)
 
 	return saved, nil
+}
+
+// persistDecisionCardWithDiff wraps the previous-card lookup and new-card
+// insert inside a single transaction so concurrent analyses on the same
+// holding cannot produce interleaved prev_card_id chains. The caller passes a
+// fully populated card except for PrevCardID, BadgeState, and ConfidenceDelta,
+// which are computed here from diff.Compute. The caller's pointer is left
+// untouched: a local copy is mutated and persisted so a tx rollback never
+// leaves stale diff fields on the original.
+func (s *Service) persistDecisionCardWithDiff(
+	ctx context.Context, card *model.DecisionCard,
+) (*model.DecisionCard, error) {
+	pool := s.cardRepo.Pool()
+	if pool == nil {
+		// No pool available (e.g. in unit tests that inject a nil pool);
+		// fall back to the non-transactional path so tests can still run.
+		return s.cardRepo.CreateDecisionCard(ctx, card)
+	}
+
+	tx, err := pool.BeginTx(ctx, pgx.TxOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("begin tx: %w", err)
+	}
+	// Use a background context for rollback so a cancelled request context
+	// does not prevent pgx from releasing the tx on the server side.
+	defer func() {
+		_ = tx.Rollback(context.Background())
+	}()
+
+	prev, err := s.cardRepo.GetLatestByHoldingTx(ctx, tx, card.HoldingID)
+	if err != nil {
+		return nil, fmt.Errorf("get latest card: %w", err)
+	}
+
+	// Work on a local copy so the caller's pointer is not mutated when the
+	// transaction rolls back.
+	toPersist := *card
+	// TODO(degraded): wire datasource.AssetData.Degraded into computeCardDiff
+	// once the fetcher exposes a per-asset degraded flag. Until then the
+	// data_degraded badge can never fire.
+	badge, delta := computeCardDiff(&toPersist, prev, false)
+	toPersist.BadgeState = string(badge)
+	toPersist.ConfidenceDelta = delta
+	if prev != nil {
+		prevID := prev.CardID
+		toPersist.PrevCardID = &prevID
+	}
+
+	saved, err := s.cardRepo.CreateDecisionCardTx(ctx, tx, &toPersist)
+	if err != nil {
+		return nil, fmt.Errorf("insert decision card: %w", err)
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return nil, fmt.Errorf("commit tx: %w", err)
+	}
+	return saved, nil
+}
+
+// computeCardDiff is a pure helper that derives the badge state and
+// confidence delta for a new card given the previous card (may be nil) and
+// the data-source degraded flag. Extracted so unit tests can exercise every
+// branch without a database.
+func computeCardDiff(
+	current *model.DecisionCard, previous *model.DecisionCard, degraded bool,
+) (diff.BadgeState, float64) {
+	cur := buildCardSnapshot(current)
+	input := diff.Input{Current: cur, DataSourceDegraded: degraded}
+	if previous != nil {
+		prev := buildCardSnapshot(previous)
+		input.Previous = &prev
+	}
+	return diff.Compute(input)
+}
+
+// buildCardSnapshot converts a model.DecisionCard into a diff.CardSnapshot.
+// Dimension directions are stored as plain strings in the model; the diff
+// algorithm compares them verbatim.
+func buildCardSnapshot(card *model.DecisionCard) diff.CardSnapshot {
+	return diff.CardSnapshot{
+		ActionLevel:          card.ActionLevel,
+		TargetPositionPct:    card.TargetPositionRatio * 100,
+		Confidence:           card.Confidence,
+		TrendDirection:       card.TrendDirection,
+		PositionDirection:    card.PositionDirection,
+		CatalystDirection:    card.CatalystDirection,
+		ExecutionFingerprint: card.ExecutionFingerprint,
+	}
 }
 
 func (s *Service) holdingContext(parent context.Context) (context.Context, context.CancelFunc) {

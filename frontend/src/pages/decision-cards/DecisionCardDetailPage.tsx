@@ -1,22 +1,167 @@
-import { RiskDisclaimer } from "@/components/RiskDisclaimer";
-import { DecisionCardView, useCardById } from "@/features/decision-card";
-import { PageContainer, Skeleton } from "@/ui-kit/eat";
-import { useParams } from "react-router";
+import { useDecisionCardDetail, useDecisionCards } from "@/features/decision-card";
+import { Alert, Col, PageContainer, Row, Skeleton, Space, Typography } from "@/ui-kit/eat";
+import { Link, useNavigate, useParams } from "react-router";
+import { CardHero } from "./components/CardHero";
+import { ConclusionBanner } from "./components/ConclusionBanner";
+import { DimensionReasoning } from "./components/DimensionReasoning";
+import { ExecutionPlanFull } from "./components/ExecutionPlanFull";
+import { MainRisks } from "./components/MainRisks";
+import { MetaSidebar } from "./components/MetaSidebar";
 
+const { Text } = Typography;
+
+// formatBreadcrumbDateTime renders the analysis timestamp shown in the
+// breadcrumb. Returns a dash placeholder when the input is invalid so the
+// breadcrumb does not collapse mid-render while the query is loading.
+function formatBreadcrumbDateTime(iso: string | undefined): string {
+	if (!iso) return "--";
+	const d = new Date(iso);
+	if (Number.isNaN(d.getTime())) return "--";
+	const fmt = new Intl.DateTimeFormat("en-GB", {
+		timeZone: "Asia/Shanghai",
+		year: "numeric",
+		month: "2-digit",
+		day: "2-digit",
+		hour: "2-digit",
+		minute: "2-digit",
+		hour12: false,
+	});
+	const parts = fmt.formatToParts(d);
+	const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
+	return `${get("year")}-${get("month")}-${get("day")} ${get("hour")}:${get("minute")}`;
+}
+
+// DecisionCardDetailPage renders the full 5-block reasoning view for a
+// single decision card per PRD section 5. Layout uses a two-column grid
+// (main content + 260px right sidebar) that collapses to a single column
+// stack on viewports narrower than 1024px via the antd Row/Col responsive
+// breakpoints (xs:24 / lg:18+6).
+//
+// Data flow:
+//   - useDecisionCardDetail(id)            : current card
+//   - useDecisionCardDetail(prevCardId)    : optional previous card, lazily
+//                                            fetched only when prev id known
+//   - useDecisionCards()                   : latest list, used to derive a
+//                                            short history strip on the
+//                                            sidebar by filtering same holding
 export default function DecisionCardDetailPage() {
 	const { id } = useParams<{ id: string }>();
-	const cardId = Number(id);
-	const { data: card, isLoading } = useCardById(cardId);
+	const navigate = useNavigate();
+	// Parse the route param defensively: a non-numeric or zero/negative id
+	// (bookmark typo, stale link) collapses to 0 which the hook's enabled
+	// guard treats as "do not fetch", so we render the not-found branch
+	// without a wasted network round-trip.
+	const parsed = Number(id);
+	const cardId = Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+
+	const detailQuery = useDecisionCardDetail(cardId);
+	const card = detailQuery.data;
+
+	// prevCard fetch is lazy: useDecisionCardDetail's enabled guard skips the
+	// request when prevCardId is null/undefined, so we can pass 0 as a safe
+	// sentinel without triggering a network call.
+	const prevCardId = card?.prevCardId ?? 0;
+	const prevQuery = useDecisionCardDetail(prevCardId);
+	const prevCard = prevQuery.data;
+
+	// History strip on the sidebar filters the latest list down to the same
+	// holding so the user sees their own asset's recent analyses, not other
+	// holdings'. The list query is shared with the dashboard so the cache is
+	// hot in the common case.
+	const cardsQuery = useDecisionCards();
+	const historicalCards = (cardsQuery.data ?? []).filter(
+		(c) => card != null && c.holdingId === card.holdingId,
+	);
+
+	// Invalid id parsed to 0 — short-circuit to the not-found branch before
+	// the hooks resolve. The detailQuery is disabled in this case so it
+	// will never produce data.
+	if (cardId === 0) {
+		return (
+			<PageContainer title="决策卡详情">
+				<Alert
+					type="warning"
+					showIcon
+					message="未找到决策卡"
+					description="链接无效或决策卡不存在。"
+					data-testid="detail-not-found"
+				/>
+			</PageContainer>
+		);
+	}
+
+	if (detailQuery.isLoading) {
+		return (
+			<PageContainer title="决策卡详情">
+				<Skeleton active paragraph={{ rows: 12 }} />
+			</PageContainer>
+		);
+	}
+
+	if (detailQuery.error) {
+		return (
+			<PageContainer title="决策卡详情">
+				<Alert
+					type="error"
+					showIcon
+					message="加载失败"
+					description="无法加载该决策卡，请稍后重试。"
+					data-testid="detail-error"
+				/>
+			</PageContainer>
+		);
+	}
+
+	if (!card) {
+		return (
+			<PageContainer title="决策卡详情">
+				<Alert
+					type="warning"
+					showIcon
+					message="未找到决策卡"
+					description="该决策卡可能不存在或已被删除。"
+					data-testid="detail-not-found"
+				/>
+			</PageContainer>
+		);
+	}
+
+	const breadcrumb = (
+		<Space size={4} data-testid="detail-breadcrumb">
+			<Link to="/dashboard">← Dashboard</Link>
+			<Text type="secondary">/</Text>
+			<Text type="secondary">决策卡</Text>
+			<Text type="secondary">/</Text>
+			<Text>
+				{card.assetName} · {formatBreadcrumbDateTime(card.analyzedAt)}
+			</Text>
+		</Space>
+	);
 
 	return (
-		<PageContainer title="Decision Card Detail" footer={[<RiskDisclaimer key="disclaimer" />]}>
-			{isLoading ? (
-				<Skeleton active paragraph={{ rows: 8 }} />
-			) : card ? (
-				<DecisionCardView card={card} />
-			) : (
-				<div>Card not found</div>
-			)}
+		<PageContainer
+			title="决策卡详情"
+			header={{ extra: breadcrumb }}
+			data-testid="decision-card-detail"
+		>
+			<Row gutter={[16, 16]}>
+				<Col xs={24} lg={18}>
+					<Space direction="vertical" size={16} style={{ width: "100%" }}>
+						<CardHero card={card} />
+						<ConclusionBanner card={card} prevCard={prevCard} />
+						<ExecutionPlanFull execution={card.recommendation.execution} />
+						<DimensionReasoning card={card} prevCard={prevCard} />
+						<MainRisks riskWarnings={card.riskWarnings} />
+					</Space>
+				</Col>
+				<Col xs={24} lg={6}>
+					<MetaSidebar
+						card={card}
+						historicalCards={historicalCards}
+						onSelectHistory={(historyCardId) => navigate(`/decision-cards/${historyCardId}`)}
+					/>
+				</Col>
+			</Row>
 		</PageContainer>
 	);
 }

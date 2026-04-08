@@ -3,19 +3,16 @@ import { clearAuth } from "@/domain/auth/storage";
 import { useCurrentUser } from "@/domain/auth/use-current-user";
 import {
 	Avatar,
-	BellOutlined,
 	DashboardOutlined,
 	Dropdown,
-	FundOutlined,
-	LineChartOutlined,
 	LogoutOutlined,
 	PieChartOutlined,
 	ProLayout,
+	QuestionCircleOutlined,
 	SettingOutlined,
 	Space,
 	UserOutlined,
 } from "@/ui-kit/eat";
-import { useState } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router";
 
 const menuRoutes = {
@@ -23,9 +20,6 @@ const menuRoutes = {
 	routes: [
 		{ path: "/dashboard", name: "Dashboard", icon: <DashboardOutlined /> },
 		{ path: "/portfolio", name: "Portfolio", icon: <PieChartOutlined /> },
-		{ path: "/analysis", name: "Analysis", icon: <FundOutlined /> },
-		{ path: "/decision-cards", name: "Decision Cards", icon: <LineChartOutlined /> },
-		{ path: "/notifications", name: "Notifications", icon: <BellOutlined /> },
 		{ path: "/settings", name: "Settings", icon: <SettingOutlined /> },
 	],
 };
@@ -33,10 +27,8 @@ const menuRoutes = {
 export function MainLayout() {
 	const navigate = useNavigate();
 	const location = useLocation();
-	const { data: userData } = useCurrentUser();
-	const [collapsed, setCollapsed] = useState(false);
+	const { data: user } = useCurrentUser();
 
-	const user = userData?.data;
 	const displayName = user?.email?.split("@")[0] || "User";
 
 	const handleLogout = () => {
@@ -53,8 +45,6 @@ export function MainLayout() {
 			token={layoutToken}
 			collapsed={false}
 			collapsedButtonRender={false}
-			// collapsed={collapsed}
-			onCollapse={setCollapsed}
 			location={{ pathname: location.pathname }}
 			route={menuRoutes}
 			menuItemRender={(item, dom) => (
@@ -66,6 +56,25 @@ export function MainLayout() {
 					}}
 				>
 					{dom}
+				</a>
+			)}
+			menuFooterRender={() => (
+				<a
+					href="/help"
+					onClick={(e) => {
+						e.preventDefault();
+						navigate("/help");
+					}}
+					style={{
+						display: "flex",
+						alignItems: "center",
+						gap: 8,
+						padding: "12px 16px",
+						color: "inherit",
+					}}
+				>
+					<QuestionCircleOutlined />
+					<span>Help</span>
 				</a>
 			)}
 			actionsRender={() => [

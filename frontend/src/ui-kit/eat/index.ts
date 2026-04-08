@@ -4,10 +4,12 @@
 export {
 	App,
 	Avatar,
+	Breadcrumb,
 	Button,
 	Card,
 	Checkbox,
 	Col,
+	Collapse,
 	ConfigProvider,
 	DatePicker,
 	Divider,
@@ -31,6 +33,7 @@ export {
 	Space,
 	Spin,
 	Statistic,
+	Steps,
 	Switch,
 	Table,
 	Tabs,
@@ -44,10 +47,13 @@ export {
 	Result,
 	Segmented,
 	Flex,
+	Image,
 	theme,
 } from "antd";
 
-export type { ThemeConfig } from "antd";
+export type { UploadProps, UploadFile } from "antd";
+
+export type { ThemeConfig, FormInstance } from "antd";
 
 export {
 	ProLayout,
@@ -87,4 +93,9 @@ export {
 	LineChartOutlined,
 	BarChartOutlined,
 	StockOutlined,
+	QuestionCircleOutlined,
+	CameraOutlined,
+	LeftOutlined,
+	InboxOutlined,
+	UploadOutlined,
 } from "@ant-design/icons";

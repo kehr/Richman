@@ -36,8 +36,8 @@
   - risk_preference：枚举 conservative / neutral / aggressive
   - categories：JSON 数组，每项必须是 PRD §1.5 定义的 4 类之一
 - money.AttachAmounts 是通用工具：接受任意 DTO + total_capital，反射检查所有 `*Pct` 字段并附加同名 `*Amount` 字段
-- privacy_guard.AssertNoCapitalLeakage 通过反射检查输入的 struct 不含 totalCapital / amount 等敏感字段（用于分析请求构造前的断言）
-- 守卫只在 `-tags debug` 构建中启用，生产构建为 noop
+- privacy_guard.AssertNoCapitalLeakage 通过反射检查输入的 struct 不含 totalCapital / positionAmount / targetPositionAmount / unrealizedAmount / realizedAmount 等具体敏感字段（精确列表避免 paymentAmount 等良性字段误报）
+- 守卫在所有构建中启用（反射成本可忽略，不使用 build tag）。handler 层在构造分析请求 / LLM 上下文 / 推送渲染 DTO 前显式调用
 - 单元测试覆盖：
   - GetUserSettings 默认值
   - PatchUserSettings 各字段单独/组合更新
@@ -49,7 +49,7 @@
 
 1. `go test ./internal/service/user_settings/...` 通过
 2. 测试覆盖率 >= 90%
-3. `go build -tags debug ./...` 与默认构建均通过
+3. `go build ./...` 通过（不需要额外 build tag）
 4. `make check` 通过
 
 ## 依赖说明

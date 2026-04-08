@@ -2,10 +2,8 @@
 	"nav": {
 		"dashboard": "Dashboard",
 		"portfolio": "Portfolio",
-		"analysis": "Analysis",
-		"decisionCards": "Decision Cards",
-		"notifications": "Notifications",
-		"settings": "Settings"
+		"settings": "Settings",
+		"help": "Help"
 	},
 	"auth": {
 		"login": "Login",

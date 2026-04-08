@@ -1,39 +1,27 @@
 import { request } from "@/domain/http/client";
 import type { ApiResponse } from "@/domain/http/types";
+import type { DecisionCardDTO, RerunAnalysisResponse } from "./types";
 
-export interface DecisionCardDto {
-	cardId: number;
-	assetCode: string;
-	assetName: string;
-	assetType: string;
-	costPrice: number;
-	positionRatio: number;
-	trendDirection: string;
-	trendSummary: string;
-	positionDirection: string;
-	positionSummary: string;
-	catalystDirection: string;
-	catalystSummary: string;
-	confidence: number;
-	recommendation: string;
-	actionAdvice: string;
-	detailedAdvice: string;
-	riskWarnings: string[];
-	todayHighlights: string;
-	weightTrend: number;
-	weightPosition: number;
-	weightCatalyst: number;
-	analyzedAt: string;
+// getDecisionCards loads the latest decision card for every holding owned by
+// the authenticated user. The `latest=true` query parameter is accepted by
+// the backend today but the handler already defaults to the "latest per
+// holding" behaviour, so the query string is only added for forward
+// compatibility with future filter modes.
+export function getDecisionCards() {
+	return request<ApiResponse<DecisionCardDTO[]>>("/decision-cards?latest=true");
 }
 
-export function fetchLatestCards(): Promise<ApiResponse<DecisionCardDto[]>> {
-	return request<ApiResponse<DecisionCardDto[]>>("/decision-cards/latest");
+// getDecisionCardById loads a single decision card by its primary key. The
+// backend enforces that the card belongs to the authenticated user.
+export function getDecisionCardById(cardId: number) {
+	return request<ApiResponse<DecisionCardDTO>>(`/decision-cards/${cardId}`);
 }
 
-export function fetchCardById(id: number): Promise<ApiResponse<DecisionCardDto>> {
-	return request<ApiResponse<DecisionCardDto>>(`/decision-cards/${id}`);
-}
-
-export function fetchCardHistory(): Promise<ApiResponse<DecisionCardDto[]>> {
-	return request<ApiResponse<DecisionCardDto[]>>("/decision-cards/history");
+// postRerunAnalysis triggers a re-analysis for the current user. The backend
+// returns 202 Accepted with a task id the UI can poll (or just wait for the
+// cache invalidation kicked off by useRerunAnalysis).
+export function postRerunAnalysis() {
+	return request<ApiResponse<RerunAnalysisResponse>>("/analysis/trigger", {
+		method: "POST",
+	});
 }

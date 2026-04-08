@@ -1,5 +1,4 @@
-"use client";
-
+import type { DayjsLike } from "@/domain/datetime/dayjs-like";
 import { formatCurrency, formatDate } from "@/domain/ui/format";
 import {
 	Button,
@@ -15,7 +14,7 @@ import {
 } from "@/ui-kit/eat";
 import { PlusOutlined } from "@/ui-kit/eat";
 import { useState } from "react";
-import type { TradeDto } from "./api";
+import type { Trade, TradeDirection } from "./trade-types";
 import { useCreateTrade, useTrades } from "./usePortfolio";
 
 interface TradeRecordListProps {
@@ -30,13 +29,12 @@ export function TradeRecordList({ holdingId }: TradeRecordListProps) {
 
 	const handleCreateTrade = async (values: Record<string, unknown>) => {
 		try {
-			const tradedAt =
-				values.tradedAt && typeof values.tradedAt === "object" && "toISOString" in values.tradedAt
-					? (values.tradedAt as { toISOString: () => string }).toISOString()
-					: new Date().toISOString();
-
+			// tradedAt is enforced as required by the antd Form rule below, so
+			// we rely on validation to reject empty submissions and convert the
+			// Dayjs value straight to an ISO string.
+			const tradedAt = (values.tradedAt as DayjsLike).toDate().toISOString();
 			await createTrade.mutateAsync({
-				direction: values.direction as string,
+				direction: values.direction as TradeDirection,
 				price: values.price as number,
 				quantity: values.quantity as number,
 				tradedAt,
@@ -54,7 +52,7 @@ export function TradeRecordList({ holdingId }: TradeRecordListProps) {
 			title: "Direction",
 			dataIndex: "direction",
 			key: "direction",
-			render: (_: unknown, record: TradeDto) => (
+			render: (_: unknown, record: Trade) => (
 				<Tag color={record.direction === "buy" ? "green" : "red"}>
 					{record.direction.toUpperCase()}
 				</Tag>
@@ -64,7 +62,7 @@ export function TradeRecordList({ holdingId }: TradeRecordListProps) {
 			title: "Price",
 			dataIndex: "price",
 			key: "price",
-			render: (_: unknown, record: TradeDto) => formatCurrency(record.price),
+			render: (_: unknown, record: Trade) => formatCurrency(record.price),
 		},
 		{
 			title: "Quantity",
@@ -75,13 +73,13 @@ export function TradeRecordList({ holdingId }: TradeRecordListProps) {
 			title: "Traded At",
 			dataIndex: "tradedAt",
 			key: "tradedAt",
-			render: (_: unknown, record: TradeDto) => formatDate(record.tradedAt, "datetime"),
+			render: (_: unknown, record: Trade) => formatDate(record.tradedAt, "datetime"),
 		},
 	];
 
 	return (
 		<>
-			<ProTable<TradeDto>
+			<ProTable<Trade>
 				headerTitle="Trade Records"
 				columns={columns}
 				dataSource={trades}
@@ -134,7 +132,11 @@ export function TradeRecordList({ holdingId }: TradeRecordListProps) {
 					>
 						<InputNumber min={1} step={1} style={{ width: "100%" }} />
 					</Form.Item>
-					<Form.Item label="Traded At" name="tradedAt">
+					<Form.Item
+						label="Traded At"
+						name="tradedAt"
+						rules={[{ required: true, message: "Please select trade time" }]}
+					>
 						<DatePicker showTime style={{ width: "100%" }} />
 					</Form.Item>
 					<Space>

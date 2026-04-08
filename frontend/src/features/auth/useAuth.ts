@@ -4,9 +4,14 @@ import { useNavigate } from "react-router";
 import { login, register } from "./api";
 import type { LoginInput, RegisterInput } from "./api";
 
-export function useLogin() {
+// useLogin runs the login mutation and, on success, persists the token and
+// navigates to a target path. Callers may pass a `redirectTo` override (e.g.
+// LoginPage parses ?returnTo= and forwards a validated relative path here);
+// when omitted the user lands on /dashboard.
+export function useLogin(options?: { redirectTo?: string }) {
 	const navigate = useNavigate();
 	const queryClient = useQueryClient();
+	const target = options?.redirectTo ?? "/dashboard";
 
 	return useMutation({
 		mutationFn: (input: LoginInput) => login(input),
@@ -14,14 +19,18 @@ export function useLogin() {
 			setToken(res.data.token);
 			setUser(res.data.user);
 			queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
-			navigate("/dashboard", { replace: true });
+			navigate(target, { replace: true });
 		},
 	});
 }
 
-export function useRegister() {
+// useRegister runs the register mutation. Matches useLogin: callers may
+// pass a `redirectTo` override so a user who arrived at /login?returnTo=...
+// and then pivoted to /register still lands on the original deep link.
+export function useRegister(options?: { redirectTo?: string }) {
 	const navigate = useNavigate();
 	const queryClient = useQueryClient();
+	const target = options?.redirectTo ?? "/dashboard";
 
 	return useMutation({
 		mutationFn: (input: RegisterInput) => register(input),
@@ -29,7 +38,7 @@ export function useRegister() {
 			setToken(res.data.token);
 			setUser(res.data.user);
 			queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
-			navigate("/dashboard", { replace: true });
+			navigate(target, { replace: true });
 		},
 	});
 }

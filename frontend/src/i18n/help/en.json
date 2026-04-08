@@ -1,0 +1,335 @@
+{
+	"title": "Help & Glossary",
+	"subtitle": "Reference for Richman decision cards, analysis dimensions, and push rules.",
+	"sections": [
+		{
+			"id": "badge",
+			"title": "Change Badges",
+			"blocks": [
+				{
+					"type": "paragraph",
+					"text": "Every decision card shows a change badge in the top-right corner. The backend computes the badge type by diffing the current analysis against the previous one, so a glance at the color tells you what kind of change happened. When multiple conditions match, the highest-priority badge wins."
+				},
+				{
+					"type": "table",
+					"headers": ["Badge", "Color", "Condition"],
+					"rows": [
+						[
+							"Data degraded",
+							"Gray",
+							"At least one data source is degraded; analysis marked degraded = true"
+						],
+						["First analysis", "Black", "This holding has no previous analysis to compare with"],
+						["Action upgrade", "Green", "Action aggressiveness level went up (e.g. hold → add)"],
+						["Action downgrade", "Red", "Action aggressiveness level went down (e.g. add → hold)"],
+						[
+							"Signal flip",
+							"Blue",
+							"At least one dimension flipped direction but the action did not change"
+						],
+						[
+							"Plan adjust",
+							"Amber",
+							"Action and dimensions unchanged, but execution steps or target position changed"
+						],
+						["Confidence shift", "Purple", "Nothing else changed and |confidence delta| >= 10"],
+						["No badge", "—", "No perceivable change at all"]
+					]
+				},
+				{
+					"type": "paragraph",
+					"text": "Priority order (highest wins): Data degraded → First analysis → Action upgrade / downgrade → Signal flip → Plan adjust → Confidence shift."
+				},
+				{
+					"type": "paragraph",
+					"text": "Action aggressiveness levels used for upgrade / downgrade detection:"
+				},
+				{
+					"type": "list",
+					"items": [
+						"2 Aggressive add",
+						"1 Small add",
+						"0 Hold and wait",
+						"-1 Gradual reduce",
+						"-2 Control position"
+					]
+				},
+				{
+					"type": "paragraph",
+					"text": "Upgrade = new level > old level. Downgrade = new level < old level."
+				}
+			]
+		},
+		{
+			"id": "dimensions",
+			"title": "Three Dimensions",
+			"blocks": [
+				{
+					"type": "paragraph",
+					"text": "Richman splits each holding's analysis into three independent dimensions. Each dimension produces its own direction (bullish / bearish / neutral) and a short summary of quantitative signals. A synthesis step then weights the three into a final recommendation."
+				},
+				{
+					"type": "table",
+					"headers": ["Dimension", "Focus", "Typical signals"],
+					"rows": [
+						[
+							"Trend",
+							"Direction of price and momentum",
+							"Moving averages, RSI, MACD, momentum score"
+						],
+						[
+							"Position",
+							"Valuation percentile and fund flow",
+							"PE percentile, PB percentile, northbound flow"
+						],
+						[
+							"Catalyst",
+							"Events that may move the price soon",
+							"Polymarket events, keyword matching, LLM search summary"
+						]
+					]
+				},
+				{
+					"type": "paragraph",
+					"text": "On a decision card each dimension renders as a colored chip: green for bullish, red for bearish, gray for neutral. When a dimension flips direction versus the previous analysis, the chip adds an arrow and strikes through the old value so you can immediately see which dimension drove the change."
+				},
+				{
+					"type": "paragraph",
+					"text": "The detail page's Three Dimensions section expands each dimension into its full signal list, weight adjustment trace (X% → Y%), and a short written conclusion."
+				}
+			]
+		},
+		{
+			"id": "actions",
+			"title": "Recommended Actions",
+			"blocks": [
+				{
+					"type": "paragraph",
+					"text": "Every decision card produces one recommended action out of five possible levels. The numeric aggressiveness level is the same value used by the badge engine to detect upgrades and downgrades."
+				},
+				{
+					"type": "table",
+					"headers": ["Action", "Level", "Meaning"],
+					"rows": [
+						["Aggressive add", "2", "Very clear signal; raise the position substantially"],
+						["Small add", "1", "Positive bias; raise the position modestly"],
+						["Hold and wait", "0", "Neutral or insufficient signal; keep current position"],
+						["Gradual reduce", "-1", "Signal weakening; lower the position in steps"],
+						["Control position", "-2", "Risk is significant; cut the position to a low level"]
+					]
+				},
+				{
+					"type": "paragraph",
+					"text": "Actions pair with execution plans: add / reduce actions usually ship with a multi-step staged plan, while hold-and-wait goes with monitor mode (stop-loss and take-profit lines only)."
+				}
+			]
+		},
+		{
+			"id": "plan",
+			"title": "Execution Plan",
+			"blocks": [
+				{
+					"type": "paragraph",
+					"text": "An execution plan breaks the recommended action into concrete steps. Each step has a trigger condition and a rationale. The card only shows the first 3 steps; if there are more, a 'view details' link expands the full list on the detail page."
+				},
+				{
+					"type": "table",
+					"headers": ["Type", "When used", "Notes"],
+					"rows": [
+						[
+							"staged",
+							"Adding or reducing position in multiple batches",
+							"Ordered steps, each with its own trigger and delta"
+						],
+						[
+							"one-shot",
+							"Single adjustment to the position",
+							"Only one step; used for small position tweaks"
+						],
+						[
+							"monitor",
+							"Hold / watch scenarios",
+							"No steps; a stop-loss and a take-profit line are given instead"
+						]
+					]
+				},
+				{
+					"type": "paragraph",
+					"text": "There are three kinds of triggers:"
+				},
+				{
+					"type": "list",
+					"items": [
+						"Price: fires when the price matches a condition (<= or >= a level)",
+						"Time: fires after a specific moment or window",
+						"Event: fires after an external event (Fed meeting, earnings, Polymarket settlement, etc.)"
+					]
+				},
+				{
+					"type": "paragraph",
+					"text": "Every plan has a validity window (valid_days). The plan is automatically re-analyzed when the window expires, or immediately if a stop-loss or take-profit condition triggers within the window."
+				}
+			]
+		},
+		{
+			"id": "confidence",
+			"title": "Confidence",
+			"blocks": [
+				{
+					"type": "paragraph",
+					"text": "Confidence is an integer from 0 to 100 expressing how trustworthy the current conclusion is. It is derived from signal agreement across the three dimensions, data completeness, and the weight distribution."
+				},
+				{
+					"type": "list",
+					"items": [
+						"When all three dimensions agree (all bullish or all bearish) confidence rises sharply",
+						"When dimensions disagree confidence drops",
+						"Any degraded data source lowers confidence",
+						"A change with |delta| >= 10 triggers a standalone Confidence shift badge"
+					]
+				},
+				{
+					"type": "note",
+					"text": "The PRD does not spell out the exact confidence formula; the rules above are qualitative. The 10-point threshold is documented in the #badge section."
+				},
+				{
+					"type": "paragraph",
+					"text": "The detail page shows confidence delta versus the previous analysis (e.g. +7 vs last) so you can see whether confidence is building or eroding."
+				}
+			]
+		},
+		{
+			"id": "data",
+			"title": "Data Sources",
+			"blocks": [
+				{
+					"type": "paragraph",
+					"text": "Richman's analysis depends on several external data sources with non-overlapping responsibilities. When a source is unavailable, the affected dimensions are flagged in red in the detail page's meta column and degradation mode kicks in."
+				},
+				{
+					"type": "table",
+					"headers": ["Source", "Responsibility", "Notes"],
+					"rows": [
+						[
+							"AKShare",
+							"A-share prices, fundamentals, fund flow",
+							"Feeds Trend and Position dimensions"
+						],
+						[
+							"Yahoo Finance",
+							"US equity and gold prices",
+							"Feeds Trend and Position for non A-share holdings"
+						],
+						[
+							"Polymarket",
+							"Global macro and policy event probabilities",
+							"Feeds the Catalyst dimension"
+						],
+						[
+							"LLM enrichment",
+							"News keyword matching, catalyst summaries",
+							"Adds narrative context on top of quantitative signals"
+						]
+					]
+				},
+				{
+					"type": "note",
+					"text": "Exact refresh cadence depends on the backend cron schedule and is not enumerated second-by-second in the PRD. See the #push section for the three analysis windows."
+				}
+			]
+		},
+		{
+			"id": "degradation",
+			"title": "Degradation Policy",
+			"blocks": [
+				{
+					"type": "paragraph",
+					"text": "When a data source the analysis depends on is unavailable, times out, or returns obviously broken data, the system drops into degradation mode instead of failing outright. A recommendation is still produced, but the card displays the Data degraded badge and the meta column explains which source degraded and why."
+				},
+				{
+					"type": "list",
+					"items": [
+						"External data source timeouts or errors",
+						"Missing or clearly invalid data fields",
+						"LLM enrichment calls failing or rate-limited",
+						"Computed confidence below the safety threshold"
+					]
+				},
+				{
+					"type": "paragraph",
+					"text": "Effects on the final recommendation:"
+				},
+				{
+					"type": "list",
+					"items": [
+						"Confidence is automatically lowered",
+						"Actions lean more conservative (closer to hold-and-wait)",
+						"Badge priority is highest so users notice immediately",
+						"The detail page meta column lists every degraded source with its reason"
+					]
+				}
+			]
+		},
+		{
+			"id": "push",
+			"title": "Push Schedule",
+			"blocks": [
+				{
+					"type": "paragraph",
+					"text": "Automatic analysis runs on a backend cron across three Beijing-time windows (Asia/Shanghai), and pushes follow the same schedule. All times are Beijing time; users in other time zones should account for the offset."
+				},
+				{
+					"type": "table",
+					"headers": ["Window", "Beijing time", "Covers"],
+					"rows": [
+						["Pre-market", "08:30", "Overnight synthesis and the day's opening strategy"],
+						["Afternoon", "15:30", "A-share close review and next-day outlook"],
+						["Next-day dawn", "06:00 (next day)", "Cross-market synthesis after the US close"]
+					]
+				},
+				{
+					"type": "paragraph",
+					"text": "Skip rules:"
+				},
+				{
+					"type": "list",
+					"items": [
+						"All windows are skipped if the user has no holdings",
+						"For a given holding, if the new analysis has no perceivable change versus the previous one (no badge), push is skipped",
+						"Channels disabled under Settings → Push Channels receive nothing",
+						"Each channel can opt in or out of individual windows"
+					]
+				}
+			]
+		},
+		{
+			"id": "risk",
+			"title": "Risk Preference",
+			"blocks": [
+				{
+					"type": "paragraph",
+					"text": "Risk preference is set in Settings → Account with three values: Conservative, Neutral, and Aggressive. It nudges the LLM within the weight-adjustment range; it does not change the hard rules of the analysis engine. Instead, the synthesis step biases the weights toward a more cautious or more aggressive stance."
+				},
+				{
+					"type": "table",
+					"headers": ["Preference", "Effect"],
+					"rows": [
+						[
+							"Conservative",
+							"Synthesis leans on downside signals from Position and Catalyst; biased toward hold or gradual reduce"
+						],
+						["Neutral", "No bias; recommendations follow the raw three-dimension weights"],
+						[
+							"Aggressive",
+							"Synthesis leans on upside signals from Trend and Catalyst; biased toward small or aggressive add"
+						]
+					]
+				},
+				{
+					"type": "note",
+					"text": "The exact weight-adjustment range is decided by the backend synthesis module and is not listed as a percentage in the PRD. Use the detail page's Three Dimensions section (weight trace X% → Y%) to observe the actual bias applied."
+				}
+			]
+		}
+	]
+}
