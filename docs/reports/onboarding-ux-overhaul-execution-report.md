@@ -220,3 +220,27 @@
 
 worktree 列表显示同时存在另外 2 个 sibling 的 CC 会话工作树（chore-lint-v2、docs-llm-degraded），符合多 CC 并行隔离原则。
 
+
+## Step 08 OnboardingBackground 装饰层组件
+
+### 目标
+新建 `OnboardingBackground` 组件，三层装饰：64px 细网格、90s 漂移 radial glow、仅 Welcome 显示的 30s 自转 conic-gradient 光环 hero。响应 reduced motion 降级。组件本 step 不挂载到任何页面，由 step 10 的 OnboardingLayout 接入。
+
+### 实施提交
+- `fa0010b` feat(onboarding): add OnboardingBackground decoration component
+- `5b9de39` style(auth): tune brand wordmark to balanced lockup proportions（兄弟 CC 会话或 IDE 在同一 worktree 中产生的并行编辑，与 onboarding plan 无关，已落到分支上但不计入 step 08 范围）
+
+### 新增文件
+- `frontend/src/pages/onboarding/components/OnboardingBackground.tsx`（135 行）
+
+### Review 轮次
+1. **Inline 合并 review**（spec + code quality）→ PASS
+   - Spec：TRD §5.2 三层结构完整、`useReducedMotion` 三值处理（true/false/null）正确、ring 仅 Welcome 渲染、`will-change: transform` 仅在 ring 上、logo `aria-hidden`
+   - Code quality：`Number.POSITIVE_INFINITY` 替代 `Infinity`（Biome 自动修正）、内联 CSSProperties 风格对齐、注释英文
+   - 验证：lint:all PASS（147 files / 162 modules / 523 deps）；test --run PASS（24 files / 121 tests）；build 3.98s 成功；新组件 tree-shake friendly（无消费方所以未进 chunk）
+
+### 观察项
+- 同 worktree 内出现 AuthSplitLayout.tsx 的并行编辑（implementer 称之为 unknown origin），实际是用户/另一个工具在 worktree 内做了 brand wordmark CSS 微调，已在本步窗口期独立 commit `5b9de39`。无冲突，不阻塞 onboarding plan
+- 全局规则「一 CC 一 worktree」需要用户注意：当前 worktree 似乎被多个工具同时操作，建议保持单 CC 实例以避免文件锁竞争
+
+### Step 08 状态: COMPLETED
