@@ -12,7 +12,7 @@ export const BADGE_TEXT: Record<Exclude<BadgeState, "none">, string> = {
 	action_downgrade: "建议降级",
 	signal_flip: "信号翻转",
 	plan_adjust: "计划调整",
-	confidence_shift: "信心变化",
+	confidence_shift: "信心度波动",
 };
 
 // BADGE_COLORS maps each badge state to an antd Tag color token. Inline

@@ -32,13 +32,15 @@ export default function HelpPage() {
 
 	// Scroll to the hash on mount and whenever the hash changes. We query the
 	// DOM directly rather than refs because sections live in a child component
-	// and refs would require plumbing one callback per section.
+	// and refs would require plumbing one callback per section. Use instant
+	// scroll on hash jumps so the IntersectionObserver cannot race with a
+	// smooth-scroll animation and briefly highlight the top-of-page section.
 	useEffect(() => {
 		const hash = location.hash.replace(/^#/, "");
 		if (!hash) return;
 		const target = document.getElementById(hash);
 		if (target) {
-			target.scrollIntoView({ behavior: "smooth", block: "start" });
+			target.scrollIntoView({ behavior: "instant", block: "start" });
 			setActiveId(hash);
 		}
 	}, [location.hash]);

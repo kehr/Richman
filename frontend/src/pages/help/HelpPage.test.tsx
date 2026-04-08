@@ -1,6 +1,6 @@
 import { getSectionIds } from "@/i18n/help";
 import { renderWithProviders } from "@/test/utils";
-import { fireEvent, screen } from "@testing-library/react";
+import { act, fireEvent, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import HelpPage from "./HelpPage";
@@ -28,9 +28,11 @@ vi.mock("@/domain/i18n/provider", async () => {
 // without throwing. The stub records the callback so tests can trigger
 // synthetic visibility events if they need to.
 class IntersectionObserverMock {
+	static lastInstance: IntersectionObserverMock | null = null;
 	callback: IntersectionObserverCallback;
 	constructor(cb: IntersectionObserverCallback) {
 		this.callback = cb;
+		IntersectionObserverMock.lastInstance = this;
 	}
 	observe() {}
 	unobserve() {}
@@ -87,6 +89,34 @@ describe("HelpPage", () => {
 		const link = screen.getByTestId("help-sidebar-link-actions");
 		fireEvent.click(link);
 		expect(link).toHaveAttribute("aria-current", "location");
+	});
+
+	it("highlights the sidebar entry when IntersectionObserver reports it visible", () => {
+		renderHelp();
+		const target = document.getElementById("dimensions");
+		expect(target).not.toBeNull();
+		const observer = IntersectionObserverMock.lastInstance;
+		expect(observer).not.toBeNull();
+		act(() => {
+			observer?.callback(
+				[
+					{
+						isIntersecting: true,
+						target: target as Element,
+						boundingClientRect: { top: 100 } as DOMRectReadOnly,
+						intersectionRatio: 1,
+						intersectionRect: {} as DOMRectReadOnly,
+						rootBounds: null,
+						time: 0,
+					},
+				],
+				observer as unknown as IntersectionObserver,
+			);
+		});
+		expect(screen.getByTestId("help-sidebar-link-dimensions")).toHaveAttribute(
+			"aria-current",
+			"location",
+		);
 	});
 
 	it("surfaces English content when the locale is en", () => {

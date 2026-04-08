@@ -16,25 +16,22 @@ interface HelpSectionProps {
 
 interface BlockRendererProps {
 	block: HelpBlock;
-	// Index is only used for React keys; blocks have no stable id of their
-	// own, but the (section, index) pair is stable across renders.
-	index: number;
 }
 
-function BlockRenderer({ block, index }: BlockRendererProps) {
+function BlockRenderer({ block }: BlockRendererProps) {
 	switch (block.type) {
 		case "paragraph":
-			return (
-				<Paragraph key={index} style={{ marginBottom: 12 }}>
-					{block.text}
-				</Paragraph>
-			);
+			return <Paragraph style={{ marginBottom: 12 }}>{block.text}</Paragraph>;
 		case "list": {
 			const ListTag = block.ordered ? "ol" : "ul";
 			return (
-				<ListTag key={index} style={{ marginBottom: 16, paddingLeft: 20 }}>
-					{block.items.map((item) => (
-						<li key={item} style={{ marginBottom: 4 }}>
+				<ListTag style={{ marginBottom: 16, paddingLeft: 20 }}>
+					{block.items.map((item, itemIndex) => (
+						// Help content is static JSON and list items never reorder at
+						// runtime, so the authored index is a stable React key and is
+						// safer than keying on the item text which may repeat.
+						// biome-ignore lint/suspicious/noArrayIndexKey: static authored content
+						<li key={itemIndex} style={{ marginBottom: 4 }}>
 							{item}
 						</li>
 					))}
@@ -58,7 +55,6 @@ function BlockRenderer({ block, index }: BlockRendererProps) {
 			});
 			return (
 				<Table
-					key={index}
 					size="small"
 					bordered
 					pagination={false}
@@ -71,7 +67,6 @@ function BlockRenderer({ block, index }: BlockRendererProps) {
 		case "code":
 			return (
 				<pre
-					key={index}
 					style={{
 						background: "#f5f5f5",
 						border: "1px solid #e8e8e8",
@@ -85,9 +80,7 @@ function BlockRenderer({ block, index }: BlockRendererProps) {
 				</pre>
 			);
 		case "note":
-			return (
-				<Alert key={index} type="info" showIcon message={block.text} style={{ marginBottom: 16 }} />
-			);
+			return <Alert type="info" showIcon message={block.text} style={{ marginBottom: 16 }} />;
 		default:
 			return null;
 	}
@@ -107,7 +100,7 @@ export function HelpSection({ section }: HelpSectionProps) {
 				// Help content is authored as a static JSON document; blocks never
 				// reorder or get inserted at runtime, so a type+index composite is
 				// stable across renders without hashing every block body.
-				<BlockRenderer key={`${block.type}-${index}`} block={block} index={index} />
+				<BlockRenderer key={`${block.type}-${index}`} block={block} />
 			))}
 		</section>
 	);
