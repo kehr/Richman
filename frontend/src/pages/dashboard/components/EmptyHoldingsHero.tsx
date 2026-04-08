@@ -1,6 +1,7 @@
 import { Button, Card, Space, Typography } from "@/ui-kit/eat";
+import { useNavigate } from "react-router";
 
-const { Paragraph, Title } = Typography;
+const { Paragraph, Text, Title } = Typography;
 
 interface EmptyHoldingsHeroProps {
 	onAddHolding: () => void;
@@ -11,7 +12,16 @@ interface EmptyHoldingsHeroProps {
 // minimal: a big centered card with a single primary CTA that routes back to
 // the portfolio add flow. PRD §3.1 specifies this as a hero — large type,
 // generous padding, no secondary actions.
+//
+// Step 16 addition: a secondary text link routes back into the onboarding
+// wizard. The link exists so users who dismissed the OnboardingSkippedNudge
+// still have a regret path into /onboarding/welcome; without it an
+// empty-holdings user who hit "不再提示" would be dead-ended from the flow.
+// The OnboardingGuard permits skipped=true users to access onboarding routes
+// directly (step 15), so navigate() needs no special handling here.
 export function EmptyHoldingsHero({ onAddHolding }: EmptyHoldingsHeroProps) {
+	const navigate = useNavigate();
+
 	return (
 		<Card
 			data-testid="empty-holdings-hero"
@@ -40,6 +50,18 @@ export function EmptyHoldingsHero({ onAddHolding }: EmptyHoldingsHeroProps) {
 				>
 					添加持仓 →
 				</Button>
+				<Text type="secondary" style={{ fontSize: 13, marginTop: 12, textAlign: "center" }}>
+					想先跟着引导走一遍？
+					<Button
+						type="link"
+						size="small"
+						style={{ padding: "0 4px" }}
+						onClick={() => navigate("/onboarding/welcome")}
+						data-testid="empty-holdings-hero-onboarding-link"
+					>
+						重新开始引导
+					</Button>
+				</Text>
 			</Space>
 		</Card>
 	);

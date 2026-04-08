@@ -1,13 +1,14 @@
 import { type DecisionCardDTO, useDecisionCards, useRerunAnalysis } from "@/features/decision-card";
 import { useHoldings } from "@/features/portfolio";
 import { useUserSettings } from "@/features/user-settings";
-import { App, PageContainer, Space } from "@/ui-kit/eat";
+import { App, Flex, PageContainer, Space } from "@/ui-kit/eat";
 import { useMemo, useRef } from "react";
 import { useNavigate } from "react-router";
 import { ChangeAnchorList } from "./components/ChangeAnchorList";
 import { DashboardTopStrip, computeNextAnalysisTime } from "./components/DashboardTopStrip";
 import { DecisionCardWall } from "./components/DecisionCardWall";
 import { EmptyHoldingsHero } from "./components/EmptyHoldingsHero";
+import { OnboardingSkippedNudge } from "./components/OnboardingSkippedNudge";
 
 // DashboardPage is the composition root for PRD §3.1 three-region dashboard.
 // Business logic is delegated to existing feature hooks so this file only
@@ -100,42 +101,46 @@ export default function DashboardPage() {
 		navigate("/portfolio");
 	};
 
-	// Empty holdings branch: once holdings finish loading and the list is
-	// empty we show the hero instead of the regular three-region layout.
+	// Restructured outer shell (step 16): a flex column wraps the nudge plus
+	// whichever body branch applies, so the nudge can render above either the
+	// empty-holdings hero or the populated three-region layout. The nudge
+	// decides internally whether to render based on status.skipped and the
+	// localStorage dismissed flag.
 	const holdingsReady = !holdingsQuery.isLoading;
-	if (holdingsReady && holdings.length === 0) {
-		return (
-			<PageContainer title="Dashboard" data-testid="dashboard-page">
-				<EmptyHoldingsHero onAddHolding={handleAddHolding} />
-			</PageContainer>
-		);
-	}
+	const showEmptyHero = holdingsReady && holdings.length === 0;
 
 	return (
 		<PageContainer title="Dashboard" data-testid="dashboard-page">
-			<Space direction="vertical" size={16} style={{ width: "100%" }}>
-				<DashboardTopStrip
-					holdingCount={holdings.length}
-					totalCapitalCny={settings?.totalCapitalCny}
-					totalPositionRatio={totalPositionRatio}
-					aggregatePnlAmount={aggregatePnlAmount}
-					aggregatePnlPct={aggregatePnlPct}
-					lastAnalyzedAt={lastAnalyzedAt}
-					nextAnalysisAt={nextAnalysisAt}
-					onRerun={handleRerun}
-					rerunLoading={rerun.isPending}
-					onConfigureCapital={handleConfigureCapital}
-				/>
-				<ChangeAnchorList cards={cards} cardRefs={cardRefs} />
-				<DecisionCardWall
-					cards={cards}
-					isLoading={cardsQuery.isLoading}
-					error={cardsQuery.error}
-					onCardClick={handleCardClick}
-					onRetry={() => cardsQuery.refetch()}
-					cardRefs={cardRefs}
-				/>
-			</Space>
+			<Flex vertical gap={16}>
+				<OnboardingSkippedNudge />
+				{showEmptyHero ? (
+					<EmptyHoldingsHero onAddHolding={handleAddHolding} />
+				) : (
+					<Space direction="vertical" size={16} style={{ width: "100%" }}>
+						<DashboardTopStrip
+							holdingCount={holdings.length}
+							totalCapitalCny={settings?.totalCapitalCny}
+							totalPositionRatio={totalPositionRatio}
+							aggregatePnlAmount={aggregatePnlAmount}
+							aggregatePnlPct={aggregatePnlPct}
+							lastAnalyzedAt={lastAnalyzedAt}
+							nextAnalysisAt={nextAnalysisAt}
+							onRerun={handleRerun}
+							rerunLoading={rerun.isPending}
+							onConfigureCapital={handleConfigureCapital}
+						/>
+						<ChangeAnchorList cards={cards} cardRefs={cardRefs} />
+						<DecisionCardWall
+							cards={cards}
+							isLoading={cardsQuery.isLoading}
+							error={cardsQuery.error}
+							onCardClick={handleCardClick}
+							onRetry={() => cardsQuery.refetch()}
+							cardRefs={cardRefs}
+						/>
+					</Space>
+				)}
+			</Flex>
 		</PageContainer>
 	);
 }

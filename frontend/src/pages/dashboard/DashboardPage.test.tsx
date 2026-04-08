@@ -39,6 +39,14 @@ vi.mock("@/features/decision-card", async () => {
 
 vi.mock("@/features/user-settings", () => ({
 	useUserSettings: () => settingsState,
+	// Stub the onboarding-status hook so OnboardingSkippedNudge (mounted at
+	// the top of DashboardPage as of step 16) can render without a real
+	// query client. Tests that need the nudge visible can override via the
+	// dedicated OnboardingSkippedNudge.test.tsx suite.
+	useOnboardingStatus: () => ({
+		data: { completed: true, skipped: false },
+		isLoading: false,
+	}),
 }));
 
 vi.mock("@/domain/money/useMoney", () => ({
