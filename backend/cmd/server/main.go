@@ -108,9 +108,12 @@ func main() {
 	}
 	if llmProvider != nil {
 		llmEnhancer = catalyst.NewLLMEnhancer(llmProvider, zapLogger)
-		llmSynthesizer = synthesis.NewSynthesizer(llmProvider, zapLogger)
 		zapLogger.Info("llm provider initialized", zap.String("provider", llmProvider.Name()))
 	}
+	// Synthesizer is always constructed: when llmProvider is nil, Synthesize
+	// short-circuits to the template fallback so the analysis pipeline still
+	// produces decision cards in degraded mode.
+	llmSynthesizer = synthesis.NewSynthesizer(llmProvider, zapLogger)
 
 	// Initialize vision provider (optional; screenshot recognition
 	// degrades to a "failed" response when the provider is unavailable).
@@ -127,13 +130,6 @@ func main() {
 	screenshotService := screenshotSvc.NewService(visionProvider, zapLogger, screenshotSvc.Options{})
 	onboardingService := onboardingSvc.NewService(userRepo, cfg)
 	userSettingsService := usersettingsSvc.NewService(userRepo)
-
-	// Fallback synthesizer when LLM is not available.
-	if llmSynthesizer == nil {
-		// Create a synthesizer that will always use the template fallback.
-		// Pass nil provider; Synthesize handles nil gracefully via degraded mode.
-		llmSynthesizer = synthesis.NewSynthesizer(nil, zapLogger)
-	}
 
 	// Initialize datasource clients
 	akshareClient := akshare.New(cfg.Datasource.AKShareBaseURL, zapLogger)

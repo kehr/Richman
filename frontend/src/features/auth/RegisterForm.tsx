@@ -1,9 +1,7 @@
-import { Alert, Button, Form, Input, Typography } from "@/ui-kit/eat";
+import { Alert, Button, Form, Input } from "@/ui-kit/eat";
 import { Link } from "react-router";
 import type { RegisterInput } from "./api";
 import { useRegister } from "./useAuth";
-
-const { Title } = Typography;
 
 interface RegisterFormProps {
 	// Optional override for the post-register redirect target, mirroring
@@ -11,6 +9,8 @@ interface RegisterFormProps {
 	redirectTo?: string;
 }
 
+// RegisterForm mirrors LoginForm layout: width comes from the parent
+// (AuthSplitLayout's form-wrapper), title is left-aligned display style.
 export function RegisterForm({ redirectTo }: RegisterFormProps) {
 	const { mutate, isPending, error } = useRegister({ redirectTo });
 
@@ -19,10 +19,31 @@ export function RegisterForm({ redirectTo }: RegisterFormProps) {
 	};
 
 	return (
-		<div style={{ width: 360 }}>
-			<Title level={3} style={{ textAlign: "center", marginBottom: 32 }}>
-				Create Account
-			</Title>
+		<div style={{ width: "100%" }}>
+			<div style={{ marginBottom: 28 }}>
+				<h2
+					style={{
+						margin: 0,
+						fontSize: 30,
+						fontWeight: 600,
+						letterSpacing: "-0.01em",
+						color: "#0b0b0d",
+						lineHeight: 1.2,
+					}}
+				>
+					Create Account
+				</h2>
+				<p
+					style={{
+						margin: "8px 0 0",
+						fontSize: 14,
+						color: "#6b6b70",
+						lineHeight: 1.6,
+					}}
+				>
+					只需邀请码即可加入，立即开始你的第一张决策卡。
+				</p>
+			</div>
 
 			{error && (
 				<Alert message={error.message} type="error" showIcon style={{ marginBottom: 16 }} />
@@ -59,13 +80,13 @@ export function RegisterForm({ redirectTo }: RegisterFormProps) {
 					<Input placeholder="Invite Code" size="large" />
 				</Form.Item>
 
-				<Form.Item>
+				<Form.Item style={{ marginBottom: 16 }}>
 					<Button type="primary" htmlType="submit" block size="large" loading={isPending}>
 						Register
 					</Button>
 				</Form.Item>
 
-				<div style={{ textAlign: "center" }}>
+				<div style={{ fontSize: 14, color: "#6b6b70" }}>
 					Already have an account? <Link to="/login">Sign In</Link>
 				</div>
 			</Form>

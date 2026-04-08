@@ -111,6 +111,29 @@ func TestSynthesize_LLMSuccessWithRecommendation(t *testing.T) {
 	}
 }
 
+func TestSynthesize_NilProvider_UsesTemplateFallback(t *testing.T) {
+	// When the LLM provider is unavailable at startup (no API key, dial
+	// failure, etc.) main.go constructs a Synthesizer with a nil provider
+	// and relies on Synthesize short-circuiting to the template fallback.
+	// Regression guard for the nil-pointer panic observed on dev start when
+	// this contract was silently broken.
+	s := NewSynthesizer(nil, zap.NewNop())
+
+	out, err := s.Synthesize(context.Background(), sampleInput(analysis.RecommendHold))
+	if err != nil {
+		t.Fatalf("expected nil error on nil-provider fallback, got %v", err)
+	}
+	if out == nil {
+		t.Fatal("expected non-nil output from template fallback")
+	}
+	if out.Recommendation.Action != recommendation.ActionHold {
+		t.Errorf("expected hold fallback, got %q", out.Recommendation.Action)
+	}
+	if out.TrendSummary == "" || out.PositionSummary == "" {
+		t.Error("expected template fallback to populate summary fields")
+	}
+}
+
 func TestSynthesize_LLMFailure_UsesTemplateFallback(t *testing.T) {
 	provider := &stubProvider{err: errors.New("network down")}
 	s := NewSynthesizer(provider, zap.NewNop())

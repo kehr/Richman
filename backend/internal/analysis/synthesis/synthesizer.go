@@ -56,8 +56,18 @@ type SynthesisOutput struct {
 }
 
 // Synthesize generates structured decision card content.
-// If the LLM fails, a basic template-based output is returned (degraded mode).
+// If the LLM fails or the provider is not configured, a basic template-based
+// output is returned (degraded mode). This matches the contract advertised by
+// the server bootstrap, which intentionally constructs a Synthesizer with a
+// nil provider when no LLM is available.
 func (s *Synthesizer) Synthesize(ctx context.Context, input *SynthesisInput) (*SynthesisOutput, error) {
+	if s.provider == nil {
+		s.logger.Info("llm provider not configured, using template fallback",
+			zap.String("asset", input.AssetCode),
+		)
+		return templateFallback(input), nil
+	}
+
 	prompt := buildSynthesisPrompt(input)
 
 	resp, err := s.provider.ChatCompletion(ctx, llm.ChatRequest{
