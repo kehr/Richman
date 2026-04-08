@@ -1,6 +1,7 @@
 import { useMoney } from "@/domain/money/useMoney";
 import { ChangeBadge, type DecisionCardDTO } from "@/features/decision-card";
-import { Space, Tag, Typography } from "@/ui-kit/eat";
+import { QuestionCircleOutlined, Space, Tag, Tooltip, Typography } from "@/ui-kit/eat";
+import { Link } from "react-router";
 
 const { Text, Title } = Typography;
 
@@ -63,7 +64,14 @@ export function CardHero({ card }: CardHeroProps) {
 					</Text>
 				)}
 			</Space>
-			<ChangeBadge badgeState={card.badgeState} />
+			<Space size={4}>
+				<ChangeBadge badgeState={card.badgeState} />
+				<Tooltip title="查看变化徽章说明">
+					<Link to="/help#badge" aria-label="变化徽章帮助" data-testid="card-hero-badge-help">
+						<QuestionCircleOutlined style={{ color: "#8c8c8c" }} />
+					</Link>
+				</Tooltip>
+			</Space>
 		</div>
 	);
 }

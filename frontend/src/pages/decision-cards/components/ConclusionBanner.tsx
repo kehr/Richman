@@ -1,5 +1,6 @@
 import type { BadgeState, DecisionCardDTO } from "@/features/decision-card";
-import { Space, Typography } from "@/ui-kit/eat";
+import { QuestionCircleOutlined, Space, Tooltip, Typography } from "@/ui-kit/eat";
+import { Link } from "react-router";
 
 const { Text, Title } = Typography;
 
@@ -67,7 +68,18 @@ export function ConclusionBanner({ card, prevCard }: ConclusionBannerProps) {
 				)}
 			</Space>
 			<Space direction="vertical" size={0} align="end">
-				<Text type="secondary">信心度</Text>
+				<Space size={4}>
+					<Text type="secondary">信心度</Text>
+					<Tooltip title="查看信心度说明">
+						<Link
+							to="/help#confidence"
+							aria-label="信心度帮助"
+							data-testid="conclusion-confidence-help"
+						>
+							<QuestionCircleOutlined style={{ color: "#8c8c8c" }} />
+						</Link>
+					</Tooltip>
+				</Space>
 				<Title level={2} style={{ margin: 0 }} data-testid="conclusion-confidence">
 					{confidencePct}%
 				</Title>

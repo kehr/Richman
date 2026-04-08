@@ -1,6 +1,16 @@
 import type { DecisionCardDTO } from "@/features/decision-card";
-import { Card, Col, Row, Space, Tag, Typography } from "@/ui-kit/eat";
+import {
+	Card,
+	Col,
+	QuestionCircleOutlined,
+	Row,
+	Space,
+	Tag,
+	Tooltip,
+	Typography,
+} from "@/ui-kit/eat";
 import type { CSSProperties } from "react";
+import { Link } from "react-router";
 
 const { Text, Title, Paragraph } = Typography;
 
@@ -128,7 +138,25 @@ export function DimensionReasoning({ card, prevCard }: DimensionReasoningProps) 
 	];
 
 	return (
-		<Card title={<Title level={5}>三维度推理</Title>} data-testid="dimension-reasoning">
+		<Card
+			title={
+				<Space size={4}>
+					<Title level={5} style={{ margin: 0 }}>
+						三维度推理
+					</Title>
+					<Tooltip title="查看三维分析说明">
+						<Link
+							to="/help#dimensions"
+							aria-label="三维分析帮助"
+							data-testid="dimension-reasoning-help"
+						>
+							<QuestionCircleOutlined style={{ color: "#8c8c8c" }} />
+						</Link>
+					</Tooltip>
+				</Space>
+			}
+			data-testid="dimension-reasoning"
+		>
 			<Row gutter={[12, 12]}>
 				{views.map((v) => (
 					<Col key={v.key} xs={24} md={8}>
