@@ -11,7 +11,7 @@ interface LoginFormProps {
 	redirectTo?: string;
 }
 
-export function LoginForm({ redirectTo }: LoginFormProps = {}) {
+export function LoginForm({ redirectTo }: LoginFormProps) {
 	const { mutate, isPending, error } = useLogin({ redirectTo });
 
 	const handleSubmit = (values: LoginInput) => {
