@@ -160,3 +160,25 @@
 - AccountTab 已经用 `await resetOnboarding.mutateAsync()`，自然兼容新的 async onSuccess，无须额外修改
 
 ### Step 05 状态: COMPLETED
+
+## Step 06 framer-motion install + matchMedia mock
+
+### 目标
+安装 framer-motion 作为前端运行时依赖，为后续 step 07-14 的动画做准备。验证 jsdom 测试环境的 matchMedia mock 已就绪。
+
+### 实施提交
+- `7bf290a` chore(frontend): add framer-motion and matchMedia jsdom mock
+
+### 修改文件
+- `frontend/package.json`：dependencies 新增 `framer-motion: ^12.38.0`
+- `frontend/pnpm-lock.yaml`：lock 同步
+
+### 观察项
+- `frontend/src/test/setup.ts` 的 `matchMedia` mock 已经在更早的工作中加过（注释说是为 antd Row/Col 响应式 Grid 准备的），完全兼容 framer-motion 的 useReducedMotion 需求，本 step 无需新增
+
+### Review 轮次
+1. **Inline 合并 review** → PASS
+   - Spec：framer-motion 在 dependencies（非 devDependencies）✓ 版本 12.38.0 ✓ matchMedia mock 存在 ✓
+   - 验证：lint:all / test --run / build 全绿
+
+### Step 06 状态: COMPLETED
