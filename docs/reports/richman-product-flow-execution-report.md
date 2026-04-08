@@ -860,3 +860,92 @@ Spec: ✅ Pass。Code quality: **Approve after C1+C2 fix**（2 Critical, 6 Impor
 
 ### Step 16 状态: **COMPLETED** ✅
 - Commits: `a940243` → `5c4d0a6` → `d9acddb` → `4038023` → `<inline fix pending>`
+
+## Step 17 截图批量导入与交易子页（Phase 7 续）
+
+### 目标
+按 `docs/plans/richman-product-flow-plan/step17-screenshot-import.md` 实现：
+- PortfolioListPage 截图导入入口启用并打开 ScreenshotImportModal
+- 全屏 Modal 支持四阶段（initial-upload / recognizing / recognized / failed）与左图右表双栏
+- 识别结果按 §4.3 置信度分层（高 >=0.85 白，中 >=0.6 黄，低 <0.6 红），低置信度字段强制用户手填
+- 5 持仓上限在勾选层面强约束，顺序 POST 在首个失败处停止并提示「成功 X / 失败 Y」
+- `/portfolio/:id/transactions` 替换原 alias，新增 PortfolioTransactionsPage + 交易表 + 汇总卡 + AddTransactionDrawer
+
+### 决策（已执行阶段决策）
+- Q1 交易 DELETE 后端未提供 → 编辑/删除按钮保留但 disabled，Tooltip 标注「接口待后端补齐」
+- Q2 ScreenshotImportModal 仅从 PortfolioListPage 顶部按钮触发，Drawer 截图 tab 保持 disabled
+- Q3 每行独立 checkbox，上限 = `min(5 - currentHoldingCount, 识别数量)`
+- Q4 Bulk POST 顺序执行，`for/await`，首个失败即停；成功条目从表格 state 中剔除避免重试双写
+
+### 实施提交
+1. `17894f8` feat(portfolio): add screenshot import api and types
+2. `a37f46b` feat(portfolio): add screenshot import modal with dual pane
+3. `10e5d84` feat(portfolio): add transactions sub-page with add drawer
+4. `26c5d5e` feat(portfolio): wire screenshot modal and transactions route
+5. `b0bc5f5` fix(portfolio): apply step 17 review fixes
+6. `d5f31c5` fix(portfolio): align TradeRecordList with Dayjs helper
+
+### 新增/修改文件
+新增 12 个：
+- `frontend/src/features/portfolio/screenshot-types.ts`
+- `frontend/src/features/portfolio/trade-types.ts`
+- `frontend/src/features/portfolio/use-screenshot-import.ts`
+- `frontend/src/pages/portfolio/PortfolioTransactionsPage.tsx`
+- `frontend/src/pages/portfolio/PortfolioTransactionsPage.test.tsx`
+- `frontend/src/pages/portfolio/components/ScreenshotImportModal.tsx`
+- `frontend/src/pages/portfolio/components/ScreenshotImportModal.test.tsx`
+- `frontend/src/pages/portfolio/components/RecognizedHoldingTable.tsx`
+- `frontend/src/pages/portfolio/components/ImagePreview.tsx`
+- `frontend/src/pages/portfolio/components/TransactionTable.tsx`
+- `frontend/src/pages/portfolio/components/AddTransactionDrawer.tsx`
+- （已删除）`frontend/src/features/portfolio/use-trades.ts`（与 usePortfolio 合并）
+
+修改 7 个：
+- `frontend/src/features/portfolio/api.ts`：新增 `importPortfolioScreenshot` multipart helper；删除重复的 `CreateTradeInput` 改从 `trade-types` 导入
+- `frontend/src/features/portfolio/usePortfolio.ts`：`useTrades` 选择器收敛 `Trade[]` + `TradeDirection` 联合类型；`useCreateTrade` 同步失效 `["holdings"]`
+- `frontend/src/features/portfolio/TradeRecordList.tsx`：同步 `DayjsLike` 模式 + `tradedAt` 必填规则（见 Review 跟进）
+- `frontend/src/features/portfolio/index.ts`：barrel 导出收敛
+- `frontend/src/pages/portfolio/PortfolioListPage.tsx`：接入 ScreenshotImportModal
+- `frontend/src/pages/portfolio/PortfolioListPage.test.tsx`：补 `useScreenshotImport` mock
+- `frontend/src/routes.tsx`：`/portfolio/:id/transactions` 切到 PortfolioTransactionsPage
+- `frontend/src/ui-kit/eat/index.ts`：新增 Breadcrumb / Image / InboxOutlined / UploadOutlined / UploadProps / UploadFile
+
+### Review 轮次
+1. **Spec compliance review (首轮)** → Pass with one lint fix
+   - 发现 `ScreenshotImportModal.test.tsx` 多行 `document.querySelector` Biome 格式化失败；reviewer 已就地修复
+   - 14/14 功能项全部满足；次要观察 Modal width=1100 vs PRD「full-screen」不 block
+2. **Code quality review (首轮)** → Pass with fixes
+   - 必修 5 项：低置信度字段 blanking 未生效 / 重复 trade hooks / `FormValues.tradedAt` 结构化类型与 dead fallback / 「无 DELETE counterpart」过时注释 + 成功行未清理 / capWarning 文案错配
+   - 建议 4 项：rowIdSeed 模块状态、`destroyOnClose` 已废弃、`¥` 未经 `useMoney`、Breadcrumb 内嵌 Button 不符合惯例
+3. **Fix commit spec review (`b0bc5f5`)** → Pass with fixes
+   - 6 项核心修复全部应用；唯一遗留：`TradeRecordList.tsx` 同样的 `toISOString` cast + `new Date()` 回退仍在，属旧路径但仍在 `/portfolio/:id` 活跃挂载
+
+### 已修复问题
+| # | 问题 | 修复 |
+|---|------|------|
+| 1 | RecognizedHoldingTable 低置信度字段 `value={showRedBorder ? "" : row.assetName}` 导致用户输入被吞 | 渲染侧去掉 blanking；在 `toEditableRows` 创建行时按 `CONFIDENCE_LOW` 一次性 seed 为空 |
+| 2 | `use-trades.ts` 与 `usePortfolio.useTrades` 两套 hook + 不同 query key，缓存不一致 | 删除 `use-trades.ts`；`usePortfolio.useTrades` 升级返回 `Trade[]`；`useCreateTrade` 补充失效 `["holdings"]` |
+| 3 | `AddTransactionDrawer.FormValues.tradedAt` 用结构化 `{ toISOString }` + `new Date()` 回退 | 引入 `DayjsLike` 别名，`values.tradedAt.toDate().toISOString()`，去除 dead fallback |
+| 4 | ScreenshotImportModal 注释「no DELETE counterpart」与 `deleteHolding` 实际存在矛盾 | 注释改写为「成功行从 state 中剔除避免重试双写」 |
+| 5 | Bulk POST 部分失败时已成功行仍留在表内，重试会双写 | 新增 `succeededRowIds` 收集并在失败后 `setRows(filter)` 清理 |
+| 6 | `rowIdSeed` 模块级可变状态（测试污染隐患） | 改用 `crypto.randomUUID()` |
+| 7 | `destroyOnClose` 已废弃 | 改 `destroyOnHidden` |
+| 8 | capWarning 文案「最多再勾选 X 个」在已达上限时语义错误 | 改为「当前已有 X 个，已勾选 Y 个，已达上限」 |
+| 9 | PortfolioTransactionsPage 汇总卡硬编码 `¥${...toFixed(2)}` | 改走 `money.formatAmountOnly` |
+| 10 | Breadcrumb 内嵌 `<Button>` 覆写 padding/height 不符合 antd 用法 | 改为 span + `cursor: pointer` + onClick，`biome-ignore` 注明可达性权衡（并存的 back Button 提供键盘操作） |
+| 11 | `TradeRecordList.tsx` 遗留相同 `toISOString` cast + `new Date()` 回退（Fix commit review 发现） | 同步 `DayjsLike` 模式，`tradedAt` 表单 rule 补 `required: true` |
+| 12 | `api.ts` 和 `trade-types.ts` 双份 `CreateTradeInput` 定义 | `api.ts` 改从 `./trade-types` 导入 |
+
+### 观察但未处理（优先级低）
+- 测试日志 jsdom `getComputedStyle` / antd Modal `measureScrollbarSize` 噪声（不影响结果）
+- antd `Spin tip` / `InputNumber addonAfter` deprecation 警告，预计 antd 6 minor 升级后统一处理
+- Modal width=1100 vs PRD「full-screen」：与 product 确认前不切换
+- `parseNumber` 不对 `positionRatio` 做 `[0,100]` clamp（InputNumber 自身已有 max=100）
+
+### 验证
+- `pnpm lint:all` PASS（119 files / 133 modules / 414 deps，Biome + tsc + depcruise 全绿）
+- `pnpm test --run` PASS（18 files / 83 tests）
+- `pnpm build` PASS（vite build 3.18s；PortfolioTransactionsPage chunk 11.18 kB gzip 4.49 kB）
+
+### Step 17 状态: **COMPLETED** ✅
+- Commits: `17894f8` → `a37f46b` → `10e5d84` → `26c5d5e` → `b0bc5f5` → `d5f31c5`
