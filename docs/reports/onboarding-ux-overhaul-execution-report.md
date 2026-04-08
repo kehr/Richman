@@ -207,3 +207,16 @@
 - Implementer subagent 生命周期最后未输出标准状态报告（"Not applicable"），但 4 个文件已创建在工作树（untracked），lint + test 全绿。主会话直接 inline 验证 + 提交，不重新 dispatch
 
 ### Step 07 状态: COMPLETED
+
+## 中途切换执行环境（worktree migration）
+
+完成 step 07 后用户重申「后续所有工作走全局 worktree 模式」。原本停留在主仓库的 in-flight 分支被迁移到 worktree：
+
+1. 主仓库工作树有 3 个未提交的 IDE 编辑（来自另一个 CC 会话的设计系统调整 + AuthSplitLayout CSS 重构），用户授权一并 commit 进 onboarding 分支：
+   - commit `c8b8d84` chore(ui): pull in pending favicon, logo, and auth split layout edits
+2. 主仓库切回 main，工作树清干净
+3. `git worktree add .claude/worktrees/onboarding-ux-overhaul onboarding-ux-overhaul` 创建 worktree
+4. 后续 step 08-18 全部在 worktree 内执行
+
+worktree 列表显示同时存在另外 2 个 sibling 的 CC 会话工作树（chore-lint-v2、docs-llm-degraded），符合多 CC 并行隔离原则。
+
