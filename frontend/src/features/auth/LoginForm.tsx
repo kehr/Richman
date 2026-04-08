@@ -5,8 +5,14 @@ import { useLogin } from "./useAuth";
 
 const { Title } = Typography;
 
-export function LoginForm() {
-	const { mutate, isPending, error } = useLogin();
+interface LoginFormProps {
+	// Optional override for the post-login redirect target. Pages parse
+	// ?returnTo= from the URL, validate it, and pass the cleaned value here.
+	redirectTo?: string;
+}
+
+export function LoginForm({ redirectTo }: LoginFormProps = {}) {
+	const { mutate, isPending, error } = useLogin({ redirectTo });
 
 	const handleSubmit = (values: LoginInput) => {
 		mutate(values);
