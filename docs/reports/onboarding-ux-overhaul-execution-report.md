@@ -50,3 +50,34 @@
 - 实际 `make migrate-up` 执行推迟到 step 02/03 有 repo/service 代码消费新字段时一并验证，避免在仅 schema 变更无代码依赖的中间状态跑迁移
 
 ### Step 01 状态: COMPLETED
+
+## Step 02 Backend Model + Repo
+
+### 目标
+扩展 `User` 模型 + `userSelectColumns` + `scanUser`，新增 `MarkOnboardingSkipped`，将 `ClearOnboardingCompleted` 改名为 `ResetOnboarding` 并扩展为同时清两列。`MarkOnboardingCompleted` SQL 追加 `onboarding_skipped_at = NULL` 保证互斥。Service 的 `UserRepo` interface 同步 rename 以保持 build green。
+
+### 实施提交
+- `faf1404` feat(backend): extend User model and repo for onboarding_skipped_at
+
+### 修改文件
+- `backend/internal/model/user.go`: 新增 `OnboardingSkippedAt *time.Time` 字段
+- `backend/internal/repo/user_repo.go`:
+  - `userSelectColumns` 12 列，新列插入 `onboarding_completed_at` 之后
+  - `scanUser` 追加 `skippedAt` 局部变量和 Scan 目标
+  - `MarkOnboardingCompleted` SET 子句追加 `onboarding_skipped_at = NULL`
+  - 新增 `MarkOnboardingSkipped`（对称 SQL：COALESCE skipped_at + 清 completed_at）
+  - `ClearOnboardingCompleted` 改名 `ResetOnboarding`，SQL 清两列
+- `backend/internal/service/onboarding/service.go`: `UserRepo` interface 与 `Reset` 方法内调用同步重命名（最小 cascade）
+- `backend/internal/service/onboarding/service_test.go` + `backend/internal/api/v1/onboarding_test.go`: `fakeUserRepo.ClearOnboardingCompleted` → `ResetOnboarding` 并同步清两列
+
+### Review 轮次
+1. **Inline 合并 review**（spec + code quality）→ PASS
+   - Spec: 与 TRD §3.1 完整方法签名一致；4 个 repo 操作对称性正确；service cascade 最小化未触 Status 或 env guard
+   - Code quality: 错误 wrap 消息风格对齐、comment 英文、无 emoji、无 AI 痕迹；Scan 参数顺序手动验证与列顺序匹配（12 positions）
+   - 验证通过：`go vet ./...` / `go build ./...` / `go test ./...` 全绿
+
+### 观察项（不阻塞）
+- `make lint`（golangci-lint）对 clean tree 也失败：`unsupported version of the configuration: ""`，`.golangci.yml` 缺少 `version:` key。预存在问题，非本 step 引入，建议后续单独修复工具链
+- `ResetOnboarding` 方法的 comment 仍说「dev-only reset flows, service layer gating」，这是临时状态 —— step 03 会移除 service 的生产守卫同时更新注释
+
+### Step 02 状态: COMPLETED
