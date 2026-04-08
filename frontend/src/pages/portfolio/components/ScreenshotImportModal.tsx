@@ -1,4 +1,5 @@
 import {
+	CONFIDENCE_LOW,
 	type EditableRecognizedHolding,
 	type RecognizedHolding,
 	useCreateHolding,
@@ -33,9 +34,10 @@ import { RecognizedHoldingTable } from "./RecognizedHoldingTable";
 //
 // On confirm we walk the selected rows sequentially (for/await) and call
 // the existing POST /holdings endpoint per row. We deliberately stop on the
-// first failure and surface a "成功 X / 失败 Y" message; there is no rollback
-// because the holdings table has no DELETE counterpart and the user can
-// re-run the modal after fixing the offending row.
+// first failure and surface a "成功 X / 失败 Y" message; rows that already
+// succeeded are removed from the table state so a retry will not re-create
+// them, while the failed and untouched rows remain available for the user
+// to fix and re-submit.
 
 interface ScreenshotImportModalProps {
 	open: boolean;
@@ -46,10 +48,10 @@ interface ScreenshotImportModalProps {
 
 type Phase = "initial-upload" | "recognizing" | "recognized" | "failed";
 
-let rowIdSeed = 0;
 function nextRowId(): string {
-	rowIdSeed += 1;
-	return `recognized-${Date.now()}-${rowIdSeed}`;
+	// crypto.randomUUID is available in jsdom + modern node and gives us a
+	// stable, collision-free key without relying on module-level mutable state.
+	return `recognized-${crypto.randomUUID()}`;
 }
 
 function parseNumber(raw: string): number | null {
@@ -68,15 +70,19 @@ function toEditableRows(
 	holdingLimit: number,
 ): EditableRecognizedHolding[] {
 	const remaining = Math.max(0, holdingLimit - currentHoldingCount);
+	// Fields that the LLM is not confident about (< CONFIDENCE_LOW) are seeded
+	// blank so the user is forced to type instead of editing dubious values.
+	// The red border + "请手动填写" placeholder on the row signal this clearly.
 	return holdings.map((h, idx) => ({
 		rowId: nextRowId(),
-		assetName: h.assetName.value,
+		assetName: h.assetName.confidence < CONFIDENCE_LOW ? "" : h.assetName.value,
 		assetNameConfidence: h.assetName.confidence,
-		assetCode: h.assetCode.value,
+		assetCode: h.assetCode.confidence < CONFIDENCE_LOW ? "" : h.assetCode.value,
 		assetCodeConfidence: h.assetCode.confidence,
-		costPrice: parseNumber(h.costPrice.value),
+		costPrice: h.costPrice.confidence < CONFIDENCE_LOW ? null : parseNumber(h.costPrice.value),
 		costPriceConfidence: h.costPrice.confidence,
-		positionRatio: parseNumber(h.positionPct.value),
+		positionRatio:
+			h.positionPct.confidence < CONFIDENCE_LOW ? null : parseNumber(h.positionPct.value),
 		positionRatioConfidence: h.positionPct.confidence,
 		assetType: h.assetTypeGuess || "a_share_broad",
 		// Pre-check rows up to the cap; rows beyond the cap default off.
@@ -183,9 +189,12 @@ export function ScreenshotImportModal({
 		setSubmitting(true);
 		let success = 0;
 		let failure = 0;
+		const succeededRowIds: string[] = [];
 		// Sequential bulk POST: stop on first failure so the user can review
-		// the offending row before re-running. There is no rollback because
-		// holdings has no DELETE counterpart in the bulk path.
+		// the offending row before re-running. Successfully created rows are
+		// removed from the table state below so a retry will not re-create
+		// them; the failed and untouched rows remain so the user can fix and
+		// resubmit only what is left.
 		for (const row of selectedRows) {
 			try {
 				await createHolding.mutateAsync({
@@ -198,10 +207,15 @@ export function ScreenshotImportModal({
 					positionRatio: row.positionRatio!,
 				});
 				success += 1;
+				succeededRowIds.push(row.rowId);
 			} catch {
 				failure += 1;
 				break;
 			}
+		}
+		if (succeededRowIds.length > 0) {
+			const completed = new Set(succeededRowIds);
+			setRows((prev) => prev.filter((r) => !completed.has(r.rowId)));
 		}
 		setSubmitting(false);
 		if (failure > 0) {
@@ -319,7 +333,7 @@ export function ScreenshotImportModal({
 					<Button onClick={onClose}>取消</Button>
 				)
 			}
-			destroyOnClose
+			destroyOnHidden
 			data-testid="screenshot-import-modal"
 		>
 			{renderBody()}

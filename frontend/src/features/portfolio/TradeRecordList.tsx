@@ -15,7 +15,7 @@ import {
 } from "@/ui-kit/eat";
 import { PlusOutlined } from "@/ui-kit/eat";
 import { useState } from "react";
-import type { TradeDto } from "./api";
+import type { Trade, TradeDirection } from "./trade-types";
 import { useCreateTrade, useTrades } from "./usePortfolio";
 
 interface TradeRecordListProps {
@@ -36,7 +36,7 @@ export function TradeRecordList({ holdingId }: TradeRecordListProps) {
 					: new Date().toISOString();
 
 			await createTrade.mutateAsync({
-				direction: values.direction as string,
+				direction: values.direction as TradeDirection,
 				price: values.price as number,
 				quantity: values.quantity as number,
 				tradedAt,
@@ -54,7 +54,7 @@ export function TradeRecordList({ holdingId }: TradeRecordListProps) {
 			title: "Direction",
 			dataIndex: "direction",
 			key: "direction",
-			render: (_: unknown, record: TradeDto) => (
+			render: (_: unknown, record: Trade) => (
 				<Tag color={record.direction === "buy" ? "green" : "red"}>
 					{record.direction.toUpperCase()}
 				</Tag>
@@ -64,7 +64,7 @@ export function TradeRecordList({ holdingId }: TradeRecordListProps) {
 			title: "Price",
 			dataIndex: "price",
 			key: "price",
-			render: (_: unknown, record: TradeDto) => formatCurrency(record.price),
+			render: (_: unknown, record: Trade) => formatCurrency(record.price),
 		},
 		{
 			title: "Quantity",
@@ -75,13 +75,13 @@ export function TradeRecordList({ holdingId }: TradeRecordListProps) {
 			title: "Traded At",
 			dataIndex: "tradedAt",
 			key: "tradedAt",
-			render: (_: unknown, record: TradeDto) => formatDate(record.tradedAt, "datetime"),
+			render: (_: unknown, record: Trade) => formatDate(record.tradedAt, "datetime"),
 		},
 	];
 
 	return (
 		<>
-			<ProTable<TradeDto>
+			<ProTable<Trade>
 				headerTitle="Trade Records"
 				columns={columns}
 				dataSource={trades}

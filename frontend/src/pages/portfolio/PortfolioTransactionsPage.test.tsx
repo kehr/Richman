@@ -13,8 +13,8 @@ vi.mock("@/features/portfolio", async () => {
 	return {
 		...actual,
 		useHoldings: () => holdingsState,
-		useHoldingTrades: () => tradesState,
-		useCreateHoldingTrade: () => ({ mutateAsync: vi.fn(), isPending: false }),
+		useTrades: () => tradesState,
+		useCreateTrade: () => ({ mutateAsync: vi.fn(), isPending: false }),
 	};
 });
 
@@ -26,8 +26,8 @@ vi.mock("@/domain/money/useMoney", () => ({
 	useMoney: () => ({
 		hasCapital: true,
 		format: (pct: number, amount?: number | null) =>
-			amount != null ? `${pct}% · ¥${amount}` : `${pct}%`,
-		formatAmountOnly: (amount?: number | null) => (amount != null ? `¥${amount}` : null),
+			amount != null ? `${pct}% · ¥${amount.toFixed(2)}` : `${pct}%`,
+		formatAmountOnly: (amount?: number | null) => (amount != null ? `¥${amount.toFixed(2)}` : null),
 	}),
 }));
 

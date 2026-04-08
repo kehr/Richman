@@ -10,7 +10,6 @@ export {
 	useCreateTrade,
 } from "./usePortfolio";
 export { useScreenshotImport } from "./use-screenshot-import";
-export { useHoldingTrades, useCreateHoldingTrade } from "./use-trades";
 export type { HoldingDto, TradeDto } from "./api";
 export type {
 	RecognizeResponse,

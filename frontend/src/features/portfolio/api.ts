@@ -2,6 +2,7 @@ import { getToken } from "@/domain/auth/storage";
 import { ApiError, request } from "@/domain/http/client";
 import type { ApiResponse } from "@/domain/http/types";
 import type { RecognizeResponse } from "./screenshot-types";
+import type { CreateTradeInput } from "./trade-types";
 
 const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8080/api/v1";
 
@@ -26,13 +27,6 @@ export interface CreateHoldingInput {
 export interface TradeDto {
 	tradeId: number;
 	holdingId: number;
-	direction: string;
-	price: number;
-	quantity: number;
-	tradedAt: string;
-}
-
-export interface CreateTradeInput {
 	direction: string;
 	price: number;
 	quantity: number;

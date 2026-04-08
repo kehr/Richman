@@ -49,8 +49,8 @@ function makeResponse(): RecognizeResponse {
 			{
 				assetName: { value: "宁德时代", confidence: 0.7 },
 				assetCode: { value: "300750", confidence: 0.7 },
-				costPrice: { value: "180", confidence: 0.5 },
-				positionPct: { value: "15", confidence: 0.5 },
+				costPrice: { value: "180", confidence: 0.7 },
+				positionPct: { value: "15", confidence: 0.7 },
 				assetTypeGuess: "a_share_individual",
 			},
 		],
@@ -61,9 +61,7 @@ function uploadFile() {
 	// antd Upload renders the file input outside the dragger node we tag
 	// with data-testid, so query the entire portaled modal body for the
 	// underlying input element instead.
-	const input = document.querySelector(
-		'.ant-upload input[type="file"]',
-	) as HTMLInputElement | null;
+	const input = document.querySelector('.ant-upload input[type="file"]') as HTMLInputElement | null;
 	if (!input) throw new Error("upload input not found");
 	const file = new File(["fake"], "screen.png", { type: "image/png" });
 	fireEvent.change(input, { target: { files: [file] } });

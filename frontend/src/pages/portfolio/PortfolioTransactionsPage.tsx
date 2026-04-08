@@ -1,5 +1,5 @@
 import { useMoney } from "@/domain/money/useMoney";
-import { type Trade, useHoldingTrades, useHoldings } from "@/features/portfolio";
+import { type Trade, useHoldings, useTrades } from "@/features/portfolio";
 import { useUserSettings } from "@/features/user-settings";
 import {
 	Breadcrumb,
@@ -61,7 +61,7 @@ export default function PortfolioTransactionsPage() {
 	const navigate = useNavigate();
 	const holdingId = Number(id);
 	const { data: holdings, isLoading: holdingsLoading } = useHoldings();
-	const { data: trades, isLoading: tradesLoading } = useHoldingTrades(holdingId);
+	const { data: trades, isLoading: tradesLoading } = useTrades(holdingId);
 	const { data: settings } = useUserSettings();
 	const money = useMoney();
 	const [drawerOpen, setDrawerOpen] = useState(false);
@@ -109,14 +109,10 @@ export default function PortfolioTransactionsPage() {
 							items={[
 								{
 									title: (
-										<Button
-											type="link"
-											size="small"
-											style={{ padding: 0, height: "auto" }}
-											onClick={() => navigate("/portfolio")}
-										>
+										// biome-ignore lint/a11y/useKeyWithClickEvents: breadcrumb crumb stays a span; the back button beside it provides the keyboard-accessible action
+										<span style={{ cursor: "pointer" }} onClick={() => navigate("/portfolio")}>
 											持仓
-										</Button>
+										</span>
 									),
 								},
 								{ title: holding.assetName },
@@ -153,11 +149,7 @@ export default function PortfolioTransactionsPage() {
 							<Col span={6}>
 								<Statistic
 									title="综合成本"
-									value={
-										aggregates.weightedCostPrice != null
-											? `¥${aggregates.weightedCostPrice.toFixed(2)}`
-											: "--"
-									}
+									value={money.formatAmountOnly(aggregates.weightedCostPrice) ?? "--"}
 								/>
 							</Col>
 							<Col span={6}>
@@ -167,10 +159,16 @@ export default function PortfolioTransactionsPage() {
 								/>
 							</Col>
 							<Col span={6}>
-								<Statistic title="总买入金额" value={`¥${aggregates.totalBuyAmount.toFixed(2)}`} />
+								<Statistic
+									title="总买入金额"
+									value={money.formatAmountOnly(aggregates.totalBuyAmount) ?? "--"}
+								/>
 							</Col>
 							<Col span={6}>
-								<Statistic title="总卖出金额" value={`¥${aggregates.totalSellAmount.toFixed(2)}`} />
+								<Statistic
+									title="总卖出金额"
+									value={money.formatAmountOnly(aggregates.totalSellAmount) ?? "--"}
+								/>
 							</Col>
 						</Row>
 					</Card>

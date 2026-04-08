@@ -7,7 +7,8 @@ import {
 	fetchTrades,
 	updateHolding,
 } from "./api";
-import type { CreateHoldingInput, CreateTradeInput } from "./api";
+import type { CreateHoldingInput } from "./api";
+import type { CreateTradeInput, Trade, TradeDirection } from "./trade-types";
 
 export function useHoldings() {
 	return useQuery({
@@ -50,11 +51,22 @@ export function useDeleteHolding() {
 	});
 }
 
+// useTrades fetches the trade history for a holding. The raw backend
+// direction string is narrowed to the TradeDirection union here so consumers
+// can rely on a discriminated union without revalidating each row.
 export function useTrades(holdingId: number) {
 	return useQuery({
 		queryKey: ["trades", holdingId],
 		queryFn: () => fetchTrades(holdingId),
-		select: (res) => res.data,
+		select: (res): Trade[] =>
+			(res.data ?? []).map((t) => ({
+				tradeId: t.tradeId,
+				holdingId: t.holdingId,
+				direction: t.direction as TradeDirection,
+				price: t.price,
+				quantity: t.quantity,
+				tradedAt: t.tradedAt,
+			})),
 		enabled: holdingId > 0,
 	});
 }
@@ -65,6 +77,7 @@ export function useCreateTrade(holdingId: number) {
 		mutationFn: (data: CreateTradeInput) => createTrade(holdingId, data),
 		onSuccess: () => {
 			qc.invalidateQueries({ queryKey: ["trades", holdingId] });
+			qc.invalidateQueries({ queryKey: ["holdings"] });
 		},
 	});
 }

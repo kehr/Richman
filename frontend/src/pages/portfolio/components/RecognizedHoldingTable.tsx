@@ -101,37 +101,33 @@ export function RecognizedHoldingTable({
 		{
 			title: "名称",
 			key: "assetName",
-			render: (_: unknown, row: EditableRecognizedHolding) => {
-				const showRedBorder = row.assetNameConfidence < CONFIDENCE_LOW;
-				return renderConfidenceWrapper(
+			render: (_: unknown, row: EditableRecognizedHolding) =>
+				renderConfidenceWrapper(
 					row.assetNameConfidence,
 					<Input
-						value={showRedBorder ? "" : row.assetName}
-						placeholder={showRedBorder ? "请手动填写" : undefined}
+						value={row.assetName}
+						placeholder="请手动填写"
 						style={fieldStyle(row.assetNameConfidence)}
 						onChange={(e) => onChange(row.rowId, { assetName: e.target.value })}
 						data-testid={`recognized-row-name-${row.rowId}`}
 					/>,
-				);
-			},
+				),
 		},
 		{
 			title: "代码",
 			key: "assetCode",
 			width: 140,
-			render: (_: unknown, row: EditableRecognizedHolding) => {
-				const showRedBorder = row.assetCodeConfidence < CONFIDENCE_LOW;
-				return renderConfidenceWrapper(
+			render: (_: unknown, row: EditableRecognizedHolding) =>
+				renderConfidenceWrapper(
 					row.assetCodeConfidence,
 					<Input
-						value={showRedBorder ? "" : row.assetCode}
-						placeholder={showRedBorder ? "请手动填写" : undefined}
+						value={row.assetCode}
+						placeholder="请手动填写"
 						style={fieldStyle(row.assetCodeConfidence)}
 						onChange={(e) => onChange(row.rowId, { assetCode: e.target.value })}
 						data-testid={`recognized-row-code-${row.rowId}`}
 					/>,
-				);
-			},
+				),
 		},
 		{
 			title: "成本",
@@ -203,7 +199,7 @@ export function RecognizedHoldingTable({
 				<Alert
 					type="warning"
 					showIcon
-					message={`MVP 最多 5 个标的，当前已有 ${currentHoldingCount} 个，最多再勾选 ${remainingSlots} 个`}
+					message={`MVP 最多 ${holdingLimit} 个标的，当前已有 ${currentHoldingCount} 个，已勾选 ${selectedCount} 个，已达上限`}
 					data-testid="recognized-cap-warning"
 				/>
 			)}

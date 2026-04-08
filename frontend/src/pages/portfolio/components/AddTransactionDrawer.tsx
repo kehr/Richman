@@ -1,4 +1,4 @@
-import { type CreateTradeInput, useCreateHoldingTrade } from "@/features/portfolio";
+import { type CreateTradeInput, useCreateTrade } from "@/features/portfolio";
 import { Button, DatePicker, Drawer, Flex, Form, InputNumber, Radio, message } from "@/ui-kit/eat";
 
 // AddTransactionDrawer is the right-side drawer used to record a new trade
@@ -12,8 +12,16 @@ interface AddTransactionDrawerProps {
 	onClose: () => void;
 }
 
+// DayjsLike captures the shape of the antd DatePicker value we depend on
+// here. Importing the full Dayjs type would force adding dayjs as a direct
+// dependency even though antd already bundles it transitively, so we keep
+// a minimal structural alias and convert to a native Date for serialization.
+interface DayjsLike {
+	toDate(): Date;
+}
+
 interface FormValues {
-	tradedAt?: { toISOString: () => string } | null;
+	tradedAt: DayjsLike;
 	direction: "buy" | "sell";
 	price: number;
 	quantity: number;
@@ -21,7 +29,7 @@ interface FormValues {
 
 export function AddTransactionDrawer({ open, holdingId, onClose }: AddTransactionDrawerProps) {
 	const [form] = Form.useForm<FormValues>();
-	const createTrade = useCreateHoldingTrade(holdingId);
+	const createTrade = useCreateTrade(holdingId);
 
 	const handleClose = () => {
 		form.resetFields();
@@ -29,15 +37,14 @@ export function AddTransactionDrawer({ open, holdingId, onClose }: AddTransactio
 	};
 
 	const handleFinish = async (values: FormValues) => {
-		const tradedAt =
-			values.tradedAt && typeof values.tradedAt.toISOString === "function"
-				? values.tradedAt.toISOString()
-				: new Date().toISOString();
+		// tradedAt is enforced as required by the antd Form rule below, so we
+		// rely on validation having already rejected an empty submission and
+		// just convert the Dayjs value straight into an ISO string.
 		const payload: CreateTradeInput = {
 			direction: values.direction,
 			price: values.price,
 			quantity: values.quantity,
-			tradedAt,
+			tradedAt: values.tradedAt.toDate().toISOString(),
 		};
 		try {
 			await createTrade.mutateAsync(payload);
