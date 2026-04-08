@@ -14,7 +14,10 @@ import (
 	"github.com/richman/backend/internal/service/onboarding"
 )
 
-// fakeOnbUserRepo is the minimum UserRepo the onboarding service needs.
+// fakeOnbUserRepo is the minimum UserRepo the onboarding service needs. It
+// mirrors the mutual-exclusion semantics of the real SQL layer:
+// MarkOnboardingCompleted clears skipped_at and MarkOnboardingSkipped clears
+// completed_at.
 type fakeOnbUserRepo struct {
 	user *model.User
 }
@@ -35,6 +38,20 @@ func (f *fakeOnbUserRepo) MarkOnboardingCompleted(_ context.Context, _ int64) (*
 		now := time.Date(2026, 4, 7, 10, 0, 0, 0, time.UTC)
 		f.user.OnboardingCompletedAt = &now
 	}
+	f.user.OnboardingSkippedAt = nil
+	cp := *f.user
+	return &cp, nil
+}
+
+func (f *fakeOnbUserRepo) MarkOnboardingSkipped(_ context.Context, _ int64) (*model.User, error) {
+	if f.user == nil {
+		return nil, nil
+	}
+	if f.user.OnboardingSkippedAt == nil {
+		now := time.Date(2026, 4, 8, 11, 0, 0, 0, time.UTC)
+		f.user.OnboardingSkippedAt = &now
+	}
+	f.user.OnboardingCompletedAt = nil
 	cp := *f.user
 	return &cp, nil
 }
@@ -48,10 +65,6 @@ func (f *fakeOnbUserRepo) ResetOnboarding(_ context.Context, _ int64) (*model.Us
 	cp := *f.user
 	return &cp, nil
 }
-
-type stubEnv struct{ prod bool }
-
-func (s stubEnv) IsProduction() bool { return s.prod }
 
 func newOnboardingTestRouter(svc *onboarding.Service, authedUserID int64) *gin.Engine {
 	gin.SetMode(gin.TestMode)
@@ -93,7 +106,7 @@ func decodeStatus(t *testing.T, body []byte) *onboarding.Status {
 }
 
 func TestOnboardingAPI_GetStatusDefault(t *testing.T) {
-	svc := onboarding.NewService(&fakeOnbUserRepo{user: baseOnbUser()}, stubEnv{prod: false})
+	svc := onboarding.NewService(&fakeOnbUserRepo{user: baseOnbUser()})
 	r := newOnboardingTestRouter(svc, 42)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/onboarding", nil)
@@ -110,7 +123,7 @@ func TestOnboardingAPI_GetStatusDefault(t *testing.T) {
 }
 
 func TestOnboardingAPI_Unauthorized(t *testing.T) {
-	svc := onboarding.NewService(&fakeOnbUserRepo{user: baseOnbUser()}, stubEnv{prod: false})
+	svc := onboarding.NewService(&fakeOnbUserRepo{user: baseOnbUser()})
 	r := newOnboardingTestRouter(svc, 0)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/onboarding", nil)
@@ -123,7 +136,7 @@ func TestOnboardingAPI_Unauthorized(t *testing.T) {
 
 func TestOnboardingAPI_MarkCompletedThenGet(t *testing.T) {
 	repo := &fakeOnbUserRepo{user: baseOnbUser()}
-	svc := onboarding.NewService(repo, stubEnv{prod: false})
+	svc := onboarding.NewService(repo)
 	r := newOnboardingTestRouter(svc, 42)
 
 	// POST complete
@@ -152,7 +165,7 @@ func TestOnboardingAPI_ResetDev(t *testing.T) {
 	u := baseOnbUser()
 	ts := time.Date(2026, 3, 1, 12, 0, 0, 0, time.UTC)
 	u.OnboardingCompletedAt = &ts
-	svc := onboarding.NewService(&fakeOnbUserRepo{user: u}, stubEnv{prod: false})
+	svc := onboarding.NewService(&fakeOnbUserRepo{user: u})
 	r := newOnboardingTestRouter(svc, 42)
 
 	req := httptest.NewRequest(http.MethodDelete, "/api/v1/onboarding", nil)
@@ -167,34 +180,8 @@ func TestOnboardingAPI_ResetDev(t *testing.T) {
 	}
 }
 
-func TestOnboardingAPI_ResetForbiddenInProduction(t *testing.T) {
-	u := baseOnbUser()
-	ts := time.Date(2026, 3, 1, 12, 0, 0, 0, time.UTC)
-	u.OnboardingCompletedAt = &ts
-	svc := onboarding.NewService(&fakeOnbUserRepo{user: u}, stubEnv{prod: true})
-	r := newOnboardingTestRouter(svc, 42)
-
-	req := httptest.NewRequest(http.MethodDelete, "/api/v1/onboarding", nil)
-	w := httptest.NewRecorder()
-	r.ServeHTTP(w, req)
-	if w.Code != http.StatusForbidden {
-		t.Fatalf("status: want 403, got %d body=%s", w.Code, w.Body.String())
-	}
-	var envelope struct {
-		Error struct {
-			Code string `json:"code"`
-		} `json:"error"`
-	}
-	if err := json.Unmarshal(w.Body.Bytes(), &envelope); err != nil {
-		t.Fatalf("unmarshal: %v", err)
-	}
-	if envelope.Error.Code != "ONBOARDING_RESET_FORBIDDEN" {
-		t.Errorf("code: want ONBOARDING_RESET_FORBIDDEN, got %q", envelope.Error.Code)
-	}
-}
-
 func TestOnboardingAPI_GetStatusNotFound(t *testing.T) {
-	svc := onboarding.NewService(&fakeOnbUserRepo{}, stubEnv{prod: false})
+	svc := onboarding.NewService(&fakeOnbUserRepo{})
 	r := newOnboardingTestRouter(svc, 42)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/onboarding", nil)

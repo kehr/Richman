@@ -287,10 +287,12 @@ func (r *UserRepo) MarkOnboardingSkipped(
 	return &u, nil
 }
 
-// ResetOnboarding resets the full onboarding state (both completed_at and
-// skipped_at) to NULL so the user is treated as not yet onboarded. Intended
-// for dev-only reset flows; the service layer is responsible for gating
-// production callers.
+// ResetOnboarding clears both onboarding_completed_at and
+// onboarding_skipped_at in a single atomic UPDATE so the user is treated as
+// not yet onboarded. This is the repo primitive behind the user-initiated
+// "re-run onboarding" flow exposed from the Settings AccountTab CTA; there
+// is no environment gating because the operation is part of the product
+// surface rather than a dev-only shortcut.
 func (r *UserRepo) ResetOnboarding(
 	ctx context.Context, userID int64,
 ) (*model.User, error) {

@@ -128,7 +128,7 @@ func main() {
 		zapLogger.Info("llm vision provider initialized", zap.String("provider", visionProvider.Name()))
 	}
 	screenshotService := screenshotSvc.NewService(visionProvider, zapLogger, screenshotSvc.Options{})
-	onboardingService := onboardingSvc.NewService(userRepo, cfg)
+	onboardingService := onboardingSvc.NewService(userRepo)
 	userSettingsService := usersettingsSvc.NewService(userRepo)
 
 	// Initialize datasource clients
