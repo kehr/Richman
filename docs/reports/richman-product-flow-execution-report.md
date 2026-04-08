@@ -1033,3 +1033,63 @@ Page 层：
 
 ### Step 18 状态: **COMPLETED** ✅
 - Commits: `bca691f` → `34df6ee` → `14d8b0b` → `cb9db4b` → `033046c`
+
+## Step 19 帮助页与 i18n 内容（Phase 8）
+
+### 目标
+将 `HelpPage` 占位替换为 PRD §7 帮助页：左侧 240px sticky 锚点导航 + 右侧长文档，9 章节结构化内容存为中英双语 JSON，支持 `/help#xxx` 深链 + IntersectionObserver 高亮。
+
+### 实施提交
+1. `21b6da6` feat(i18n/help): add bilingual help content for 9 sections
+2. `756e101` feat(help): add help page with anchor sidebar
+3. `491fdfc` fix(help): apply step 19 review fixes
+
+### 新增文件
+- `frontend/src/i18n/help/types.ts`
+- `frontend/src/i18n/help/zh.json`
+- `frontend/src/i18n/help/en.json`
+- `frontend/src/i18n/help/index.ts`
+- `frontend/src/pages/help/components/HelpSection.tsx`
+- `frontend/src/pages/help/components/HelpSidebar.tsx`
+- `frontend/src/pages/help/HelpPage.test.tsx`
+
+修改：
+- `frontend/src/pages/help/HelpPage.tsx`（从占位改为 composition root）
+- `frontend/src/features/decision-card/components/ChangeBadge.tsx`（review 联动修复 confidence_shift 文案与 PRD 对齐）
+
+### 关键决策
+- D1 不引入 `react-markdown`，改用类型化 `HelpBlock` 联合（paragraph / list / table / code / note）+ 纯 React 渲染，避免 dependency 漂移
+- D2 Locale 代码复用现有 `zh` / `en`（非 plan 里的 `zh-CN` / `en-US`），避免 i18n provider 改动
+- D3 Help 内容放在独立目录 `src/i18n/help/`，与 `domain/i18n/` 扁平键值翻译解耦
+- D4 3 个 `note` block 用于 PRD 对 confidence 公式 / data refresh 秒数 / risk-weight 百分比的留白，明示用户参考位置
+- D5 IntersectionObserver `rootMargin: "-10% 0px -60% 0px"`，行业惯例
+
+### Review 轮次
+1. **Combined spec + code review** → Pass with fixes
+   - I-3 Critical-ish：`ChangeBadge` 将 `confidence_shift` 渲染为「信心变化」而帮助页和 PRD §3.4 用「信心度波动」，会导致用户查表对不上
+   - I-1 Important：IntersectionObserver 高亮路径缺测试覆盖
+   - I-2 Important：初始 hash 跳转用 `smooth` 与 observer 并发，造成 activeId 短暂闪烁
+   - M-1 Minor：`BlockRenderer` 内部 return 元素上的 `key` 属性无效（属于 React 反模式）
+   - M-2 Minor：list item 用文本作 key 不稳
+
+### 已修复问题
+| # | 问题 | 修复 |
+|---|------|------|
+| 1 | `ChangeBadge.confidence_shift` 文案与帮助页和 PRD §3.4 不一致 | 改为「信心度波动」 |
+| 2 | IntersectionObserver 高亮路径无测试 | `IntersectionObserverMock` 暴露 `lastInstance`，新增测试触发合成 visibility 回调验证 `aria-current` |
+| 3 | hash-scroll smooth 动画与 observer 回调竞态 | `scrollIntoView` 改用 `behavior: "instant"`，避免动画期间 observer 抢先点亮顶部 section |
+| 4 | BlockRenderer 内部无效 `key` | 统一在调用方 `.map()` 处设 key，return 元素内移除 |
+| 5 | list item 以内容字符串作 key | 改用 index key + `noArrayIndexKey` biome-ignore 注明静态授权内容安全 |
+
+### 偏差记录（实施者主动声明、review 裁定通过）
+- 不使用 react-markdown → 自研结构化 block 渲染器：plan 允许「若未安装则在本 step 添加」，实施者选择不添加 dep
+- Locale 代码 `zh` / `en`（非 plan 里的 `zh-CN` / `en-US`）
+- 3 个 `note` block 留白（confidence 公式 / data cadence / risk weight 范围）
+
+### 验证
+- `pnpm lint:all` PASS（139 files / 153 modules / 481 deps）
+- `pnpm test --run` PASS（20 files / 91 tests，新增 HelpPage 4 case）
+- `pnpm build` PASS（vite build 3.13s；HelpPage-*.js 22.78 kB gzip 9.96 kB）
+
+### Step 19 状态: **COMPLETED** ✅
+- Commits: `21b6da6` → `756e101` → `491fdfc`
