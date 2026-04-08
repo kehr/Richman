@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router";
 import { describe, expect, it, vi } from "vitest";
 import CategoriesPage from "./CategoriesPage";
+import { OnboardingStateProvider } from "./state";
 
 const mockNavigate = vi.fn();
 vi.mock("react-router", async () => {
@@ -16,13 +17,24 @@ vi.mock("react-router", async () => {
 
 // Mock the user-settings barrel so the PATCH mutation resolves synchronously
 // and the page does not hit the real API in the test environment. The mock
-// exposes a single usePatchUserSettings hook; the test only needs the
-// mutateAsync + isPending surface.
+// exposes every hook touched along the OnboardingStateProvider +
+// useOnboardingNav path so tests do not need a live API surface.
 const mutateAsync = vi.fn(async () => undefined);
+const skipMutateAsync = vi.fn(async () => undefined);
 vi.mock("@/features/user-settings", () => ({
 	usePatchUserSettings: () => ({
 		mutateAsync,
 		isPending: false,
+	}),
+	useSkipOnboarding: () => ({
+		mutateAsync: skipMutateAsync,
+		isPending: false,
+	}),
+	useOnboardingStatus: () => ({
+		data: { completed: false, skipped: false },
+	}),
+	useUserSettings: () => ({
+		data: { categories: [] },
 	}),
 }));
 
@@ -35,7 +47,9 @@ describe("CategoriesPage", () => {
 	function renderPage() {
 		return renderWithProviders(
 			<MemoryRouter initialEntries={["/onboarding/categories"]}>
-				<CategoriesPage />
+				<OnboardingStateProvider>
+					<CategoriesPage />
+				</OnboardingStateProvider>
 			</MemoryRouter>,
 		);
 	}

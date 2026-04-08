@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router";
 import { describe, expect, it, vi } from "vitest";
 import WelcomePage from "./WelcomePage";
+import { OnboardingStateProvider } from "./state";
 
 // Mock react-router useNavigate so we can assert the target without actually
 // navigating the test DOM. All other router primitives come from the real
@@ -17,6 +18,23 @@ vi.mock("react-router", async () => {
 	};
 });
 
+// OnboardingLayout (rendered inside WelcomePage) calls useOnboardingNav which
+// in turn calls useSkipOnboarding / useOnboardingStatus / useUserSettings via
+// the OnboardingStateProvider. Stub the user-settings barrel to keep the test
+// offline and the provider happy.
+vi.mock("@/features/user-settings", () => ({
+	useSkipOnboarding: () => ({
+		mutateAsync: vi.fn(async () => undefined),
+		isPending: false,
+	}),
+	useOnboardingStatus: () => ({
+		data: { completed: false, skipped: false },
+	}),
+	useUserSettings: () => ({
+		data: { categories: [] },
+	}),
+}));
+
 describe("WelcomePage", () => {
 	beforeEach(() => {
 		mockNavigate.mockReset();
@@ -25,7 +43,9 @@ describe("WelcomePage", () => {
 	it("renders title, three dimension cards, and CTA button", () => {
 		renderWithProviders(
 			<MemoryRouter initialEntries={["/onboarding/welcome"]}>
-				<WelcomePage />
+				<OnboardingStateProvider>
+					<WelcomePage />
+				</OnboardingStateProvider>
 			</MemoryRouter>,
 		);
 		expect(screen.getByText("欢迎，让我们开始")).toBeInTheDocument();
@@ -39,7 +59,9 @@ describe("WelcomePage", () => {
 		const user = userEvent.setup();
 		renderWithProviders(
 			<MemoryRouter initialEntries={["/onboarding/welcome"]}>
-				<WelcomePage />
+				<OnboardingStateProvider>
+					<WelcomePage />
+				</OnboardingStateProvider>
 			</MemoryRouter>,
 		);
 		await user.click(screen.getByTestId("onboarding-welcome-next"));

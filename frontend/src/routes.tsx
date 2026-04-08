@@ -1,6 +1,7 @@
 import { AuthGuard } from "@/domain/auth/auth-guard";
 import { OnboardingGuard } from "@/domain/auth/onboarding-guard";
 import { MainLayout } from "@/layouts/MainLayout";
+import { OnboardingStateProvider } from "@/pages/onboarding/state";
 import { Spin } from "@/ui-kit/eat";
 import { Suspense, lazy } from "react";
 import { Navigate, Outlet, Route, Routes } from "react-router";
@@ -35,12 +36,18 @@ function PageLoading() {
 }
 
 // OnboardingShell renders the onboarding branch outside of MainLayout so users
-// do not see the primary navigation shell until they finish the flow.
+// do not see the primary navigation shell until they finish the flow. The
+// OnboardingStateProvider is mounted INSIDE the auth + onboarding guards so
+// unauthenticated users never allocate the provider; every onboarding page
+// and every helper hook (useOnboardingState / useOnboardingNav) shares the
+// same provider instance for the full /onboarding/* branch.
 function OnboardingShell() {
 	return (
 		<AuthGuard>
 			<OnboardingGuard>
-				<Outlet />
+				<OnboardingStateProvider>
+					<Outlet />
+				</OnboardingStateProvider>
 			</OnboardingGuard>
 		</AuthGuard>
 	);
