@@ -45,7 +45,7 @@ func (f *fakeUserRepo) MarkOnboardingCompleted(_ context.Context, _ int64) (*mod
 	return &cp, nil
 }
 
-func (f *fakeUserRepo) ClearOnboardingCompleted(_ context.Context, _ int64) (*model.User, error) {
+func (f *fakeUserRepo) ResetOnboarding(_ context.Context, _ int64) (*model.User, error) {
 	if f.clearErr != nil {
 		return nil, f.clearErr
 	}
@@ -53,6 +53,7 @@ func (f *fakeUserRepo) ClearOnboardingCompleted(_ context.Context, _ int64) (*mo
 		return nil, nil
 	}
 	f.user.OnboardingCompletedAt = nil
+	f.user.OnboardingSkippedAt = nil
 	cp := *f.user
 	return &cp, nil
 }

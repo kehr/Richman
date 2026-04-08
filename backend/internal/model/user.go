@@ -29,6 +29,7 @@ type User struct {
 	RiskPreference        string     `json:"riskPreference"`
 	TotalCapitalCNY       *float64   `json:"totalCapitalCny,omitempty"`
 	OnboardingCompletedAt *time.Time `json:"onboardingCompletedAt,omitempty"`
+	OnboardingSkippedAt   *time.Time `json:"onboardingSkippedAt,omitempty"`
 	Categories            []string   `json:"categories"`
 	CreatedAt             time.Time  `json:"createdAt"`
 	UpdatedAt             time.Time  `json:"updatedAt"`

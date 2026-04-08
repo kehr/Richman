@@ -20,7 +20,7 @@ import (
 type UserRepo interface {
 	GetUserByID(ctx context.Context, userID int64) (*model.User, error)
 	MarkOnboardingCompleted(ctx context.Context, userID int64) (*model.User, error)
-	ClearOnboardingCompleted(ctx context.Context, userID int64) (*model.User, error)
+	ResetOnboarding(ctx context.Context, userID int64) (*model.User, error)
 }
 
 // EnvGuard reports whether the current runtime is production. Reset is only
@@ -99,9 +99,9 @@ func (s *Service) Reset(ctx context.Context, userID int64) (*Status, error) {
 			"onboarding reset is not allowed in production",
 		)
 	}
-	u, err := s.users.ClearOnboardingCompleted(ctx, userID)
+	u, err := s.users.ResetOnboarding(ctx, userID)
 	if err != nil {
-		return nil, fmt.Errorf("clear onboarding completed: %w", err)
+		return nil, fmt.Errorf("reset onboarding: %w", err)
 	}
 	if u == nil {
 		return nil, model.NewAppError(http.StatusNotFound, "USER_NOT_FOUND", "user not found")
