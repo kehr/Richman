@@ -45,9 +45,20 @@
 
 ## 数据库设计
 
-### Migration 010: `llm_configs` 表
+### Main 漂移注记（2026-04-09 追加）
 
-文件：`backend/db/migration/010_llm_configs.up.sql`
+本 TRD 最初写作时假设下一个可用 migration 编号是 010。在 PRD / TRD / Plan 成文之后，main 分支合并了 `feat(db): add migration 010 for onboarding_skipped_at column`（onboarding-ux-overhaul 合并结果），因此 010 已被占用。**实施时必须以 feat 分支的实际 main baseline 为准**：执行 `ls backend/db/migration/` 找出当前最大编号 N，本 TRD 的 010/011/012 分别改用 N+1/N+2/N+3，并同步更新 migration 文件名、down 文件名、comment 里的引用。
+
+其它 main 漂移点：
+- `model.User` 在 main 上已新增 `OnboardingSkippedAt *time.Time`。新增 `use_system_default_llm_consent` 列时，User 结构体需要追加新字段，不替换 OnboardingSkippedAt
+- `cmd/server/main.go` 中 `onboardingSvc.NewService` 签名已从 `NewService(userRepo, cfg)` 变成 `NewService(userRepo)`，其他服务构造不变
+- `Synthesizer` 当前已经有 nil-check 短路（P0 commit 0ad2ce3 的结果）；本次 Synthesizer 接口改造在该基础上重构，不要删除已有的 nil 守卫语义，只是把它从对 `s.provider` 的检查迁移到对 `s.resolver` 的检查
+
+以下 Migration 编号以"010"作为**占位**，实施时按上述规则重命名。
+
+### Migration N+1: `llm_configs` 表
+
+文件：`backend/db/migration/{N+1}_llm_configs.up.sql`（TRD 以 010 为占位示例）
 
 ```sql
 CREATE TABLE llm_configs (
@@ -97,9 +108,9 @@ DROP INDEX IF EXISTS idx_llm_configs_active_user;
 DROP TABLE IF EXISTS llm_configs;
 ```
 
-### Migration 011: `decision_cards` 新列
+### Migration N+2: `decision_cards` 新列
 
-文件：`backend/db/migration/011_decision_cards_synthesis_source.up.sql`
+文件：`backend/db/migration/{N+2}_decision_cards_synthesis_source.up.sql`（占位 011）
 
 ```sql
 ALTER TABLE decision_cards
@@ -125,7 +136,7 @@ COMMENT ON COLUMN decision_cards.provider_used IS
     'Which provider layer served this analysis: user, system_default, or none.';
 ```
 
-文件：`backend/db/migration/011_decision_cards_synthesis_source.down.sql`
+文件：`backend/db/migration/{N+2}_decision_cards_synthesis_source.down.sql`
 
 ```sql
 DROP INDEX IF EXISTS idx_decision_cards_synthesis_source;
@@ -556,7 +567,7 @@ func zeroBytes(b []byte) {
 
 **`getUseSystemDefaultConsent` 的存储位置决策**：本 MVP 把"未配置时是否用系统默认"的 consent 放在 `users` 表新增一列 `use_system_default_llm_consent BOOLEAN`，而不是 `llm_configs` 里。因为 `llm_configs` 的语义是"用户配置了自己的 provider"，如果用户没配那一行不存在。onboarding 里勾选后直接写到 `users` 表，简单直接。
 
-### Migration 012: `users.use_system_default_llm_consent`
+### Migration N+3: `users.use_system_default_llm_consent`（占位 012）
 
 ```sql
 ALTER TABLE users

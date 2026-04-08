@@ -8,12 +8,14 @@
 
 ### 新增
 
-- `backend/db/migration/010_llm_configs.up.sql`
-- `backend/db/migration/010_llm_configs.down.sql`
-- `backend/db/migration/011_decision_cards_synthesis_source.up.sql`
-- `backend/db/migration/011_decision_cards_synthesis_source.down.sql`
-- `backend/db/migration/012_users_llm_consent.up.sql`
-- `backend/db/migration/012_users_llm_consent.down.sql`
+**Migration 编号需在实施时根据 feat 分支的当前状态动态决定**。执行 `ls backend/db/migration/` 找出最大编号 N，本 step 文件用的 010/011/012 是占位符，实际文件名用 `{N+1}_llm_configs.*`、`{N+2}_decision_cards_synthesis_source.*`、`{N+3}_users_llm_consent.*`。详见 TRD "Main 漂移注记"。
+
+- `backend/db/migration/{N+1}_llm_configs.up.sql`
+- `backend/db/migration/{N+1}_llm_configs.down.sql`
+- `backend/db/migration/{N+2}_decision_cards_synthesis_source.up.sql`
+- `backend/db/migration/{N+2}_decision_cards_synthesis_source.down.sql`
+- `backend/db/migration/{N+3}_users_llm_consent.up.sql`
+- `backend/db/migration/{N+3}_users_llm_consent.down.sql`
 - `backend/internal/model/llm_config.go`
 - `backend/internal/llm/crypto.go`
 - `backend/internal/llm/crypto_test.go`
