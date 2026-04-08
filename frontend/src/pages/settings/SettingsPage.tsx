@@ -3,6 +3,7 @@ import { useMemo } from "react";
 import { useSearchParams } from "react-router";
 import { type SettingsTabItem, SettingsTabsLayout } from "./components/SettingsTabsLayout";
 import { AccountTab } from "./tabs/AccountTab";
+import { ChannelsTab } from "./tabs/ChannelsTab";
 
 const TAB_KEYS = ["account", "channels", "preferences", "subscription"] as const;
 type TabKey = (typeof TAB_KEYS)[number];
@@ -28,7 +29,7 @@ export default function SettingsPage() {
 	const items = useMemo<SettingsTabItem[]>(
 		() => [
 			{ key: "account", label: "账户", content: <AccountTab /> },
-			{ key: "channels", label: "推送渠道", content: <ComingSoon label="推送渠道" /> },
+			{ key: "channels", label: "推送渠道", content: <ChannelsTab /> },
 			{ key: "preferences", label: "偏好", content: <ComingSoon label="偏好" /> },
 			{ key: "subscription", label: "订阅与额度", content: <ComingSoon label="订阅与额度" /> },
 		],
