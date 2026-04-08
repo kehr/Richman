@@ -16,24 +16,32 @@ vi.mock("@/domain/money/useMoney", () => ({
 	}),
 }));
 
-const sample = [
+import type { HoldingDto } from "@/features/portfolio";
+
+const sample: HoldingDto[] = [
 	{
 		holdingId: 1,
+		userId: 1,
 		assetCode: "510300",
 		assetName: "沪深 300",
 		assetType: "a_share_broad",
 		costPrice: 4.12,
 		positionRatio: 20,
 		quantity: 0,
+		createdAt: "2026-04-07T00:00:00Z",
+		updatedAt: "2026-04-07T00:00:00Z",
 	},
 	{
 		holdingId: 2,
+		userId: 1,
 		assetCode: "518880",
 		assetName: "华安黄金",
 		assetType: "gold_etf",
 		costPrice: 5.55,
 		positionRatio: 10,
 		quantity: 0,
+		createdAt: "2026-04-07T00:00:00Z",
+		updatedAt: "2026-04-07T00:00:00Z",
 	},
 ];
 

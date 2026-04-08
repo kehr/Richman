@@ -1,5 +1,4 @@
-"use client";
-
+import type { DayjsLike } from "@/domain/datetime/dayjs-like";
 import { formatCurrency, formatDate } from "@/domain/ui/format";
 import {
 	Button,
@@ -20,14 +19,6 @@ import { useCreateTrade, useTrades } from "./usePortfolio";
 
 interface TradeRecordListProps {
 	holdingId: number;
-}
-
-// DayjsLike mirrors the shape of the antd DatePicker value we rely on
-// without pulling dayjs in as a direct dependency (it is already bundled
-// transitively via antd). Matches the same alias used in
-// pages/portfolio/components/AddTransactionDrawer.
-interface DayjsLike {
-	toDate(): Date;
 }
 
 export function TradeRecordList({ holdingId }: TradeRecordListProps) {

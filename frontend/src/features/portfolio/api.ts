@@ -1,19 +1,27 @@
 import { getToken } from "@/domain/auth/storage";
-import { ApiError, request } from "@/domain/http/client";
+import { API_BASE, ApiError, request } from "@/domain/http/client";
 import type { ApiResponse } from "@/domain/http/types";
 import type { RecognizeResponse } from "./screenshot-types";
 import type { CreateTradeInput } from "./trade-types";
 
-const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8080/api/v1";
-
+// HoldingDto mirrors backend/internal/api/v1/portfolio.go HoldingDTO.
+// PositionAmount is populated server-side by user_settings.AttachAmounts
+// when the user has a total_capital_cny configured; when the user has not
+// set a total capital it is omitted entirely so the frontend can fall
+// through to percent-only rendering via the shared useMoney hook.
 export interface HoldingDto {
 	holdingId: number;
+	userId: number;
 	assetCode: string;
 	assetName: string;
 	assetType: string;
+	category?: string | null;
 	costPrice: number;
 	positionRatio: number;
+	positionAmount?: number | null;
 	quantity: number;
+	createdAt: string;
+	updatedAt: string;
 }
 
 export interface CreateHoldingInput {
@@ -22,15 +30,23 @@ export interface CreateHoldingInput {
 	assetType: string;
 	costPrice: number;
 	positionRatio: number;
+	quantity: number;
 }
 
+// TradeDto mirrors backend/internal/api/v1/portfolio.go TradeDTO. Price and
+// quantity are projected from the backend decimal.Decimal into float64 so
+// the frontend receives plain numbers (without the projection decimal would
+// marshal to quoted strings and `toFixed()` calls would blow up at runtime).
 export interface TradeDto {
 	tradeId: number;
 	holdingId: number;
+	userId: number;
 	direction: string;
 	price: number;
 	quantity: number;
 	tradedAt: string;
+	createdAt: string;
+	updatedAt: string;
 }
 
 export function fetchHoldings(): Promise<ApiResponse<HoldingDto[]>> {

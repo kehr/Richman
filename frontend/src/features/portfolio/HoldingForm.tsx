@@ -45,6 +45,7 @@ export function HoldingForm({ initialValues, onSuccess, renderAssetPicker }: Hol
 					data: {
 						costPrice: values.costPrice as number,
 						positionRatio: values.positionRatio as number,
+						quantity: values.quantity != null ? (values.quantity as number) : undefined,
 					},
 				});
 				message.success("Holding updated");
@@ -55,6 +56,7 @@ export function HoldingForm({ initialValues, onSuccess, renderAssetPicker }: Hol
 					assetType: values.assetType as string,
 					costPrice: values.costPrice as number,
 					positionRatio: values.positionRatio as number,
+					quantity: (values.quantity as number) ?? 0,
 				});
 				message.success("Holding created");
 			}
@@ -77,6 +79,7 @@ export function HoldingForm({ initialValues, onSuccess, renderAssetPicker }: Hol
 								assetType: initialValues.assetType,
 								costPrice: initialValues.costPrice,
 								positionRatio: initialValues.positionRatio,
+								quantity: initialValues.quantity,
 							}
 						: undefined
 				}
@@ -114,6 +117,14 @@ export function HoldingForm({ initialValues, onSuccess, renderAssetPicker }: Hol
 					tooltip="0-100 percent. Must agree with HoldingTable / DashboardPage / decision card consumers (Step 16 unified to percent)."
 				>
 					<InputNumber min={0} max={100} step={1} style={{ width: "100%" }} />
+				</Form.Item>
+
+				<Form.Item
+					label="Quantity"
+					name="quantity"
+					tooltip="Share count tracked for the transactions sub-page. Optional — defaults to 0 when unknown."
+				>
+					<InputNumber min={0} step={1} style={{ width: "100%" }} />
 				</Form.Item>
 
 				<Form.Item>

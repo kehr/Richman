@@ -83,6 +83,14 @@ func (r *DecisionCardRepo) scanCardRow(row rowScanner) (*model.DecisionCard, err
 		return nil, err
 	}
 	if jsonErr := json.Unmarshal(riskData, &card.RiskWarnings); jsonErr != nil {
+		// Corrupted risk_warnings JSON would otherwise silently collapse to an
+		// empty list and hide the problem from operators. Log a warning with
+		// enough context to correlate and fall through to the empty slice.
+		r.logger.Warn("decode risk_warnings failed",
+			zap.Int64("card_id", card.CardID),
+			zap.Int64("holding_id", card.HoldingID),
+			zap.Error(jsonErr),
+		)
 		card.RiskWarnings = nil
 	}
 	if len(recData) > 0 {

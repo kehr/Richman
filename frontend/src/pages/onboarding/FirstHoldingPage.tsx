@@ -79,6 +79,9 @@ function QuickModeForm({ onSuccess }: { onSuccess: () => void }) {
 				assetType: asset.assetType,
 				costPrice: values.costPrice,
 				positionRatio: values.positionRatio,
+				// Onboarding quick mode captures cost + percentage only; the user
+				// enters real trade quantities later on the transactions sub-page.
+				quantity: 0,
 			});
 			message.success("持仓已保存");
 			onSuccess();

@@ -79,7 +79,7 @@ export default function DashboardPage() {
 		try {
 			await rerun.mutateAsync();
 			message.success("已触发重新分析，稍后刷新查看新卡。");
-		} catch (err) {
+		} catch {
 			message.error("重新分析请求失败，请稍后再试。");
 		}
 	};

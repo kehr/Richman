@@ -1,6 +1,10 @@
 import { getToken } from "@/domain/auth/storage";
 
-const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8080/api/v1";
+// API_BASE is the canonical backend prefix used by every request path in
+// the codebase. Exported so call sites that bypass `request()` (e.g. the
+// screenshot multipart upload in features/portfolio/api.ts) can reuse the
+// same value instead of redeclaring the env fallback locally.
+export const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8080/api/v1";
 
 export class ApiError extends Error {
 	status: number;

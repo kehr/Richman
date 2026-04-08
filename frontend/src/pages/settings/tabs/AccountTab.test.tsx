@@ -25,10 +25,12 @@ vi.mock("@/features/auth", () => ({
 }));
 
 // Mock useCurrentUser explicitly so the test does not depend on the real
-// `/auth/me` query's `enabled: !!getToken()` short-circuit.
+// `/auth/me` query's `enabled: !!getToken()` short-circuit. The mock must
+// mirror the hook's `select` unwrap so consumers get a flat User object
+// instead of the ApiResponse envelope.
 vi.mock("@/domain/auth/use-current-user", () => ({
 	useCurrentUser: () => ({
-		data: { data: { email: "tester@example.com" } },
+		data: { email: "tester@example.com" },
 		isLoading: false,
 	}),
 }));

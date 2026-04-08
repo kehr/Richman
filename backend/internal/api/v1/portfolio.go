@@ -53,6 +53,49 @@ func toHoldingDTO(h *model.Holding) HoldingDTO {
 	}
 }
 
+// TradeDTO is the API response shape for a trade row. Price and Quantity
+// are projected from decimal.Decimal into float64 so the JSON payload uses
+// plain numbers rather than the quoted string form decimal marshals to. The
+// frontend relies on numeric types for summary math and `.toFixed()` calls,
+// so shipping the raw decimal would silently break the transactions page.
+type TradeDTO struct {
+	TradeID   int64     `json:"tradeId"`
+	HoldingID int64     `json:"holdingId"`
+	UserID    int64     `json:"userId"`
+	Direction string    `json:"direction"`
+	Price     float64   `json:"price"`
+	Quantity  float64   `json:"quantity"`
+	TradedAt  time.Time `json:"tradedAt"`
+	CreatedAt time.Time `json:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
+}
+
+// toTradeDTO projects a model.Trade onto the API response DTO.
+func toTradeDTO(t *model.Trade) TradeDTO {
+	price, _ := t.Price.Float64()
+	qty, _ := t.Quantity.Float64()
+	return TradeDTO{
+		TradeID:   t.TradeID,
+		HoldingID: t.HoldingID,
+		UserID:    t.UserID,
+		Direction: t.Direction,
+		Price:     price,
+		Quantity:  qty,
+		TradedAt:  t.TradedAt,
+		CreatedAt: t.CreatedAt,
+		UpdatedAt: t.UpdatedAt,
+	}
+}
+
+// toTradeDTOs projects a slice of trades.
+func toTradeDTOs(trades []model.Trade) []TradeDTO {
+	out := make([]TradeDTO, 0, len(trades))
+	for i := range trades {
+		out = append(out, toTradeDTO(&trades[i]))
+	}
+	return out
+}
+
 // PortfolioHandler handles portfolio-related HTTP requests.
 type PortfolioHandler struct {
 	portfolioService *portfolio.Service
@@ -85,7 +128,7 @@ func (h *PortfolioHandler) RegisterRoutes(rg *gin.RouterGroup, authMiddleware gi
 	holdings := rg.Group("/holdings", authMiddleware)
 	holdings.GET("", h.ListHoldings)
 	holdings.POST("", h.CreateHolding)
-	holdings.PUT("/:id", h.UpdateHolding)
+	holdings.PATCH("/:id", h.UpdateHolding)
 	holdings.DELETE("/:id", h.DeleteHolding)
 	holdings.POST("/:id/trades", h.AddTrade)
 	holdings.GET("/:id/trades", h.ListTrades)
@@ -142,7 +185,7 @@ func (h *PortfolioHandler) CreateHolding(c *gin.Context) {
 	})
 }
 
-// UpdateHolding handles PUT /api/v1/holdings/:id.
+// UpdateHolding handles PATCH /api/v1/holdings/:id.
 func (h *PortfolioHandler) UpdateHolding(c *gin.Context) {
 	userID := middleware.GetUserID(c)
 	email := middleware.GetEmail(c)
@@ -242,7 +285,7 @@ func (h *PortfolioHandler) AddTrade(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, gin.H{
-		"data": trade,
+		"data": toTradeDTO(trade),
 	})
 }
 
@@ -268,6 +311,6 @@ func (h *PortfolioHandler) ListTrades(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"data": trades,
+		"data": toTradeDTOs(trades),
 	})
 }

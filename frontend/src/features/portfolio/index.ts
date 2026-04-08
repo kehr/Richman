@@ -14,8 +14,6 @@ export type { HoldingDto, TradeDto } from "./api";
 export type {
 	RecognizeResponse,
 	RecognizedHolding,
-	RecognizedField,
-	RecognizeOverallStatus,
 	EditableRecognizedHolding,
 } from "./screenshot-types";
 export { CONFIDENCE_HIGH, CONFIDENCE_LOW } from "./screenshot-types";

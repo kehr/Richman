@@ -1,7 +1,7 @@
 import { renderWithProviders } from "@/test/utils";
 import { screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import DashboardPage from "./DashboardPage";
 
 // Mock react-router useNavigate so we can assert navigation targets without
@@ -20,7 +20,7 @@ vi.mock("react-router", async () => {
 // states without re-mocking on every call.
 let holdingsState: { data: unknown[]; isLoading: boolean };
 let cardsState: { data: unknown[]; isLoading: boolean; error: unknown };
-let settingsState: { data: unknown };
+let settingsState: { data: { totalCapitalCny?: number } | undefined };
 
 vi.mock("@/features/portfolio", () => ({
 	useHoldings: () => holdingsState,
@@ -42,12 +42,19 @@ vi.mock("@/features/user-settings", () => ({
 }));
 
 vi.mock("@/domain/money/useMoney", () => ({
-	useMoney: () => ({
-		hasCapital: true,
-		format: (pct: number, amount?: number | null) =>
-			amount != null ? `${pct}% · ¥${amount}` : `${pct}%`,
-		formatAmountOnly: (amount?: number | null) => (amount != null ? `¥${amount}` : null),
-	}),
+	useMoney: () => {
+		// Drive hasCapital from the shared settingsState so each test case can
+		// exercise both the "with capital" and "no capital" money-format paths.
+		const cny = settingsState.data?.totalCapitalCny;
+		const hasCapital = cny != null;
+		return {
+			hasCapital,
+			format: (pct: number, amount?: number | null) =>
+				hasCapital && amount != null ? `${pct}% · ¥${amount}` : `${pct}%`,
+			formatAmountOnly: (amount?: number | null) =>
+				hasCapital && amount != null ? `¥${amount}` : null,
+		};
+	},
 }));
 
 function renderPage() {
@@ -142,6 +149,81 @@ describe("DashboardPage", () => {
 		expect(screen.getByTestId("change-anchor-list")).toBeInTheDocument();
 		expect(screen.getByTestId("stat-holding-count")).toHaveTextContent("1");
 		expect(screen.getByTestId("decision-card-42")).toBeInTheDocument();
+	});
+
+	it("renders percent-only aggregates when the user has no total capital configured", () => {
+		holdingsState = {
+			data: [
+				{
+					holdingId: 1,
+					assetCode: "600519",
+					assetName: "贵州茅台",
+					assetType: "a-share",
+					costPrice: 1800,
+					positionRatio: 20,
+					quantity: 10,
+				},
+			],
+			isLoading: false,
+		};
+		cardsState = {
+			data: [
+				{
+					cardId: 42,
+					userId: 1,
+					holdingId: 1,
+					assetCode: "600519",
+					assetName: "贵州茅台",
+					assetType: "a-share",
+					costPrice: 1800,
+					positionRatio: 20,
+					// No positionAmount when capital is not set; aggregatePnlAmount
+					// should fall through to null and the top strip should render
+					// percent only.
+					positionAmount: null,
+					trendDirection: "bullish",
+					trendSummary: "",
+					positionDirection: "neutral",
+					positionSummary: "",
+					catalystDirection: "bullish",
+					catalystSummary: "",
+					confidence: 0.8,
+					actionAdvice: "",
+					detailedAdvice: "",
+					riskWarnings: [],
+					todayHighlights: "",
+					weightTrend: 40,
+					weightPosition: 30,
+					weightCatalyst: 30,
+					analyzedAt: "2026-04-07T08:30:00Z",
+					createdAt: "2026-04-07T08:30:00Z",
+					recommendation: {
+						action: "hold",
+						actionLevel: 0,
+						label: "持有等待",
+						currentPositionPct: 20,
+						targetPositionPct: 20,
+						execution: { type: "monitor", validDays: 7 },
+					},
+					actionLevel: 0,
+					targetPositionRatio: 20,
+					targetPositionAmount: null,
+					badgeState: "none",
+					confidenceDelta: 0,
+					prevCardId: null,
+					executionFingerprint: "fp",
+				},
+			],
+			isLoading: false,
+			error: null,
+		};
+		settingsState = { data: {} };
+
+		renderPage();
+		// DashboardTopStrip still renders; the aggregate-P&L block should not
+		// expose a ¥ amount because the user has not set total capital.
+		expect(screen.getByTestId("dashboard-top-strip")).toBeInTheDocument();
+		expect(screen.getByTestId("dashboard-top-strip").textContent).not.toContain("¥");
 	});
 
 	it("shows the card wall loading skeleton while cards are loading", async () => {

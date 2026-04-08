@@ -27,9 +27,8 @@ const menuRoutes = {
 export function MainLayout() {
 	const navigate = useNavigate();
 	const location = useLocation();
-	const { data: userData } = useCurrentUser();
+	const { data: user } = useCurrentUser();
 
-	const user = userData?.data;
 	const displayName = user?.email?.split("@")[0] || "User";
 
 	const handleLogout = () => {

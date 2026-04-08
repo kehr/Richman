@@ -205,6 +205,11 @@ export function ScreenshotImportModal({
 					costPrice: row.costPrice!,
 					// biome-ignore lint/style/noNonNullAssertion: validated above
 					positionRatio: row.positionRatio!,
+					// Screenshot recognition does not carry share quantity (the LLM
+					// returns cost price + position percentage only), so we seed
+					// quantity as 0. The user can enter trades afterwards on the
+					// transactions sub-page to populate the actual share count.
+					quantity: 0,
 				});
 				success += 1;
 				succeededRowIds.push(row.rowId);

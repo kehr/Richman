@@ -5,8 +5,14 @@ import { useRegister } from "./useAuth";
 
 const { Title } = Typography;
 
-export function RegisterForm() {
-	const { mutate, isPending, error } = useRegister();
+interface RegisterFormProps {
+	// Optional override for the post-register redirect target, mirroring
+	// LoginForm so deep links survive the register pivot.
+	redirectTo?: string;
+}
+
+export function RegisterForm({ redirectTo }: RegisterFormProps) {
+	const { mutate, isPending, error } = useRegister({ redirectTo });
 
 	const handleSubmit = (values: RegisterInput) => {
 		mutate(values);

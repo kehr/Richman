@@ -43,7 +43,7 @@ export function AccountTab() {
 	const [capitalForm] = Form.useForm<CapitalFormValues>();
 
 	const settings = settingsQuery.data;
-	const email = currentUser.data?.data?.email ?? "—";
+	const email = currentUser.data?.email ?? "—";
 
 	// Sync form initial value with the loaded settings snapshot. We rely on
 	// setFieldsValue rather than initialValues so the form picks up the

@@ -66,6 +66,9 @@ export function AddHoldingDrawer({ open, onClose, onCreated }: AddHoldingDrawerP
 				assetType: selectedAsset.assetType,
 				costPrice: values.costPrice,
 				positionRatio: values.positionRatio,
+				// Quick mode captures cost + percentage only; share quantity is
+				// recorded separately on the transactions sub-page.
+				quantity: 0,
 			});
 			message.success("持仓已添加");
 			onCreated?.();

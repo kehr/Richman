@@ -1,3 +1,4 @@
+import type { DayjsLike } from "@/domain/datetime/dayjs-like";
 import { type CreateTradeInput, useCreateTrade } from "@/features/portfolio";
 import { Button, DatePicker, Drawer, Flex, Form, InputNumber, Radio, message } from "@/ui-kit/eat";
 
@@ -10,14 +11,6 @@ interface AddTransactionDrawerProps {
 	open: boolean;
 	holdingId: number;
 	onClose: () => void;
-}
-
-// DayjsLike captures the shape of the antd DatePicker value we depend on
-// here. Importing the full Dayjs type would force adding dayjs as a direct
-// dependency even though antd already bundles it transitively, so we keep
-// a minimal structural alias and convert to a native Date for serialization.
-interface DayjsLike {
-	toDate(): Date;
 }
 
 interface FormValues {
