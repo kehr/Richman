@@ -102,7 +102,7 @@ func walkStruct(v reflect.Value, path string) error {
 	t := v.Type()
 	for i := 0; i < t.NumField(); i++ {
 		sf := t.Field(i)
-		fieldPath, tag, skip := checkFieldTag(sf, path)
+		fieldPath, tag, skip := checkFieldTag(&sf, path)
 		if skip {
 			continue
 		}
@@ -127,7 +127,7 @@ func walkType(t reflect.Type, path string) error {
 	}
 	for i := 0; i < t.NumField(); i++ {
 		sf := t.Field(i)
-		fieldPath, tag, skip := checkFieldTag(sf, path)
+		fieldPath, tag, skip := checkFieldTag(&sf, path)
 		if skip {
 			continue
 		}
@@ -144,7 +144,7 @@ func walkType(t reflect.Type, path string) error {
 // checkFieldTag extracts the effective json tag name and full dotted path
 // for a struct field. Returns skip=true when the field is unexported or
 // json:"-" (i.e. should not participate in the guard walk).
-func checkFieldTag(sf reflect.StructField, path string) (fieldPath, tag string, skip bool) {
+func checkFieldTag(sf *reflect.StructField, path string) (fieldPath, tag string, skip bool) {
 	if !sf.IsExported() {
 		return "", "", true
 	}

@@ -84,11 +84,11 @@ func NewService(users UserRepo) *Service {
 // portfolio, etc.) light. Returns nil when the user does not exist or has
 // not set a total capital.
 func (s *Service) GetTotalCapitalCNY(ctx context.Context, userID int64) (*float64, error) {
-	cap, err := s.users.GetTotalCapitalCNY(ctx, userID)
+	capital, err := s.users.GetTotalCapitalCNY(ctx, userID)
 	if err != nil {
 		return nil, fmt.Errorf("load total capital: %w", err)
 	}
-	return cap, nil
+	return capital, nil
 }
 
 // GetUserSettings loads the full settings snapshot for the given user.

@@ -109,7 +109,7 @@ func TestOnboardingAPI_GetStatusDefault(t *testing.T) {
 	svc := onboarding.NewService(&fakeOnbUserRepo{user: baseOnbUser()})
 	r := newOnboardingTestRouter(svc, 42)
 
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/onboarding", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/onboarding", http.NoBody)
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
@@ -126,7 +126,7 @@ func TestOnboardingAPI_Unauthorized(t *testing.T) {
 	svc := onboarding.NewService(&fakeOnbUserRepo{user: baseOnbUser()})
 	r := newOnboardingTestRouter(svc, 0)
 
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/onboarding", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/onboarding", http.NoBody)
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 	if w.Code != http.StatusUnauthorized {
@@ -140,7 +140,7 @@ func TestOnboardingAPI_MarkCompletedThenGet(t *testing.T) {
 	r := newOnboardingTestRouter(svc, 42)
 
 	// POST complete
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/onboarding/complete", nil)
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/onboarding/complete", http.NoBody)
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 	if w.Code != http.StatusOK {
@@ -152,7 +152,7 @@ func TestOnboardingAPI_MarkCompletedThenGet(t *testing.T) {
 	}
 
 	// GET should now reflect completion.
-	req2 := httptest.NewRequest(http.MethodGet, "/api/v1/onboarding", nil)
+	req2 := httptest.NewRequest(http.MethodGet, "/api/v1/onboarding", http.NoBody)
 	w2 := httptest.NewRecorder()
 	r.ServeHTTP(w2, req2)
 	st2 := decodeStatus(t, w2.Body.Bytes())
@@ -168,7 +168,7 @@ func TestOnboardingAPI_ResetDev(t *testing.T) {
 	svc := onboarding.NewService(&fakeOnbUserRepo{user: u})
 	r := newOnboardingTestRouter(svc, 42)
 
-	req := httptest.NewRequest(http.MethodDelete, "/api/v1/onboarding", nil)
+	req := httptest.NewRequest(http.MethodDelete, "/api/v1/onboarding", http.NoBody)
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 	if w.Code != http.StatusOK {
@@ -184,7 +184,7 @@ func TestOnboardingAPI_GetStatusNotFound(t *testing.T) {
 	svc := onboarding.NewService(&fakeOnbUserRepo{})
 	r := newOnboardingTestRouter(svc, 42)
 
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/onboarding", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/onboarding", http.NoBody)
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 	if w.Code != http.StatusNotFound {
@@ -197,7 +197,7 @@ func TestOnboardingAPI_SkipEndpoint_Success(t *testing.T) {
 	svc := onboarding.NewService(repo)
 	r := newOnboardingTestRouter(svc, 42)
 
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/onboarding/skip", nil)
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/onboarding/skip", http.NoBody)
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
@@ -219,7 +219,7 @@ func TestOnboardingAPI_SkipThenGetReflectsSkipped(t *testing.T) {
 	r := newOnboardingTestRouter(svc, 42)
 
 	// POST skip
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/onboarding/skip", nil)
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/onboarding/skip", http.NoBody)
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 	if w.Code != http.StatusOK {
@@ -228,7 +228,7 @@ func TestOnboardingAPI_SkipThenGetReflectsSkipped(t *testing.T) {
 	skipStatus := decodeStatus(t, w.Body.Bytes())
 
 	// GET should reflect skipped state
-	req2 := httptest.NewRequest(http.MethodGet, "/api/v1/onboarding", nil)
+	req2 := httptest.NewRequest(http.MethodGet, "/api/v1/onboarding", http.NoBody)
 	w2 := httptest.NewRecorder()
 	r.ServeHTTP(w2, req2)
 	getStatus := decodeStatus(t, w2.Body.Bytes())
@@ -237,7 +237,10 @@ func TestOnboardingAPI_SkipThenGetReflectsSkipped(t *testing.T) {
 		t.Errorf("expected GetStatus to reflect skipped=true, got %+v", getStatus)
 	}
 	if skipStatus.SkippedAt == nil || getStatus.SkippedAt == nil || *skipStatus.SkippedAt != *getStatus.SkippedAt {
-		t.Errorf("skipped timestamp mismatch: skip response %v, get response %v", skipStatus.SkippedAt, getStatus.SkippedAt)
+		t.Errorf(
+			"skipped timestamp mismatch: skip response %v, get response %v",
+			skipStatus.SkippedAt, getStatus.SkippedAt,
+		)
 	}
 }
 
@@ -247,7 +250,7 @@ func TestOnboardingAPI_SkipThenCompleteClearSkipped(t *testing.T) {
 	r := newOnboardingTestRouter(svc, 42)
 
 	// POST skip
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/onboarding/skip", nil)
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/onboarding/skip", http.NoBody)
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 	if w.Code != http.StatusOK {
@@ -255,7 +258,7 @@ func TestOnboardingAPI_SkipThenCompleteClearSkipped(t *testing.T) {
 	}
 
 	// POST complete should clear skipped
-	req2 := httptest.NewRequest(http.MethodPost, "/api/v1/onboarding/complete", nil)
+	req2 := httptest.NewRequest(http.MethodPost, "/api/v1/onboarding/complete", http.NoBody)
 	w2 := httptest.NewRecorder()
 	r.ServeHTTP(w2, req2)
 	if w2.Code != http.StatusOK {
@@ -278,7 +281,7 @@ func TestOnboardingAPI_SkipRequiresAuth(t *testing.T) {
 	svc := onboarding.NewService(&fakeOnbUserRepo{user: baseOnbUser()})
 	r := newOnboardingTestRouter(svc, 0)
 
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/onboarding/skip", nil)
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/onboarding/skip", http.NoBody)
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 	if w.Code != http.StatusUnauthorized {

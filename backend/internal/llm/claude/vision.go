@@ -93,8 +93,8 @@ type visionMessagesRequest struct {
 }
 
 type visionMessage struct {
-	Role    string         `json:"role"`
-	Content []visionBlock  `json:"content"`
+	Role    string        `json:"role"`
+	Content []visionBlock `json:"content"`
 }
 
 // visionBlock supports both image and text content blocks. Unused fields
@@ -154,7 +154,10 @@ var allowedVisionMIMEs = map[string]struct{}{
 }
 
 // AnalyzeImage sends image bytes plus prompts to the Claude Messages API.
-func (c *VisionClient) AnalyzeImage(ctx context.Context, req llm.VisionRequest) (*llm.VisionResponse, error) {
+func (c *VisionClient) AnalyzeImage(ctx context.Context, req *llm.VisionRequest) (*llm.VisionResponse, error) {
+	if req == nil {
+		return nil, fmt.Errorf("%w: request is nil", llm.ErrVisionInvalidRequest)
+	}
 	if len(req.ImageData) == 0 {
 		return nil, fmt.Errorf("%w: image data is empty", llm.ErrVisionInvalidRequest)
 	}

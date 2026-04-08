@@ -155,7 +155,7 @@ func (s *Service) Recognize(ctx context.Context, userID int64, req RecognizeRequ
 		return failedResponse("识别服务暂时不可用"), nil
 	}
 
-	visionResp, err := s.vision.AnalyzeImage(ctx, llm.VisionRequest{
+	visionResp, err := s.vision.AnalyzeImage(ctx, &llm.VisionRequest{
 		SystemPrompt: SystemPrompt,
 		UserPrompt:   UserPrompt,
 		ImageData:    req.ImageData,
@@ -232,6 +232,8 @@ func (s *Service) allow(userID int64) bool {
 // who made one request and never returned — the normal allow() path never
 // runs for them. Callers can invoke this from a background ticker or from
 // tests. It is safe to call concurrently with allow().
+//
+//nolint:unused // reserved for future background ticker wiring; see memory-leak rationale above
 func (s *Service) janitorSweep() {
 	now := s.now()
 	cutoff := now.Add(-s.window)

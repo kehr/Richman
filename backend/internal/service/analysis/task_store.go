@@ -21,7 +21,7 @@ type TaskStore struct {
 }
 
 // NewTaskStore creates a new TaskStore.
-func NewTaskStore(repo *repo.AnalysisTaskRepo, ttl time.Duration, logger *zap.Logger) *TaskStore {
+func NewTaskStore(taskRepo *repo.AnalysisTaskRepo, ttl time.Duration, logger *zap.Logger) *TaskStore {
 	interval := time.Hour
 	if ttl > 0 && ttl < interval {
 		interval = ttl / 2
@@ -30,7 +30,7 @@ func NewTaskStore(repo *repo.AnalysisTaskRepo, ttl time.Duration, logger *zap.Lo
 		}
 	}
 	s := &TaskStore{
-		repo:            repo,
+		repo:            taskRepo,
 		ttl:             ttl,
 		cleanupInterval: interval,
 		stopCh:          make(chan struct{}),

@@ -79,6 +79,8 @@ task (see "Design Review Gate" above); the rest are loaded on demand.
 | File | Covers |
 |------|--------|
 | `design-review.md` | MANDATORY pre-design 5-pass gate: state space, file invariants, alternate paths, pre-mortem, self-attack |
+| `lint-toolchain.md` | MANDATORY lint tool version management, config migration flow, local/CI enforcement, exemption rules |
+| `commit-hygiene.md` | MANDATORY commit scope discipline: one topic per commit, explicit file staging, message/file alignment |
 | `naming.md` | Files, identifiers, database, API, git naming |
 | `frontend.md` | Pages+Features architecture, dependency rules, component usage, Biome config |
 | `backend.md` | Go three-layer architecture, service/repo patterns, error handling |

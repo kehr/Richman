@@ -151,23 +151,23 @@ func (r *UserRepo) GetRiskPreference(ctx context.Context, userID int64) (string,
 // does not exist or has not set a total capital, so callers can treat both
 // cases identically as "no capital configured".
 func (r *UserRepo) GetTotalCapitalCNY(ctx context.Context, userID int64) (*float64, error) {
-	var cap decimal.NullDecimal
+	var capDec decimal.NullDecimal
 	err := r.pool.QueryRow(ctx,
 		`SELECT total_capital_cny
 		 FROM users
 		 WHERE user_id = $1 AND is_deleted = 0`,
 		userID,
-	).Scan(&cap)
+	).Scan(&capDec)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil
 		}
 		return nil, fmt.Errorf("query user total capital: %w", err)
 	}
-	if !cap.Valid {
+	if !capDec.Valid {
 		return nil, nil
 	}
-	v, _ := cap.Decimal.Float64()
+	v, _ := capDec.Decimal.Float64()
 	return &v, nil
 }
 
