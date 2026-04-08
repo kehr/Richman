@@ -129,9 +129,10 @@ const AUTH_SPLIT_LAYOUT_CSS = `
 	display: block;
 }
 .auth-split-layout__brand-name {
-	font-size: 26px;
-	font-weight: 650;
-	letter-spacing: -0.02em;
+	font-size: 22px;
+	font-weight: 500;
+	letter-spacing: -0.01em;
+	line-height: 1;
 	color: #0b0b0d;
 }
 .auth-split-layout__hero {
