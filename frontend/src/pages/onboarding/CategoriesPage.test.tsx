@@ -4,38 +4,103 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router";
 import { describe, expect, it, vi } from "vitest";
 import CategoriesPage from "./CategoriesPage";
+import { OnboardingStateProvider } from "./state";
 
-const mockNavigate = vi.fn();
-vi.mock("react-router", async () => {
-	const actual = await vi.importActual<typeof import("react-router")>("react-router");
+const navNext = vi.fn(async () => undefined);
+
+// This test harness mimics the real hook by tracking registered predicates and
+// forcing re-evaluations when they change.
+const predicateFunctions: (() => boolean)[] = [];
+let forceRender: (() => void) | null = null;
+
+vi.mock("./use-onboarding-nav", async () => {
+	// biome-ignore lint/suspicious/noExplicitAny: vitest importActual returns any
+	const actual: any = await vi.importActual("./use-onboarding-nav");
+	const { useRef, useMemo, useState } = await vi.importActual<typeof import("react")>("react");
+
 	return {
 		...actual,
-		useNavigate: () => mockNavigate,
+		useOnboardingNav: () => {
+			const [predicateVersion, setPredicateVersion] = useState(0);
+
+			// Store a global trigger so registerCanGoNext can force re-renders
+			if (!forceRender) {
+				forceRender = () => {
+					setPredicateVersion((v) => v + 1);
+				};
+			}
+
+			const canGoNext = useMemo(() => {
+				void predicateVersion;
+				if (predicateFunctions.length === 0) return true;
+				return predicateFunctions.every((p) => {
+					try {
+						return p();
+					} catch {
+						return false;
+					}
+				});
+			}, [predicateVersion]);
+
+			return {
+				currentStep: 2,
+				reachedStep: 2,
+				canGoNext,
+				prev: vi.fn(),
+				next: navNext,
+				skip: vi.fn(),
+				jumpTo: vi.fn(),
+				registerCanGoNext: (predicate: () => boolean) => {
+					predicateFunctions.push(predicate);
+					forceRender?.();
+					return () => {
+						const index = predicateFunctions.indexOf(predicate);
+						if (index !== -1) {
+							predicateFunctions.splice(index, 1);
+						}
+						forceRender?.();
+					};
+				},
+			};
+		},
 	};
 });
 
 // Mock the user-settings barrel so the PATCH mutation resolves synchronously
-// and the page does not hit the real API in the test environment. The mock
-// exposes a single usePatchUserSettings hook; the test only needs the
-// mutateAsync + isPending surface.
+// and the page does not hit the real API in the test environment. Stub
+// useSkipOnboarding, useOnboardingStatus, and useUserSettings since the nav
+// hook and OnboardingStateProvider depend on them.
 const mutateAsync = vi.fn(async () => undefined);
 vi.mock("@/features/user-settings", () => ({
 	usePatchUserSettings: () => ({
 		mutateAsync,
 		isPending: false,
 	}),
+	useSkipOnboarding: () => ({
+		mutateAsync: vi.fn(async () => undefined),
+		isPending: false,
+	}),
+	useOnboardingStatus: () => ({
+		data: { completed: false, skipped: false },
+	}),
+	useUserSettings: () => ({
+		data: { categories: [] },
+	}),
 }));
 
 describe("CategoriesPage", () => {
 	beforeEach(() => {
-		mockNavigate.mockReset();
+		navNext.mockClear();
 		mutateAsync.mockClear();
+		predicateFunctions.length = 0;
 	});
 
 	function renderPage() {
 		return renderWithProviders(
 			<MemoryRouter initialEntries={["/onboarding/categories"]}>
-				<CategoriesPage />
+				<OnboardingStateProvider>
+					<CategoriesPage />
+				</OnboardingStateProvider>
 			</MemoryRouter>,
 		);
 	}
@@ -70,6 +135,8 @@ describe("CategoriesPage", () => {
 		expect(mutateAsync).toHaveBeenCalledWith({
 			categories: ["us_stock", "a_share_broad"],
 		});
-		expect(mockNavigate).toHaveBeenCalledWith("/onboarding/first-holding");
+		await waitFor(() => {
+			expect(navNext).toHaveBeenCalled();
+		});
 	});
 });
