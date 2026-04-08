@@ -331,3 +331,35 @@ worktree 列表显示同时存在另外 2 个 sibling 的 CC 会话工作树（c
 - Subagent 跨 worktree 跑漂的根因：subagent prompt 已经明确指定了 worktree 工作目录，但 agent 仍走到 main 仓库。建议在后续 step 13/14 的 implementer prompt 顶部加 `pwd` 验证 + `git rev-parse --show-toplevel` 验证，确认在正确 worktree 才开工
 
 ### Step 12 状态: COMPLETED（with 异常）
+
+## Step 13 FirstHoldingPage stagger + state 接入 + button semantic fix
+
+### 目标
+将 FirstHoldingPage 的 local form state 替换为 useOnboardingState 的 holdingDraft（支持 back-navigation 保留表单输入），注册 canGoNext predicate（quick mode 要求 assetCode/costPrice/positionRatio 都有值），加 form item stagger 进场动画。同时修复一个语义 bug：现有的「跳过直接分析」按钮原本直接 `navigate("/onboarding/first-analysis")`，绕过了 step 4 的 markCompleted 路径 —— 改为 `nav.next()` 并重命名为「用已有持仓直接分析 →」，与 header 的「跳过引导」做明确区分。
+
+### 实施过程
+1. 进入 worktree `/Users/kyle/Studio/Richman/.claude/worktrees/onboarding-ux-overhaul`，验证 `pwd` / `git rev-parse --show-toplevel` / `git branch --show-current` 均匹配预期（响应 Step 12 的 post-mortem 观察项）
+2. 读 CategoriesPage.tsx / state.tsx / use-onboarding-nav.ts / CategoriesPage.test.tsx 定下 pattern
+3. 重写 FirstHoldingPage.tsx：
+   - 把 QuickModeForm 改为接收 `itemsVariant: Variants` prop 以共享父级的 reducedMotion 判断
+   - Form 用 `onValuesChange` 同步到 `updateHoldingDraft`
+   - useEffect 仅在 mount 时一次性 seed form 字段（空 deps），避免与用户编辑竞争
+   - 父 FirstHoldingPage 注册 canGoNext predicate，submit 先 `createHolding.mutateAsync()` 再 `await nav.next()`
+   - fast-forward 按钮从 `navigate()` 改成 `nav.next()`，label 从「跳过，直接开始分析」改成「用已有持仓直接分析 →」
+4. 新增 FirstHoldingPage.test.tsx：覆盖 submit 禁用、填写后启用并触发 createHolding + nav.next、fast-forward 按钮分支
+5. 修复两处 Biome 格式问题（InputNumber 单行 / Boolean 单行）
+6. 修复 framer-motion Variants 类型问题：为模块级 containerVariants/itemVariants/reducedItemVariants 显式标注 `Variants`（`ease: "easeOut"` 否则被宽化成 string，和 `Easing` 不兼容）
+
+### 实施提交
+- `1f56746` feat(onboarding): refactor FirstHoldingPage with state draft and nav handoff
+
+### Review 轮次
+1. **Lint** → PASS（biome + tsc + depcruise 全绿，150 files / 165 modules / 555 deps）
+2. **Build** → PASS（`pnpm build` 成功，FirstHoldingPage chunk 6.18 kB）
+3. **Test** → 无法执行：再次遇到 Step 12 已记录的多 CC 并行 vitest 资源争抢问题。`ps aux | grep vitest` 显示有 19 个来自 sibling CC session 的 vitest worker 在跑，单个 worker CPU time 已累计 >14 分钟。我的 test fork 在 singleFork 模式下等待 90s 仍无进展，output file 保持 0 字节（pipe-buffered）；换成 file redirect 后能看到 vitest 启动横幅但后续 90s 仍无单个测试结果输出。按 Step 12 全局规则「vitest worker OOM/starvation 属于已知基础设施问题」，不阻塞推进
+
+### 观察项
+- 测试文件本身已写好（follow CategoriesPage.test.tsx 的 predicate 追踪 pattern + 独立 mock `@/features/portfolio` 和 `@/features/asset-catalog`），等基础设施恢复后（sibling CC 结束或 Step 18 E2E 时）单独跑一次 vitest 验证
+- canGoNext predicate 目前只覆盖 `quick` mode；detail/screenshot tab 在 UI 上是 disabled（Tooltip「即将推出 Step 16/17」），predicate 对 non-quick mode 返回 false。这是一个保守策略：如果未来某个未知路径使 `draft.mode` 变成 detail/screenshot，gate 会保持关闭而不是误放行
+
+### Step 13 状态: DONE_WITH_CONCERNS（test 未执行，lint + build 通过）
