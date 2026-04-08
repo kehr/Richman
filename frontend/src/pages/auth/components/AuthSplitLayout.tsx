@@ -1,9 +1,29 @@
-import type { ReactNode } from "react";
+import { useTypewriter } from "@/domain/ui/use-typewriter";
+import { Fragment, type ReactNode } from "react";
 import { SampleDecisionCard } from "./SampleDecisionCard";
 
 interface AuthSplitLayoutProps {
 	form: ReactNode;
 }
+
+// AUTH_SLOGANS is the rotating copy shown in the hero section of the auth
+// split layout. Each entry is a slogan, each slogan is an array of lines that
+// render on their own visual row. Keep every slogan at exactly two lines so
+// the container can reserve a stable min-height and prevent layout shift
+// between rotations. If marketing wants to A/B test, swap the strings here;
+// the typewriter primitive is intentionally agnostic to content selection.
+const AUTH_SLOGANS: readonly (readonly string[])[] = [
+	["把基金经理的思维方式", "装进你的口袋"],
+	["不是另一份新闻摘要", "是可执行的建议"],
+	["每天一张决策卡", "告诉你下一步该怎么做"],
+	["趋势 · 位置 · 催化剂", "三问解构你的每一笔持仓"],
+	["让每次加减仓", "都有可追溯的理由"],
+];
+
+// ARIA-visible fallback text. Screen readers get the brand-anchor slogan in
+// full immediately; the animated copy is aria-hidden so readers are not
+// flooded with partial strings as characters type in.
+const SLOGAN_ARIA_LABEL = `${AUTH_SLOGANS[0]?.[0] ?? ""}，${AUTH_SLOGANS[0]?.[1] ?? ""}`;
 
 // AuthSplitLayout is the responsive 2-column shell shared by LoginPage and
 // RegisterPage. It implements an editorial-style split layout:
@@ -22,7 +42,16 @@ interface AuthSplitLayoutProps {
 // The layout uses CSS Grid via inline style + a scoped <style> block so we
 // don't need to add a new global stylesheet or pull in antd's Grid (which
 // doesn't expose true CSS-driven percentage breakpoints without JS).
+// Hold the fully-typed slogan on screen for 3 seconds before beginning the
+// deletion animation. The default hook value (1.5s) is too short for users to
+// comfortably read a ~20-character Chinese slogan on page load, so we extend
+// it at the call site without changing the hook's general-purpose default.
+const AUTH_SLOGAN_HOLD_MS = 3000;
+
 export function AuthSplitLayout({ form }: AuthSplitLayoutProps) {
+	const typewriter = useTypewriter(AUTH_SLOGANS, { holdMs: AUTH_SLOGAN_HOLD_MS });
+	const { displayed, cursorLine, isReducedMotion } = typewriter;
+
 	return (
 		<div className="auth-split-layout" data-testid="auth-split-layout">
 			<style>{AUTH_SPLIT_LAYOUT_CSS}</style>
@@ -40,10 +69,23 @@ export function AuthSplitLayout({ form }: AuthSplitLayoutProps) {
 					</header>
 
 					<div className="auth-split-layout__hero">
-						<h1 className="auth-split-layout__slogan">
-							把基金经理的思维方式
-							<br />
-							装进你的口袋
+						<h1
+							className="auth-split-layout__slogan"
+							aria-label={SLOGAN_ARIA_LABEL}
+							data-testid="auth-split-layout-slogan"
+						>
+							{displayed.map((line, lineIdx) => (
+								// biome-ignore lint/suspicious/noArrayIndexKey: every slogan has the same fixed number of lines in the same positional order, so line index is the stable identity here
+								<Fragment key={lineIdx}>
+									<span className="auth-split-layout__slogan-line" aria-hidden="true">
+										{line}
+										{lineIdx === cursorLine && !isReducedMotion && (
+											<span className="auth-split-layout__slogan-cursor" aria-hidden="true" />
+										)}
+									</span>
+									{lineIdx < displayed.length - 1 && <br aria-hidden="true" />}
+								</Fragment>
+							))}
 						</h1>
 						<p className="auth-split-layout__subtitle">
 							基于你的真实持仓，每天给出可执行的建议，而不是另一份新闻摘要。
@@ -147,6 +189,37 @@ const AUTH_SPLIT_LAYOUT_CSS = `
 	line-height: 1.12;
 	letter-spacing: -0.02em;
 	color: #0b0b0d;
+	/* Reserve vertical space for two lines at the largest font-size so the
+	   subtitle and sample card do not shift as slogans rotate. 2 lines x 1.12
+	   line-height = 2.24em. */
+	min-height: 2.24em;
+}
+.auth-split-layout__slogan-line {
+	display: inline;
+}
+.auth-split-layout__slogan-cursor {
+	display: inline-block;
+	width: 0.08em;
+	height: 0.9em;
+	margin-left: 0.08em;
+	vertical-align: -0.08em;
+	background-color: currentColor;
+	animation: auth-split-layout__slogan-blink 1.05s steps(2, start) infinite;
+	will-change: opacity;
+}
+@keyframes auth-split-layout__slogan-blink {
+	0% {
+		opacity: 1;
+	}
+	100% {
+		opacity: 0;
+	}
+}
+@media (prefers-reduced-motion: reduce) {
+	.auth-split-layout__slogan-cursor {
+		animation: none;
+		opacity: 0;
+	}
 }
 .auth-split-layout__subtitle {
 	margin: 0;
