@@ -1,7 +1,7 @@
 import { renderWithProviders } from "@/test/utils";
 import { fireEvent, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AccountTab } from "./AccountTab";
 
 // Mocks for the feature hooks. patchMutate / resetMutate are spies the
@@ -9,6 +9,15 @@ import { AccountTab } from "./AccountTab";
 const patchMutate = vi.fn(async () => undefined);
 const resetMutate = vi.fn(async () => undefined);
 const logoutSpy = vi.fn();
+const navigateSpy = vi.fn();
+
+vi.mock("react-router", async () => {
+	const actual = await vi.importActual<typeof import("react-router")>("react-router");
+	return {
+		...actual,
+		useNavigate: () => navigateSpy,
+	};
+});
 let settingsState: {
 	data: { totalCapitalCny: number | null; riskPreference: string } | undefined;
 	isLoading: boolean;
@@ -48,14 +57,11 @@ describe("AccountTab", () => {
 		patchMutate.mockClear();
 		resetMutate.mockClear();
 		logoutSpy.mockClear();
+		navigateSpy.mockClear();
 		settingsState = {
 			data: { totalCapitalCny: 100_000, riskPreference: "neutral" },
 			isLoading: false,
 		};
-	});
-
-	afterEach(() => {
-		vi.unstubAllEnvs();
 	});
 
 	it("renders email, total capital input, risk preference select, and logout button", () => {
@@ -95,14 +101,24 @@ describe("AccountTab", () => {
 		});
 	});
 
-	it("renders the dev-only reset onboarding button when import.meta.env.DEV is true", async () => {
-		vi.stubEnv("DEV", true);
+	it("always renders the re-entry onboarding button regardless of environment", () => {
 		renderTab();
-		const resetButton = screen.getByTestId("account-reset-onboarding");
-		expect(resetButton).toBeInTheDocument();
-		fireEvent.click(resetButton);
+		expect(screen.getByTestId("account-reset-onboarding")).toBeInTheDocument();
+	});
+
+	it("triggers reset and navigates to /onboarding/welcome after the Popconfirm is confirmed", async () => {
+		renderTab();
+		// Open the Popconfirm by clicking the trigger button.
+		fireEvent.click(screen.getByTestId("account-reset-onboarding"));
+		// antd Popconfirm renders its ok button inside a portal; find it by
+		// the Chinese label we set in AccountTab.
+		const okButton = await screen.findByRole("button", { name: "开始引导" });
+		fireEvent.click(okButton);
 		await waitFor(() => {
 			expect(resetMutate).toHaveBeenCalledTimes(1);
+		});
+		await waitFor(() => {
+			expect(navigateSpy).toHaveBeenCalledWith("/onboarding/welcome");
 		});
 	});
 });
