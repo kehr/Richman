@@ -1093,3 +1093,59 @@ Page 层：
 
 ### Step 19 状态: **COMPLETED** ✅
 - Commits: `21b6da6` → `756e101` → `491fdfc`
+
+## Step 20 LoginPage 左右双栏改造（Phase 8）
+
+### 目标
+按 PRD §2.1 / §2.2 将 LoginPage / RegisterPage 从单列重构为左右双栏：左侧产品介绍 + 样例 DecisionCard，右侧表单；同时为推送链接回流补全 `?returnTo=` 解析与白名单校验。
+
+### 实施提交
+1. `a969ff5` feat(auth): add split layout with sample decision card
+2. `583fa95` refactor(auth): handle returnTo on login success
+3. `d804a68` fix(auth): apply step 20 review fixes
+
+### 新增文件
+- `frontend/src/pages/auth/components/AuthSplitLayout.tsx`（纯 CSS media-query 响应式双栏，断点 <1024 / 1024-1199 / ≥1200）
+- `frontend/src/pages/auth/components/SampleDecisionCard.tsx`（硬编码示例卡，仅用 `@/ui-kit/eat`，无 features 跨层依赖）
+- `frontend/src/pages/auth/LoginPage.test.tsx`
+- `frontend/src/features/auth/LoginForm.test.tsx`（review 追加的 wire 测试）
+
+### 修改
+- `frontend/src/pages/auth/LoginPage.tsx`：composition root + `resolveReturnTo` 导出
+- `frontend/src/pages/auth/RegisterPage.tsx`：复用 AuthSplitLayout + RegisterForm
+- `frontend/src/features/auth/useAuth.ts`：`useLogin` 支持可选 `{ redirectTo }` options bag
+- `frontend/src/features/auth/LoginForm.tsx`：接受可选 `redirectTo` prop 并转发到 useLogin
+
+### 关键决策
+- D1 以内联 `<style>` + 前缀命名的 CSS 作响应式，优于 antd Grid + JS 监听，断点 100% CSS 驱动
+- D2 `SampleDecisionCard` 仅用 `@/ui-kit/eat`（Card / Tag / Space / Typography），不 import `@/features/decision-card`，避免 pages → features 依赖；有注释标注视觉 token 来源
+- D3 `useLogin` 用 options bag `{ redirectTo }` 以保留向后兼容（原有调用无参仍 `→ /dashboard`）
+- D4 `resolveReturnTo` 规则：非空、起始单 `/`、不含 `://`、无控制字符；保留 SPA client-side 路由语义（不会触发 `data:` URI 执行）
+- D5 Register 沿用同一 AuthSplitLayout 左侧，右侧换 RegisterForm
+
+### Review 轮次
+1. **Combined spec + code review** → Pass with fixes
+   - 8/8 spec items 通过，包括 returnTo 6 条拒绝规则全部由单元测试覆盖
+   - Finding 1：URL 编码绕过向量全部分析，SPA 场景无可利用路径
+   - Finding 2：`<style>` 通过 React 19 hoisting 注入 head，前缀命名作手工 scope，无技术 bug
+   - Finding 3 Important：LoginForm → useLogin → navigate wire 未端到端测试
+   - Finding 5 Minor：`LoginForm({ redirectTo }: LoginFormProps = {})` 默认值冗余
+
+### 已修复问题
+| # | 问题 | 修复 |
+|---|------|------|
+| 1 | LoginForm props 冗余默认 `= {}` | 改为 `{ redirectTo }: LoginFormProps` |
+| 2 | LoginForm wire 测试缺失 | 新增 `LoginForm.test.tsx`，mock `useLogin` 捕获 options，验证 prop 转发、空缺 undefined、submit 调用 mutate |
+
+### 偏差记录（已接受）
+- D3 options bag vs 独立 hook：plan 允许；实施者选择扩展现有 hook
+- Left pane copy 内联字符串未走 i18n：plan 未要求，与其他 auth 页保持一致
+- SampleDecisionCard 视觉 token 本地硬编码：plan 明示「duplicate the badge look locally」
+
+### 验证
+- `pnpm lint:all` PASS（143 files / 157 modules / 498 deps）
+- `pnpm test --run` PASS（22 files / 107 tests；新增 LoginPage 12 case + LoginForm 3 case）
+- `pnpm build` PASS
+
+### Step 20 状态: **COMPLETED** ✅
+- Commits: `a969ff5` → `583fa95` → `d804a68`
