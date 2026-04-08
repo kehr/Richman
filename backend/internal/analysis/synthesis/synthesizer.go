@@ -3,6 +3,7 @@ package synthesis
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -13,16 +14,25 @@ import (
 	"go.uber.org/zap"
 )
 
-// Synthesizer generates structured decision card content from analysis results using LLM.
+// Synthesizer generates structured decision card content from analysis
+// results using the Resolver fallback chain. The Resolver encapsulates the
+// three-level user -> system_default -> error walk, so the Synthesizer only
+// needs to know about success / failure / malformed-response.
 type Synthesizer struct {
-	provider llm.Provider
+	resolver llm.Resolver
 	logger   *zap.Logger
 }
 
-// NewSynthesizer creates a new Synthesizer.
-func NewSynthesizer(provider llm.Provider, logger *zap.Logger) *Synthesizer {
+// NewSynthesizer creates a new Synthesizer. A nil resolver is a valid
+// input: Synthesize will short-circuit to the template fallback and record
+// meta{Source:"template", ProviderUsed:"none"} so the analysis pipeline
+// still produces decision cards when no LLM is configured at all.
+func NewSynthesizer(resolver llm.Resolver, logger *zap.Logger) *Synthesizer {
+	if logger == nil {
+		logger = zap.NewNop()
+	}
 	return &Synthesizer{
-		provider: provider,
+		resolver: resolver,
 		logger:   logger,
 	}
 }
@@ -55,22 +65,54 @@ type SynthesisOutput struct {
 	Recommendation   recommendation.Recommendation `json:"recommendation"`
 }
 
-// Synthesize generates structured decision card content.
-// If the LLM fails or the provider is not configured, a basic template-based
-// output is returned (degraded mode). This matches the contract advertised by
-// the server bootstrap, which intentionally constructs a Synthesizer with a
-// nil provider when no LLM is available.
-func (s *Synthesizer) Synthesize(ctx context.Context, input *SynthesisInput) (*SynthesisOutput, error) {
-	if s.provider == nil {
-		s.logger.Info("llm provider not configured, using template fallback",
+// SynthesisMeta records provenance of the generated content so the caller
+// can stamp decision_cards.synthesis_source and .provider_used. The three
+// Source values encode a ternary contract:
+//
+//   - "llm"      : the entire output (including the recommendation sub-object)
+//     came from the LLM response.
+//   - "template" : at least the text fields fell back to the deterministic
+//     template; ProviderUsed may still name a layer when the LLM answered
+//     but returned malformed JSON.
+//   - "mixed"    : text fields are LLM-sourced but the recommendation
+//     sub-object fell back to fallbackRecommendation.
+//
+// ProviderUsed mirrors llm.ProviderLayer as a plain string so callers do not
+// need to import llm just to persist the value.
+type SynthesisMeta struct {
+	Source       string // "llm" | "template" | "mixed"
+	ProviderUsed string // "user" | "system_default" | "none"
+	LatencyMs    int64
+}
+
+// Synthesize generates structured decision card content and reports how it
+// was produced via SynthesisMeta. The meta is always non-nil on the happy
+// path (nil resolver, resolver error, malformed JSON, etc.) so callers can
+// unconditionally dereference it when stamping the persisted card.
+func (s *Synthesizer) Synthesize(
+	ctx context.Context,
+	input *SynthesisInput,
+	userID int64,
+) (*SynthesisOutput, *SynthesisMeta, error) {
+	start := time.Now()
+
+	// Nil resolver short-circuit: no LLM layer is available at all. This is
+	// the "dev env without a master key / system default" path; callers must
+	// still get a decision card.
+	if s.resolver == nil {
+		s.logger.Info("llm resolver not configured, using template fallback",
 			zap.String("asset", input.AssetCode),
 		)
-		return templateFallback(input), nil
+		return templateFallback(input), &SynthesisMeta{
+			Source:       "template",
+			ProviderUsed: string(llm.LayerNone),
+			LatencyMs:    elapsedMs(start),
+		}, nil
 	}
 
 	prompt := buildSynthesisPrompt(input)
 
-	resp, err := s.provider.ChatCompletion(ctx, llm.ChatRequest{
+	resolved, err := s.resolver.ResolvedChatCompletion(ctx, userID, llm.ChatRequest{
 		SystemPrompt: "You are a financial analysis assistant. " +
 			"Generate structured investment analysis summaries. " +
 			"Respond only with valid JSON.",
@@ -78,41 +120,81 @@ func (s *Synthesizer) Synthesize(ctx context.Context, input *SynthesisInput) (*S
 		MaxTokens:   2048,
 		Temperature: 0.4,
 	})
-	if err != nil {
-		s.logger.Warn("llm synthesis failed, using template fallback",
-			zap.String("asset", input.AssetCode),
-			zap.Error(err),
-		)
-		return templateFallback(input), nil
+	if err != nil || resolved == nil {
+		// Distinguish ErrConsentDenied from real failures only in log level;
+		// the downstream card is identical (template + none) either way.
+		if errors.Is(err, llm.ErrConsentDenied) {
+			s.logger.Info("llm resolver returned consent denied, using template fallback",
+				zap.String("asset", input.AssetCode),
+				zap.Int64("user_id", userID),
+			)
+		} else {
+			s.logger.Warn("llm resolver failed, using template fallback",
+				zap.String("asset", input.AssetCode),
+				zap.Int64("user_id", userID),
+				zap.Error(err),
+			)
+		}
+		return templateFallback(input), &SynthesisMeta{
+			Source:       "template",
+			ProviderUsed: string(llm.LayerNone),
+			LatencyMs:    elapsedMs(start),
+		}, nil
 	}
 
-	output, err := parseSynthesisResponse(resp.Content)
-	if err != nil {
-		s.logger.Warn("failed to parse llm synthesis response, using fallback",
+	layer := string(resolved.Layer)
+
+	// Parse the main JSON block. A malformed response degrades to template
+	// for the text fields, but we keep the layer that answered so operators
+	// can see "the LLM was reachable, the output was just unusable".
+	output, parseErr := parseSynthesisResponse(resolved.Response.Content)
+	if parseErr != nil {
+		s.logger.Warn("failed to parse llm synthesis response, using template fallback",
 			zap.String("asset", input.AssetCode),
-			zap.Error(err),
+			zap.String("layer", layer),
+			zap.Error(parseErr),
 		)
-		return templateFallback(input), nil
+		return templateFallback(input), &SynthesisMeta{
+			Source:       "template",
+			ProviderUsed: layer,
+			LatencyMs:    elapsedMs(start),
+		}, nil
 	}
 
-	// Try to parse the recommendation sub-object; fall back to template if
-	// the LLM omitted or mangled it. The main text fields stay LLM-generated.
-	if parsed := parseRecommendation(extractJSON(resp.Content)); parsed != nil {
+	// Try the recommendation sub-object. A missing / malformed sub-object
+	// degrades the meta to "mixed": the prose came from the LLM, the
+	// recommendation structure came from the deterministic fallback.
+	source := "llm"
+	if parsed := parseRecommendation(extractJSON(resolved.Response.Content)); parsed != nil {
 		ensureRecommendation(parsed, input)
 		output.Recommendation = *parsed
 	} else {
 		s.logger.Warn("llm recommendation sub-object missing or invalid, using fallback",
 			zap.String("asset", input.AssetCode),
+			zap.String("layer", layer),
 		)
 		output.Recommendation = fallbackRecommendation(input)
+		source = "mixed"
 	}
 
 	s.logger.Info("llm synthesis completed",
 		zap.String("asset", input.AssetCode),
-		zap.Duration("latency", resp.Latency),
+		zap.String("layer", layer),
+		zap.String("source", source),
+		zap.Duration("latency", resolved.Response.Latency),
 	)
 
-	return output, nil
+	return output, &SynthesisMeta{
+		Source:       source,
+		ProviderUsed: layer,
+		LatencyMs:    elapsedMs(start),
+	}, nil
+}
+
+// elapsedMs returns milliseconds since start as an int64. Kept as a helper
+// so every meta constructor spells the conversion the same way.
+func elapsedMs(start time.Time) int64 {
+	return time.Since(start).Milliseconds()
 }
 
 func buildSynthesisPrompt(input *SynthesisInput) string {

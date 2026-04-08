@@ -280,7 +280,7 @@ func (s *Service) AnalyzeHolding(
 	costPrice, _ := holding.CostPrice.Float64()
 	posRatio, _ := holding.PositionRatio.Float64()
 
-	synthOutput, err := s.synthesizer.Synthesize(ctx, &synthesis.SynthesisInput{
+	synthOutput, synthMeta, err := s.synthesizer.Synthesize(ctx, &synthesis.SynthesisInput{
 		AssetCode:      holding.AssetCode,
 		AssetType:      holding.AssetType,
 		AssetName:      holding.AssetName,
@@ -292,7 +292,7 @@ func (s *Service) AnalyzeHolding(
 		Recommendation: rec,
 		CostPrice:      costPrice,
 		PositionRatio:  posRatio,
-	})
+	}, userID)
 	if err != nil {
 		return nil, fmt.Errorf("synthesize: %w", err)
 	}
@@ -338,6 +338,19 @@ func (s *Service) AnalyzeHolding(
 		ActionLevel:          synthOutput.Recommendation.ActionLevel,
 		TargetPositionRatio:  synthOutput.Recommendation.TargetPositionPct / 100,
 		ExecutionFingerprint: fingerprint,
+	}
+
+	// Stamp provenance metadata from the synthesis pipeline onto the card
+	// so the decision-card DTO and the dashboard llmStatus SELECT can
+	// classify it without re-running the synthesizer. The meta pointer is
+	// always non-nil (synthesizer guarantees it on every path) but we
+	// defensively check to keep the call site resilient against future
+	// refactors.
+	if synthMeta != nil {
+		source := synthMeta.Source
+		provider := synthMeta.ProviderUsed
+		card.SynthesisSource = &source
+		card.ProviderUsed = &provider
 	}
 
 	// Step 10: Persist raw analysis result (non-critical, runs outside tx).

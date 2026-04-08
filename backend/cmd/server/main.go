@@ -110,10 +110,12 @@ func main() {
 		llmEnhancer = catalyst.NewLLMEnhancer(llmProvider, zapLogger)
 		zapLogger.Info("llm provider initialized", zap.String("provider", llmProvider.Name()))
 	}
-	// Synthesizer is always constructed: when llmProvider is nil, Synthesize
+	// Synthesizer is always constructed: when the Resolver is nil, Synthesize
 	// short-circuits to the template fallback so the analysis pipeline still
-	// produces decision cards in degraded mode.
-	llmSynthesizer = synthesis.NewSynthesizer(llmProvider, zapLogger)
+	// produces decision cards in degraded mode. The full Resolver wire-up
+	// (crypto + LLMConfigRepo + fallback chain) is installed in a later
+	// commit; passing nil here keeps the build green during the refactor.
+	llmSynthesizer = synthesis.NewSynthesizer(nil, zapLogger)
 
 	// Initialize vision provider (optional; screenshot recognition
 	// degrades to a "failed" response when the provider is unavailable).
