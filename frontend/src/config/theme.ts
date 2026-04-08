@@ -37,7 +37,7 @@ export function getThemeConfig(mode: "light" | "dark"): ThemeConfig {
 			colorBgLayout: palette.bgLayout,
 			colorBorder: palette.border,
 			colorBorderSecondary: palette.borderSecondary,
-			borderRadius: 6,
+			borderRadius: 4,
 			wireframe: false,
 		},
 		components: {
