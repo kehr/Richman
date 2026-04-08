@@ -1,16 +1,6 @@
 import { RegisterForm } from "@/features/auth";
+import { AuthSplitLayout } from "./components/AuthSplitLayout";
 
 export default function RegisterPage() {
-	return (
-		<div
-			style={{
-				display: "flex",
-				justifyContent: "center",
-				alignItems: "center",
-				minHeight: "100vh",
-			}}
-		>
-			<RegisterForm />
-		</div>
-	);
+	return <AuthSplitLayout form={<RegisterForm />} />;
 }
