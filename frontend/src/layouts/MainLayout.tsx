@@ -59,46 +59,68 @@ export function MainLayout() {
 				</a>
 			)}
 			menuFooterRender={() => (
-				<a
-					href="/help"
-					onClick={(e) => {
-						e.preventDefault();
-						navigate("/help");
-					}}
+				// Sidebar footer is a single horizontal row: avatar + user label
+				// pinned to the left, help icon pinned to the right. Clicking the
+				// avatar block opens the logout dropdown; clicking the help icon
+				// navigates to /help. Using a flex row with space-between avoids
+				// ProLayout's default stacked layout for actionsRender +
+				// menuFooterRender so the two pieces sit on the same line.
+				<div
 					style={{
 						display: "flex",
 						alignItems: "center",
+						justifyContent: "space-between",
 						gap: 8,
 						padding: "12px 16px",
-						color: "inherit",
 					}}
 				>
-					<QuestionCircleOutlined />
-					<span>Help</span>
-				</a>
+					<Dropdown
+						menu={{
+							items: [
+								{
+									key: "logout",
+									icon: <LogoutOutlined />,
+									label: "Logout",
+									danger: true,
+									onClick: handleLogout,
+								},
+							],
+						}}
+						placement="topLeft"
+					>
+						<Space style={{ cursor: "pointer", minWidth: 0 }}>
+							<Avatar size="small" icon={<UserOutlined />} />
+							<span
+								style={{
+									overflow: "hidden",
+									textOverflow: "ellipsis",
+									whiteSpace: "nowrap",
+								}}
+							>
+								{displayName}
+							</span>
+						</Space>
+					</Dropdown>
+					<a
+						href="/help"
+						onClick={(e) => {
+							e.preventDefault();
+							navigate("/help");
+						}}
+						aria-label="Help"
+						style={{
+							display: "inline-flex",
+							alignItems: "center",
+							gap: 4,
+							color: "inherit",
+							flexShrink: 0,
+						}}
+					>
+						<QuestionCircleOutlined />
+						<span>Help</span>
+					</a>
+				</div>
 			)}
-			actionsRender={() => [
-				<Dropdown
-					key="user"
-					menu={{
-						items: [
-							{
-								key: "logout",
-								icon: <LogoutOutlined />,
-								label: "Logout",
-								danger: true,
-								onClick: handleLogout,
-							},
-						],
-					}}
-					placement="bottomRight"
-				>
-					<Space style={{ cursor: "pointer", padding: "0 8px" }}>
-						<Avatar size="small" icon={<UserOutlined />} />
-						<span>{displayName}</span>
-					</Space>
-				</Dropdown>,
-			]}
 		>
 			<Outlet />
 		</ProLayout>
