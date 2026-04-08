@@ -133,3 +133,30 @@
    - 验证：`go vet` / `go build` 全绿；`go test ./internal/api/v1/... -run TestOnboardingAPI` PASS（共 9 个 TestOnboardingAPI 用例）
 
 ### Step 04 状态: COMPLETED
+
+## Step 05 Frontend user-settings hooks
+
+### 目标
+扩展 `OnboardingStatus` 类型 + `User` 类型同步后端契约，新增 `useSkipOnboarding` mutation hook，扩展 `useResetOnboarding.onSuccess` 清理 sessionStorage / localStorage / 失效多查询。
+
+### 实施提交
+- `630ceae` feat(user-settings): add skip onboarding hook and extend reset cleanup
+
+### 修改文件
+- `frontend/src/features/user-settings/types.ts`：OnboardingStatus 加 skipped + skippedAt
+- `frontend/src/domain/auth/types.ts`：User 加 onboardingSkippedAt
+- `frontend/src/features/user-settings/api.ts`：新增 skipOnboarding 函数
+- `frontend/src/features/user-settings/use-skip-onboarding.ts`（新）：mutation hook + sessionStorage 清理 + 双 invalidate + refetch
+- `frontend/src/features/user-settings/use-reset-onboarding.ts`：onSuccess 异步化，追加 storage 清理 + 多查询失效
+- `frontend/src/features/user-settings/index.ts`：barrel 导出 useSkipOnboarding
+
+### Review 轮次
+1. **Inline 合并 review**（spec + code quality）→ PASS
+   - Spec：3.11 / 3.12 / TRD §6.1 完整覆盖；refetch 在 invalidate 后正确处理 guard 竞态
+   - Code quality：try/catch 包 storage 调用、注释英文、commit 无 AI 痕迹
+   - 验证：`pnpm lint:all` PASS（156 modules / 501 deps）；`pnpm test --run` PASS（22 files / 108 tests）；`pnpm build` 成功
+
+### 观察项
+- AccountTab 已经用 `await resetOnboarding.mutateAsync()`，自然兼容新的 async onSuccess，无须额外修改
+
+### Step 05 状态: COMPLETED
