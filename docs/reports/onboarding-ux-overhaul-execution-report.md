@@ -244,3 +244,21 @@ worktree 列表显示同时存在另外 2 个 sibling 的 CC 会话工作树（c
 - 全局规则「一 CC 一 worktree」需要用户注意：当前 worktree 似乎被多个工具同时操作，建议保持单 CC 实例以避免文件锁竞争
 
 ### Step 08 状态: COMPLETED
+
+## Step 09 OnboardingPageTransition 组件
+
+### 目标
+新建 framer-motion `AnimatePresence` 包装器，方向感知的 page-swap 过渡（forward / backward / reduced 三套 variants）。导出 PAGE_TRANSITION_VARIANTS 常量供单元测试断言。组件本 step 不挂载，由 step 10 接入。
+
+### 实施提交
+- `f71da5b` feat(onboarding): add OnboardingPageTransition wrapper
+
+### 新增文件
+- `frontend/src/pages/onboarding/components/OnboardingPageTransition.tsx`
+
+### Review 轮次
+1. **Inline 合并 review**（spec + code quality）→ PASS
+   - Spec: 三套 variants 与 TRD §5.3 完全一致；duration 0.35s easeOut；reduced motion 退化为 opacity-only；width 100% 防 flex collapse
+   - 验证：lint:all + test --run（121 tests）+ build 全绿
+
+### Step 09 状态: COMPLETED
