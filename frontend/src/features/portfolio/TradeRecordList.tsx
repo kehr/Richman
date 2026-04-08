@@ -22,6 +22,14 @@ interface TradeRecordListProps {
 	holdingId: number;
 }
 
+// DayjsLike mirrors the shape of the antd DatePicker value we rely on
+// without pulling dayjs in as a direct dependency (it is already bundled
+// transitively via antd). Matches the same alias used in
+// pages/portfolio/components/AddTransactionDrawer.
+interface DayjsLike {
+	toDate(): Date;
+}
+
 export function TradeRecordList({ holdingId }: TradeRecordListProps) {
 	const { data: trades, isLoading } = useTrades(holdingId);
 	const createTrade = useCreateTrade(holdingId);
@@ -30,11 +38,10 @@ export function TradeRecordList({ holdingId }: TradeRecordListProps) {
 
 	const handleCreateTrade = async (values: Record<string, unknown>) => {
 		try {
-			const tradedAt =
-				values.tradedAt && typeof values.tradedAt === "object" && "toISOString" in values.tradedAt
-					? (values.tradedAt as { toISOString: () => string }).toISOString()
-					: new Date().toISOString();
-
+			// tradedAt is enforced as required by the antd Form rule below, so
+			// we rely on validation to reject empty submissions and convert the
+			// Dayjs value straight to an ISO string.
+			const tradedAt = (values.tradedAt as DayjsLike).toDate().toISOString();
 			await createTrade.mutateAsync({
 				direction: values.direction as TradeDirection,
 				price: values.price as number,
@@ -134,7 +141,11 @@ export function TradeRecordList({ holdingId }: TradeRecordListProps) {
 					>
 						<InputNumber min={1} step={1} style={{ width: "100%" }} />
 					</Form.Item>
-					<Form.Item label="Traded At" name="tradedAt">
+					<Form.Item
+						label="Traded At"
+						name="tradedAt"
+						rules={[{ required: true, message: "Please select trade time" }]}
+					>
 						<DatePicker showTime style={{ width: "100%" }} />
 					</Form.Item>
 					<Space>
