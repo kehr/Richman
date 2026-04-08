@@ -100,6 +100,17 @@ func (s *Service) GetTaskStore() *TaskStore {
 	return s.taskStore
 }
 
+// TriggerReanalyzeAll is the endpoint-facing alias for TriggerAnalysis.
+// The LLM degraded contract exposes POST /analysis/reanalyze-all so the
+// dashboard banner can upgrade template/mixed cards after a provider
+// becomes healthy; the behavior is identical to a full-portfolio rerun,
+// only the endpoint and the per-user rate limit differ. Keeping the
+// alias thin (no duplication of the goroutine body) means future tweaks
+// to the background pipeline flow through both surfaces.
+func (s *Service) TriggerReanalyzeAll(ctx context.Context, userID int64, taskID string) {
+	s.TriggerAnalysis(ctx, userID, taskID)
+}
+
 // TriggerAnalysis starts an async analysis for all holdings of a user.
 // It returns a task ID immediately and runs the analysis in the background.
 func (s *Service) TriggerAnalysis(ctx context.Context, userID int64, taskID string) {
