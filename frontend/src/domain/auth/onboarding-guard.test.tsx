@@ -90,4 +90,30 @@ describe("OnboardingGuard", () => {
 		expect(mockNavigate).not.toHaveBeenCalled();
 		expect(screen.getByTestId("child")).toBeInTheDocument();
 	});
+
+	it("passes through for skipped users on main app routes", () => {
+		mockStatus.mockReturnValue({
+			data: { completed: false, skipped: true },
+			isLoading: false,
+			error: null,
+		});
+		renderAt("/dashboard");
+		expect(mockNavigate).not.toHaveBeenCalled();
+		expect(screen.getByTestId("child")).toBeInTheDocument();
+	});
+
+	it("allows skipped users to re-enter onboarding via nudge", () => {
+		// Skipped users who click the Dashboard nudge "开始引导" CTA navigate
+		// straight to /onboarding/welcome. The guard must render the wizard
+		// route children (NOT redirect to /dashboard) so the re-entry path
+		// works. This is the key distinction from the completed=true case.
+		mockStatus.mockReturnValue({
+			data: { completed: false, skipped: true },
+			isLoading: false,
+			error: null,
+		});
+		renderAt("/onboarding/welcome");
+		expect(mockNavigate).not.toHaveBeenCalled();
+		expect(screen.getByTestId("child")).toBeInTheDocument();
+	});
 });
