@@ -14,9 +14,8 @@
 
 ## 设计依据
 
-- PRD §2.3 Service 层
-- PRD §6.1 后端测试要求
-- PRD 附录 A 状态空间表（验证互斥字段的组合约束）
+- PRD §2.3 Service 层 / §6.1 后端测试要求 / 附录 A 状态空间表（验证互斥字段的组合约束）
+- TRD §3.2 Service 层（Status struct 完整定义 + MarkSkipped / GetStatus / Reset 完整方法体）
 
 ## 实施要点
 

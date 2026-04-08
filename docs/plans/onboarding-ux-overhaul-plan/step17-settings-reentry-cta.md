@@ -13,6 +13,7 @@
 ## 设计依据
 
 - PRD §3.10 AccountTab 改造
+- TRD §6.5 AccountTab 重入 CTA（完整 Popconfirm + mutation + navigate 序列）
 - PRD 附录 C Pass 3 主路径 D：Settings 重入 + dismissed 标记清理
 - 本 CTA 是 nudge dismissed 后的第二条 regret 路径，保证非 dev 用户也能回到 onboarding
 

@@ -14,9 +14,8 @@
 
 ## 设计依据
 
-- PRD §3.4 OnboardingBackground 组件
-- PRD §4.1 色彩规范（浅色底、细网格、glow 透明度）
-- PRD §4.4 reduced motion 降级
+- PRD §3.4 OnboardingBackground 组件 / §4.1 色彩规范 / §4.4 reduced motion 降级
+- TRD §5.2 OnboardingBackground（完整 Grid + Glow + RingHero 三层 CSS 与 framer-motion variants）
 - PRD 附录 D Pass 4 Pre-mortem bug 3：光环 CSS `conic-gradient + mask-composite` 的 iPad 合成层问题 → `will-change: transform` 仅 mount 时启用
 
 ## 实施要点

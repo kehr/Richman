@@ -11,9 +11,9 @@
 
 ## 设计依据
 
-- PRD §3.6 页面改造 - FirstAnalysisPage
+- PRD §3.6 页面改造 - FirstAnalysisPage / §4.3 动效清单
+- TRD §4.1 OnboardingState（analysisFired 字段） + §5.4 Stagger 动效规范
 - PRD 附录 B Pass 2 契约打破警报 #1：startedRef 迁移到 sessionStorage
-- PRD §4.3 动效清单：checkmark pathLength 0→1 draw-in、完成态 scale pulse
 
 ## 实施要点
 

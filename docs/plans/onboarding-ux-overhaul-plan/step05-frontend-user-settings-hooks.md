@@ -18,9 +18,8 @@
 
 ## 设计依据
 
-- PRD §3.11 useResetOnboarding 扩展
-- PRD §3.12 useSkipOnboarding
-- PRD §7 实施顺序（前端必须在后端落地后才能对齐）
+- PRD §3.11 useResetOnboarding 扩展 / §3.12 useSkipOnboarding / §7 实施顺序
+- TRD §6.1 前端 user-settings hook 契约（OnboardingStatus 类型 + useSkipOnboarding / useResetOnboarding 的完整 onSuccess 逻辑）
 - 附录 B Pass 2：useResetOnboarding 失效范围不完整是已识别的契约 gap
 
 ## 实施要点

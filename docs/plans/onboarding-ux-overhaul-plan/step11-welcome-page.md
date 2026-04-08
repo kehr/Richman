@@ -12,8 +12,8 @@
 
 ## 设计依据
 
-- PRD §3.6 页面改造 - WelcomePage
-- PRD §4.3 动效清单：stagger 80ms 间隔、fade-up 0.4s each
+- PRD §3.6 页面改造 - WelcomePage / §4.3 动效清单
+- TRD §5.4 Stagger 动效规范（container 和 item variants 完整定义）+ §4.4 useOnboardingNav 契约
 
 ## 实施要点
 

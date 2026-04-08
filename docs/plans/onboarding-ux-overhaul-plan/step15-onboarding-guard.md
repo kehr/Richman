@@ -13,6 +13,7 @@
 ## 设计依据
 
 - PRD §3.8 OnboardingGuard 语义扩展
+- TRD §6.2 OnboardingGuard 三态放行（完整 useEffect 判断分支 + 三种状态的 redirect 规则）
 - PRD 附录 C Pass 3 主路径 C：从 nudge 重入 + 中途退出不被反弹
 - PRD 附录 A 组合 #5/#7：skipped 用户访问 app shell 合法
 - 关键决策：重入时**不清 skipped_at**，guard 必须放行 skipped 用户访问 onboarding 路由

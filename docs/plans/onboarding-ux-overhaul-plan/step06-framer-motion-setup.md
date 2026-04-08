@@ -13,8 +13,8 @@
 
 ## 设计依据
 
-- PRD §5 依赖变更
-- PRD §6.4 测试环境 setup
+- PRD §5 依赖变更 / §6.4 测试环境 setup
+- TRD §1.3 依赖新增（framer-motion 作为 dependency，lazy chunk）
 - PRD 附录 D Pass 4 Pre-mortem bug 5：`useReducedMotion` 在 jsdom 返回 undefined 导致测试挂掉
 
 ## 实施要点

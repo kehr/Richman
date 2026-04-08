@@ -12,8 +12,8 @@
 
 ## 设计依据
 
-- PRD §3.6 页面改造 - CategoriesPage
-- PRD §4.3 动效清单：stagger 80ms、scale 1→1.02 点选动画
+- PRD §3.6 页面改造 - CategoriesPage / §4.3 动效清单
+- TRD §5.4 Stagger 动效规范 + §4.1 OnboardingState（读写 categories）+ §4.4 useOnboardingNav（canGoNext 注册 API）
 
 ## 实施要点
 

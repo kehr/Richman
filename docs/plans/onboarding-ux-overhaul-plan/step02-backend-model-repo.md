@@ -15,9 +15,8 @@
 
 ## 设计依据
 
-- PRD §2.1 Go 模型
-- PRD §2.2 Repo 层
-- PRD 附录 B Pass 2 契约打破警报：`userSelectColumns` 与 `scanUser` 列数同步是高严重度契约
+- PRD §2.1 Go 模型 / §2.2 Repo 层 / 附录 B Pass 2 契约打破警报（`userSelectColumns` 与 `scanUser` 列数同步是高严重度契约）
+- TRD §2.3 Go 模型扩展（完整结构体字段） + §3.1 Repo 层（完整方法签名和 SQL 模式）
 
 ## 实施要点
 

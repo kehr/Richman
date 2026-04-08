@@ -11,9 +11,8 @@
 
 ## 设计依据
 
-- PRD §3.5 OnboardingPageTransition
-- PRD §4.3 动效清单：page transition 前进 `x:40→0, opacity:0→1`，回退方向相反，duration 0.35s ease-out
-- PRD §4.4 reduced motion：降级为 opacity-only
+- PRD §3.5 OnboardingPageTransition / §4.3 动效清单 / §4.4 reduced motion
+- TRD §5.3 OnboardingPageTransition（forward / backward / reduced 三种 variants 完整定义 + AnimatePresence mode="wait" 用法）
 
 ## 实施要点
 

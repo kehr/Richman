@@ -12,8 +12,8 @@
 
 ## 设计依据
 
-- PRD §3.1 OnboardingStateProvider
-- PRD §3.2 useOnboardingNav hook
+- PRD §3.1 OnboardingStateProvider / §3.2 useOnboardingNav hook
+- TRD §4.1 OnboardingState 数据结构 + §4.2 Provider 初始化顺序 + §4.3 Context 导出 + §4.4 useOnboardingNav 契约
 - PRD 附录 A 组合 #3：返回用户场景下 provider 初始化要从后端读 categories
 - PRD 附录 D Pass 4 Pre-mortem bug 2：Provider mount 检查 completed/skipped 主动清 sessionStorage
 - PRD 附录 A 组合 #3 级联清理：categories 收缩时同步清 holdingDraft 的 asset 字段

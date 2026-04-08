@@ -15,8 +15,8 @@
 
 ## 设计依据
 
-- PRD §3.7 Dashboard nudge 组件
-- PRD §3.9 DashboardPage 改造
+- PRD §3.7 Dashboard nudge 组件 / §3.9 DashboardPage 改造
+- TRD §6.3 DashboardPage flex 容纳 nudge（完整 JSX 结构）+ §6.4 OnboardingSkippedNudge 组件（完整 dismiss 状态管理 + handleRestart 纯前端 navigate 决策）
 - PRD 附录 B Pass 2 契约打破警报 #3：DashboardPage early return 必须改造让 nudge 能渲染
 - PRD 附录 D Pass 4 Pre-mortem bug 4：nudge + hero 滚动穿透 → flex column + hero flex:1
 

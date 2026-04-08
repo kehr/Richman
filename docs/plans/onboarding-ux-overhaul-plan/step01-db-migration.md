@@ -12,8 +12,8 @@
 
 ## 设计依据
 
-- PRD §1.1 schema 迁移
-- PRD §1.2 互斥契约（本 step 只添加字段，互斥由后续 SQL 保证）
+- PRD §1.1 schema 迁移 / §1.2 互斥契约（本 step 只添加字段，互斥由后续 SQL 保证）
+- TRD §2.1 Schema 迁移（完整 up/down SQL）+ §2.2 互斥契约
 - 既有 migration 编号到 009，新 migration 用 010
 
 ## 实施要点

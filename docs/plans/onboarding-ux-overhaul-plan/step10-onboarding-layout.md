@@ -13,8 +13,8 @@
 
 ## 设计依据
 
-- PRD §3.3 OnboardingLayout 改造
-- PRD §4.3 动效清单：圆点 pulse、shake 触发、Modal 触发延迟
+- PRD §3.3 OnboardingLayout 改造 / §4.3 动效清单
+- TRD §5.1 OnboardingLayout 三段式（完整 JSX 结构 + 键盘 handler 实现 + skip Modal 细节）+ §5.4 Stagger 动效规范
 - PRD 附录 D Pass 4 Pre-mortem bug 1：skip Modal 与 framer-motion focus trap 冲突 → `setTimeout(0)` 缓解
 - PRD 附录 C Pass 3：键盘监听过滤 input / textarea / select 焦点
 

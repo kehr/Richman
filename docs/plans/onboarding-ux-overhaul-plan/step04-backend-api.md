@@ -12,8 +12,8 @@
 
 ## 设计依据
 
-- PRD §2.4 API 层
-- PRD §6.1 后端测试要求
+- PRD §2.4 API 层 / §6.1 后端测试要求
+- TRD §3.3 API 层（完整 handler 实现 + 路由注册位置）
 - 既有 `POST /complete` handler 作为实现参考
 
 ## 实施要点

@@ -12,6 +12,7 @@
 ## 设计依据
 
 - PRD §3.6 页面改造 - FirstHoldingPage
+- TRD §5.4 Stagger 动效规范 + §4.1 OnboardingState（holdingDraft 结构）+ §4.4 useOnboardingNav（nav.next 行为）
 - PRD 附录 B Pass 2 契约打破警报 #2：按钮语义从 markCompleted 改为 nav.next
 - PRD 附录 C Pass 3 主路径 E：回退再前进的 state 持久化
 
