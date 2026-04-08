@@ -1,21 +1,17 @@
-import { PageContainer, Typography } from "@/ui-kit/eat";
+import { PageContainer } from "@/ui-kit/eat";
 import { useMemo } from "react";
 import { useSearchParams } from "react-router";
 import { type SettingsTabItem, SettingsTabsLayout } from "./components/SettingsTabsLayout";
 import { AccountTab } from "./tabs/AccountTab";
 import { ChannelsTab } from "./tabs/ChannelsTab";
+import { PreferencesTab } from "./tabs/PreferencesTab";
+import { SubscriptionTab } from "./tabs/SubscriptionTab";
 
 const TAB_KEYS = ["account", "channels", "preferences", "subscription"] as const;
 type TabKey = (typeof TAB_KEYS)[number];
 
 function isTabKey(value: string | null): value is TabKey {
 	return value != null && (TAB_KEYS as readonly string[]).includes(value);
-}
-
-// Placeholder used by tabs that have not been implemented yet. Replaced by
-// dedicated tab components in subsequent commits within Step 18.
-function ComingSoon({ label }: { label: string }) {
-	return <Typography.Text type="secondary">{label} 即将上线</Typography.Text>;
 }
 
 // SettingsPage is the composition root for the four-tab settings UI in
@@ -30,8 +26,8 @@ export default function SettingsPage() {
 		() => [
 			{ key: "account", label: "账户", content: <AccountTab /> },
 			{ key: "channels", label: "推送渠道", content: <ChannelsTab /> },
-			{ key: "preferences", label: "偏好", content: <ComingSoon label="偏好" /> },
-			{ key: "subscription", label: "订阅与额度", content: <ComingSoon label="订阅与额度" /> },
+			{ key: "preferences", label: "偏好", content: <PreferencesTab /> },
+			{ key: "subscription", label: "订阅与额度", content: <SubscriptionTab /> },
 		],
 		[],
 	);
