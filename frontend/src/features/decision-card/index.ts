@@ -3,7 +3,12 @@
 // component files directly is rejected by the Pages+Features dependency
 // rules.
 
-export { getDecisionCards, getDecisionCardById, postRerunAnalysis } from "./api";
+export {
+	getDecisionCards,
+	getDecisionCardById,
+	postRerunAnalysis,
+	postReanalyzeAll,
+} from "./api";
 export {
 	useDecisionCards,
 	DECISION_CARDS_QUERY_KEY,
@@ -13,6 +18,7 @@ export {
 	decisionCardDetailQueryKey,
 } from "./use-decision-card-detail";
 export { useRerunAnalysis } from "./use-rerun-analysis";
+export { useReanalyzeAll } from "./use-reanalyze-all";
 
 export { computeNextAnalysisTime, formatHm } from "./analysis-schedule";
 
@@ -31,5 +37,8 @@ export type {
 	TriggerPayload,
 	Action,
 	BadgeState,
+	SynthesisSource,
+	ProviderUsed,
 	RerunAnalysisResponse,
+	ReanalyzeAllResponse,
 } from "./types";

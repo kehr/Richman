@@ -47,6 +47,8 @@ function makeCard(overrides: Partial<DecisionCardDTO> = {}): DecisionCardDTO {
 		confidenceDelta: 0,
 		prevCardId: null,
 		executionFingerprint: "fp",
+		synthesisSource: "llm",
+		providerUsed: "user",
 		...overrides,
 	};
 }
