@@ -409,3 +409,63 @@ FirstHoldingPage 接入 useOnboardingState（holdingDraft + mode 持久化），
 - reduced motion 时 checkmark pathLength 动画降级为立即显示
 
 ### Step 14 状态: COMPLETED
+
+## Step 15 OnboardingGuard three-state bypass
+
+### 目标
+扩展 guard 支持 `skipped` 字段：skipped 用户可以访问 app shell + 可以通过 nudge 或 Settings CTA 重入 onboarding 路由。completed 用户访问 onboarding 仍然被弹回 dashboard。
+
+### 实施提交
+- `5eb1b8b` feat(guard): extend OnboardingGuard with three-state bypass logic
+
+### 修改文件
+- `frontend/src/domain/auth/onboarding-guard.tsx`：isBypassed = completed || skipped
+- `frontend/src/domain/auth/onboarding-guard.test.tsx`：加 2 个测试（skipped 用户过 app shell / skipped 用户过 onboarding 路由）
+
+### Review 轮次
+1. **Inline review** → PASS（7 tests，包括 2 个新用例全部通过）
+
+### Step 15 状态: COMPLETED
+
+## Step 16 Dashboard 引导提示条
+
+### 目标
+新建 OnboardingSkippedNudge 组件（Alert + 两个 CTA + localStorage dismissal），重构 DashboardPage 为 flex 列允许 nudge 与 EmptyHoldingsHero 共存，EmptyHoldingsHero 加次级「重新开始引导」link 作为 dismissed 状态下的 regret 路径。
+
+### 实施提交
+- `063d32d` feat(dashboard): add onboarding skipped nudge and regret path
+
+### 修改文件
+- `frontend/src/pages/dashboard/components/OnboardingSkippedNudge.tsx`（新）
+- `frontend/src/pages/dashboard/components/OnboardingSkippedNudge.test.tsx`（新，6 tests）
+- `frontend/src/pages/dashboard/DashboardPage.tsx`：flex column 结构
+- `frontend/src/pages/dashboard/components/EmptyHoldingsHero.tsx`：次级 link
+- `frontend/src/pages/dashboard/DashboardPage.test.tsx`：mock 扩展加 useOnboardingStatus
+
+### Review 轮次
+1. **Inline review** → PASS
+   - lint:all clean（168 modules）
+   - vitest OnboardingSkippedNudge 6/6 pass
+   - vitest DashboardPage 4/4 pass
+   - build succeed
+
+### Step 16 状态: COMPLETED
+
+## Step 17 Settings 重入 CTA 投放生产
+
+### 目标
+去掉 AccountTab 「重置 Onboarding」按钮的 `import.meta.env.DEV` 门控，文案改为「重新走一遍引导」，包 Popconfirm 防误触，重置成功后 navigate `/onboarding/welcome`。
+
+### 实施提交
+- `b0b27c5` feat(settings): promote onboarding re-entry CTA to production
+
+### 修改文件
+- `frontend/src/pages/settings/tabs/AccountTab.tsx`：去掉 isDev 门控、包 Popconfirm、handleResetOnboarding 改为 mutation 后 navigate
+- `frontend/src/pages/settings/tabs/AccountTab.test.tsx`：去掉 vi.stubEnv，加 navigateSpy mock，替换 dev-only 测试为「按钮始终可见」+「Popconfirm confirm 后 reset + navigate」
+
+### Review 轮次
+1. **Inline review** → PASS
+   - lint:all clean（153 files / 168 modules / 575 deps）
+   - vitest AccountTab 5/5 pass
+
+### Step 17 状态: COMPLETED
