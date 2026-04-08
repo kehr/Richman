@@ -113,3 +113,23 @@
 - `make lint` golangci-lint 工具链问题持续存在，与本 step 无关，建议后续单独修复
 
 ### Step 03 状态: COMPLETED
+
+## Step 04 Backend API POST /onboarding/skip
+
+### 目标
+在 `OnboardingHandler` 暴露 `POST /api/v1/onboarding/skip` 端点，handler 复用 `service.MarkSkipped`，新增 4 个 API 集成测试覆盖成功路径、follow-up GET 反映、skip→complete 互斥清理、auth 校验。
+
+### 实施提交
+- `357214b` feat(api): add POST /onboarding/skip handler with integration tests
+
+### 修改文件
+- `backend/internal/api/v1/onboarding.go`：RegisterRoutes 新增 `POST /skip`、新增 MarkSkipped handler、Reset 注释更新（移除生产守卫的描述）
+- `backend/internal/api/v1/onboarding_test.go`：新增 4 个 TestOnboardingAPI_Skip* 测试
+
+### Review 轮次
+1. **Inline 合并 review**（spec + code quality）→ PASS
+   - Spec: 路由路径、HTTP 方法、Response shape、4 个测试用例与 plan §step04 完全对齐
+   - Code quality: handler 风格对齐既有 MarkCompleted、注释英文、commit message 无 AI 痕迹
+   - 验证：`go vet` / `go build` 全绿；`go test ./internal/api/v1/... -run TestOnboardingAPI` PASS（共 9 个 TestOnboardingAPI 用例）
+
+### Step 04 状态: COMPLETED
