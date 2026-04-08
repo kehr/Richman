@@ -363,3 +363,49 @@ worktree 列表显示同时存在另外 2 个 sibling 的 CC 会话工作树（c
 - canGoNext predicate 目前只覆盖 `quick` mode；detail/screenshot tab 在 UI 上是 disabled（Tooltip「即将推出 Step 16/17」），predicate 对 non-quick mode 返回 false。这是一个保守策略：如果未来某个未知路径使 `draft.mode` 变成 detail/screenshot，gate 会保持关闭而不是误放行
 
 ### Step 13 状态: DONE_WITH_CONCERNS（test 未执行，lint + build 通过）
+
+## Step 13 FirstHoldingPage refactor
+
+### 目标
+FirstHoldingPage 接入 useOnboardingState（holdingDraft + mode 持久化），注册 canGoNext predicate 校验表单必填字段，重命名「跳过直接分析」按钮为「用已有持仓直接分析 →」并改 nav.next() 不再直接 markCompleted，form fields 加 stagger fade-up 动画。
+
+### 实施提交
+- `1f56746` feat(onboarding): refactor FirstHoldingPage with state draft and nav handoff
+- `27cd3c9` docs(report): log step 13 completion（由 implementer 提前写了一半，由后续补齐）
+
+### 验证
+- lint:all PASS
+- build PASS（FirstHoldingPage chunk 6.18 kB）
+- vitest run 被 sibling CC OOM 阻塞（已记录为 known infra issue）
+
+### 观察项
+- Implementer pwd verification guard 生效，所有 commit 落到正确的 worktree + 分支
+- Predicate 对 detail / screenshot mode 采 fail-closed 策略，tab 被禁用时 canGoNext=false
+
+### Step 13 状态: COMPLETED
+
+## Step 14 FirstAnalysisPage analysisFired 迁移
+
+### 目标
+将 `startedRef: useRef` 单次触发 guard 迁移到 `state.analysisFired`（sessionStorage 持久化），保证 back navigation → step 3 → step 4 重访时不重复触发 analysis。checkmark 加 framer-motion pathLength draw-in 动画。
+
+### 实施提交
+- `4fd0696` feat(onboarding): migrate FirstAnalysisPage to analysisFired session state
+
+### 修改文件
+- `frontend/src/pages/onboarding/FirstAnalysisPage.tsx`
+- `frontend/src/pages/onboarding/FirstAnalysisPage.test.tsx`（新）
+
+### Review 轮次
+1. **Inline review** → PASS
+   - lint:all clean（151 files）
+   - vitest run src/pages/onboarding/FirstAnalysisPage.test.tsx：2/2 pass
+   - build clean（FirstAnalysisPage chunk 3.53 kB gzip 1.82 kB）
+
+### 关键决策
+- 使用 `useNavigate` 而非 `nav.next()` 完成最终跳转：step 4 是 terminal，没有 next
+- `clear()` state 在 navigate 之前调用，skip / error / happy 三路径一致清理
+- biome-ignore useExhaustiveDependencies 明确注释「mount-once guard」防止未来误修
+- reduced motion 时 checkmark pathLength 动画降级为立即显示
+
+### Step 14 状态: COMPLETED
