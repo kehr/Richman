@@ -1,6 +1,7 @@
 import { Button, Card, Col, Row, Typography } from "@/ui-kit/eat";
-import { useNavigate } from "react-router";
+import { motion, useReducedMotion } from "framer-motion";
 import { OnboardingLayout } from "./components/OnboardingLayout";
+import { useOnboardingNav } from "./use-onboarding-nav";
 
 const { Text, Title } = Typography;
 
@@ -26,8 +27,32 @@ const DIMENSIONS = [
 	},
 ];
 
+const containerVariants = {
+	hidden: { opacity: 0 },
+	visible: {
+		opacity: 1,
+		transition: { staggerChildren: 0.08 },
+	},
+};
+
+const itemVariants = {
+	hidden: { opacity: 0, y: 20 },
+	visible: {
+		opacity: 1,
+		y: 0,
+		transition: { duration: 0.4, ease: "easeOut" },
+	},
+};
+
+const reducedItemVariants = {
+	hidden: { opacity: 0 },
+	visible: { opacity: 1, transition: { duration: 0.2 } },
+};
+
 export default function WelcomePage() {
-	const navigate = useNavigate();
+	const nav = useOnboardingNav();
+	const reducedMotion = useReducedMotion();
+	const items = reducedMotion ? reducedItemVariants : itemVariants;
 
 	return (
 		<OnboardingLayout
@@ -47,15 +72,22 @@ export default function WelcomePage() {
 					type="primary"
 					size="large"
 					data-testid="onboarding-welcome-next"
-					onClick={() => navigate("/onboarding/categories")}
+					onClick={() => {
+						void nav.next();
+					}}
 				>
 					开始设置 →
 				</Button>
 			}
 		>
-			<Row gutter={[16, 16]}>
+			<motion.div
+				variants={containerVariants}
+				initial="hidden"
+				animate="visible"
+				style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(3, 1fr)" }}
+			>
 				{DIMENSIONS.map((dim) => (
-					<Col xs={24} sm={8} key={dim.key}>
+					<motion.div key={dim.key} variants={items}>
 						<Card
 							data-testid={`dimension-card-${dim.key}`}
 							style={{ height: "100%", textAlign: "center" }}
@@ -65,9 +97,9 @@ export default function WelcomePage() {
 							</Title>
 							<Text type="secondary">{dim.description}</Text>
 						</Card>
-					</Col>
+					</motion.div>
 				))}
-			</Row>
+			</motion.div>
 		</OnboardingLayout>
 	);
 }

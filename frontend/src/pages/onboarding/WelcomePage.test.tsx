@@ -6,15 +6,24 @@ import { describe, expect, it, vi } from "vitest";
 import WelcomePage from "./WelcomePage";
 import { OnboardingStateProvider } from "./state";
 
-// Mock react-router useNavigate so we can assert the target without actually
-// navigating the test DOM. All other router primitives come from the real
-// module via importActual.
-const mockNavigate = vi.fn();
-vi.mock("react-router", async () => {
-	const actual = await vi.importActual<typeof import("react-router")>("react-router");
+// Mock useOnboardingNav so we can assert the next() call without wiring the
+// full router. All other hooks come from the real module via importActual.
+const mockNext = vi.fn();
+vi.mock("./use-onboarding-nav", async () => {
+	// biome-ignore lint/suspicious/noExplicitAny: vitest importActual returns any
+	const actual: any = await vi.importActual("./use-onboarding-nav");
 	return {
 		...actual,
-		useNavigate: () => mockNavigate,
+		useOnboardingNav: () => ({
+			currentStep: 1,
+			reachedStep: 1,
+			canGoNext: true,
+			prev: vi.fn(),
+			next: mockNext,
+			skip: vi.fn(),
+			jumpTo: vi.fn(),
+			registerCanGoNext: () => () => {},
+		}),
 	};
 });
 
@@ -37,7 +46,7 @@ vi.mock("@/features/user-settings", () => ({
 
 describe("WelcomePage", () => {
 	beforeEach(() => {
-		mockNavigate.mockReset();
+		mockNext.mockReset();
 	});
 
 	it("renders title, three dimension cards, and CTA button", () => {
@@ -55,7 +64,7 @@ describe("WelcomePage", () => {
 		expect(screen.getByTestId("onboarding-welcome-next")).toBeInTheDocument();
 	});
 
-	it("navigates to the categories step when the CTA is clicked", async () => {
+	it("calls nav.next() when the CTA button is clicked", async () => {
 		const user = userEvent.setup();
 		renderWithProviders(
 			<MemoryRouter initialEntries={["/onboarding/welcome"]}>
@@ -65,6 +74,6 @@ describe("WelcomePage", () => {
 			</MemoryRouter>,
 		);
 		await user.click(screen.getByTestId("onboarding-welcome-next"));
-		expect(mockNavigate).toHaveBeenCalledWith("/onboarding/categories");
+		expect(mockNext).toHaveBeenCalled();
 	});
 });
