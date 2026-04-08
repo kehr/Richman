@@ -18,6 +18,8 @@ export {
 	useLLMConsent,
 } from "./hooks";
 
+export { LLMSection } from "./LLMSection";
+
 export type {
 	LLMConsentRequest,
 	LLMHealthStatus,
