@@ -5,30 +5,61 @@ import {
 } from "@/features/asset-catalog";
 import { usePatchUserSettings } from "@/features/user-settings";
 import { Button, Card, Col, Row, Typography, message } from "@/ui-kit/eat";
-import { useState } from "react";
-import { useNavigate } from "react-router";
+import { motion, useReducedMotion } from "framer-motion";
+import { useEffect } from "react";
 import { OnboardingLayout } from "./components/OnboardingLayout";
+import { useOnboardingState } from "./state";
+import { useOnboardingNav } from "./use-onboarding-nav";
 
 const { Text, Title } = Typography;
 
-export default function CategoriesPage() {
-	const navigate = useNavigate();
-	const patch = usePatchUserSettings();
-	const [selected, setSelected] = useState<AssetCategory[]>([]);
+const containerVariants = {
+	hidden: { opacity: 0 },
+	visible: {
+		opacity: 1,
+		transition: { staggerChildren: 0.08 },
+	},
+};
 
-	const toggle = (key: AssetCategory) => {
-		setSelected((prev) => (prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]));
+const itemVariants = {
+	hidden: { opacity: 0, y: 20 },
+	visible: {
+		opacity: 1,
+		y: 0,
+		transition: { duration: 0.4, ease: "easeOut" },
+	},
+};
+
+const reducedItemVariants = {
+	hidden: { opacity: 0 },
+	visible: { opacity: 1, transition: { duration: 0.2 } },
+};
+
+export default function CategoriesPage() {
+	const nav = useOnboardingNav();
+	const { state, update } = useOnboardingState();
+	const patch = usePatchUserSettings();
+	const reducedMotion = useReducedMotion();
+	const items = reducedMotion ? reducedItemVariants : itemVariants;
+
+	const toggleCategory = (key: AssetCategory) => {
+		const next = state.categories.includes(key)
+			? state.categories.filter((c) => c !== key)
+			: [...state.categories, key];
+		update({ categories: next });
 	};
 
-	const canContinue = selected.length > 0;
+	useEffect(() => {
+		return nav.registerCanGoNext(() => state.categories.length >= 1);
+	}, [nav, state.categories]);
 
 	const handleNext = async () => {
-		if (!canContinue) return;
+		if (!nav.canGoNext) return;
 		try {
-			await patch.mutateAsync({ categories: selected });
-			navigate("/onboarding/first-holding");
+			await patch.mutateAsync({ categories: state.categories });
+			await nav.next();
 		} catch {
-			message.error("保存失败，请重试");
+			message.error("保存失败，请稍后重试");
 		}
 	};
 
@@ -42,7 +73,7 @@ export default function CategoriesPage() {
 					type="primary"
 					size="large"
 					data-testid="onboarding-categories-next"
-					disabled={!canContinue}
+					disabled={!nav.canGoNext}
 					loading={patch.isPending}
 					onClick={handleNext}
 				>
@@ -50,12 +81,17 @@ export default function CategoriesPage() {
 				</Button>
 			}
 		>
-			<Row gutter={[16, 16]}>
+			<motion.div
+				variants={containerVariants}
+				initial="hidden"
+				animate="visible"
+				style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(2, 1fr)" }}
+			>
 				{ASSET_CATEGORIES.map((key) => {
 					const meta = ASSET_CATEGORY_META[key];
-					const isSelected = selected.includes(key);
+					const isSelected = state.categories.includes(key);
 					return (
-						<Col xs={24} sm={12} key={key}>
+						<motion.div key={key} variants={items}>
 							{/*
 							  The card is wrapped in a native <button> so keyboard users
 							  reach it via Tab and toggle with Enter/Space, while the
@@ -68,7 +104,7 @@ export default function CategoriesPage() {
 								data-selected={isSelected ? "true" : "false"}
 								aria-pressed={isSelected}
 								aria-label={`${meta.label} ${meta.description}`}
-								onClick={() => toggle(key)}
+								onClick={() => toggleCategory(key)}
 								style={{
 									width: "100%",
 									padding: 0,
@@ -78,28 +114,30 @@ export default function CategoriesPage() {
 									cursor: "pointer",
 								}}
 							>
-								<Card
-									hoverable
-									style={{
-										borderColor: isSelected ? "#000" : undefined,
-										borderWidth: isSelected ? 2 : 1,
-										backgroundColor: isSelected ? "#f5f5f5" : undefined,
-										transition: "all 0.15s",
-									}}
-								>
-									<Title level={4} style={{ marginTop: 0, marginBottom: 4 }}>
-										{meta.label}
-									</Title>
-									<Text type="secondary" style={{ display: "block", marginBottom: 8 }}>
-										{meta.description}
-									</Text>
-									<Text style={{ fontSize: 12, color: "#8c8c8c" }}>例如：{meta.examples}</Text>
-								</Card>
+								<motion.div whileTap={{ scale: 0.98 }} transition={{ duration: 0.1 }}>
+									<Card
+										hoverable
+										style={{
+											borderColor: isSelected ? "#000" : undefined,
+											borderWidth: isSelected ? 2 : 1,
+											backgroundColor: isSelected ? "#f5f5f5" : undefined,
+											transition: "all 0.15s",
+										}}
+									>
+										<Title level={4} style={{ marginTop: 0, marginBottom: 4 }}>
+											{meta.label}
+										</Title>
+										<Text type="secondary" style={{ display: "block", marginBottom: 8 }}>
+											{meta.description}
+										</Text>
+										<Text style={{ fontSize: 12, color: "#8c8c8c" }}>例如：{meta.examples}</Text>
+									</Card>
+								</motion.div>
 							</button>
-						</Col>
+						</motion.div>
 					);
 				})}
-			</Row>
+			</motion.div>
 		</OnboardingLayout>
 	);
 }
