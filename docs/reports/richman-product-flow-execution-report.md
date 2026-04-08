@@ -1223,3 +1223,56 @@ Page 层：
 - Step 19 Help：3 commits
 - Step 20 Auth：3 commits
 - Step 21 E2E：1 commit
+
+## Deep Verification Pass（全量审计与修复）
+
+按用户指令「深度检查任务执行是否完成、前后端功能一致、实现完整性、是否有错漏遗漏」并行派发 4 路审计子代理：
+1. Plan vs actual delivery（Explore）
+2. Frontend/backend contract consistency（feature-dev code-reviewer）
+3. Execution report vs actual code drift（Explore）
+4. Full branch code quality scan（superpowers code-reviewer）
+
+### 审计发现汇总
+- **Audit 1 (Plan vs actual)**：21/21 step PASS，未报缺失
+- **Audit 2 (FE/BE 契约)**：发现 3 个 Critical + 4 个 Important + 3 个 Minor 跨前后端契约问题——这些都是按 step 的 review 没跨层核对遗漏的真实 bug
+- **Audit 3 (报告 vs 代码)**：报告准确，无过度声明
+- **Audit 4 (全量代码质量)**：发现 2 个 Important + 5 个 Minor 跨步骤一致性问题
+
+按「所有问题不论等级必须彻底修复」原则，15 个问题全部修复并 commit 到 `dde8640`：
+
+### 已修复（共 15 项）
+| # | 严重度 | 问题 | 修复 |
+|---|--------|------|------|
+| 34 | Critical | `PATCH /holdings/:id` FE 调用对应后端 `PUT /:id`，每次更新 405 | 后端改为 `PATCH`，符合 REST 部分更新语义 |
+| 35 | Critical | 前端 `User.id` 但后端 emits `userId`；`user.id` 始终 undefined | 前端 `domain/auth/types.User` 改为镜像后端 model.User（userId + role + planId + riskPreference + totalCapitalCny + onboardingCompletedAt + categories + updatedAt） |
+| 36 | Critical | `model.Trade.Price/Quantity` 为 `decimal.Decimal`，JSON 序列化为字符串但前端 `TradeDto.price: number`，`toFixed()` 运行时崩 | 后端新增 `TradeDTO` + `toTradeDTO`/`toTradeDTOs` projection，price/quantity 转 float64 后再 `c.JSON` |
+| 37 | Important | `features/dashboard/{api.ts, useStats.ts, StatsOverview.tsx, index.ts}` 调用不存在的 `/dashboard/stats`，0 个消费者 | 整个 `features/dashboard/` 目录删除 |
+| 38 | Important | FE `CreateHoldingInput` 漏 `quantity` 字段，后端默认 0，新建持仓丢数据 | 加入 `quantity: number`，HoldingForm / QuickHoldingForm / ScreenshotImportModal / FirstHoldingPage 全部显式传值 |
+| 39 | Important | FE `HoldingDto` 漏 `positionAmount`，后端 `AttachAmounts` 计算结果被丢弃 | 加入 `positionAmount?: number \| null` + `userId/category/createdAt/updatedAt` 对齐 |
+| 40 | Important | `useCurrentUser` 不解包 `res.data` 与其他 query hook 不一致 | 加 `select: (res) => res.data`；`AccountTab` / `MainLayout` / test mock 全部更新为扁平 User |
+| 41 | Important | `features/portfolio/api.ts` 重复声明 `API_BASE`，与 `domain/http/client.ts` 可能 drift | `API_BASE` 从 `domain/http/client.ts` 导出，所有 call site 复用 |
+| 42 | Important | `AddTransactionDrawer` 与 `TradeRecordList` 重复声明 `DayjsLike` | 新建 `domain/datetime/dayjs-like.ts`，两侧 import |
+| 43 | Minor | `features/portfolio/index.ts` 导出的 `RecognizedField` / `RecognizeOverallStatus` 无外部消费者 | 从 barrel 移除 |
+| 44 | Minor | `useRegister` 硬编码 `/dashboard`，用户从 `?returnTo=...` 跳到 register 后丢深链 | `useRegister` 接受 `{ redirectTo? }`，`RegisterForm` 透传，`RegisterPage` 复用 `resolveReturnTo` |
+| 45 | Minor | 安全关键 `resolveReturnTo` 放在 `pages/auth/LoginPage.tsx`，RegisterPage 无法复用 | 移到 `domain/auth/resolve-return-to.ts` |
+| 46 | Minor | `decision_card_repo.scanCardRow` 静默吞掉 `risk_warnings` JSON 解码失败 | 加 warn 日志（card_id + holding_id + error） |
+| 47 | Minor | `DashboardPage.test` 只测 `totalCapitalCny=100_000` 路径，privacy-sensitive no-capital 分支无测试 | 新增 "renders percent-only aggregates when user has no total capital" 测试；`useMoney` mock 改为驱动自 `settingsState.totalCapitalCny` |
+| 48 | Nit | `DashboardPage.handleRerun` 声明 `err` 但未使用 | 改为 `} catch {` |
+
+### 顺带清理
+- `TradeRecordList.tsx` 删除遗留的 `"use client"` Next.js 指令（本项目是 Vite SPA）
+- `MainLayout.tsx` 配合 `useCurrentUser` 解包 fix，改为 `const { data: user }` 直接取扁平 User
+
+### 最终验证
+- `pnpm lint:all` PASS（141 files / 155 modules / 498 deps）
+- `pnpm test --run` PASS（22 files / **108 tests**，+1 无资金分支测试）
+- `pnpm build` PASS（vite build 3.75s）
+- `go vet ./...` PASS
+- `go build ./...` PASS
+- `go test ./...` PASS（analysis / service / datasource / api 全部通过，privacy_guard 专项测试通过）
+
+### Commit
+- `dde8640` fix: deep verification pass — contract alignment and dead code cleanup（29 files changed, 302 insertions, 155 deletions）
+
+### 结论
+4 路深度审计发现的 15 个问题已全部修复并通过前后端全量验证。之前按 step 的 review 漏掉的跨前后端契约 bug（holdings PUT vs PATCH、User userId vs id、trade decimal 序列化、dashboard/stats 死代码、quantity/positionAmount 数据丢失、useCurrentUser 解包不一致）全部闭环。目前 `product-flow-redesign` 分支处于可合并状态，所有已知问题无遗留。
