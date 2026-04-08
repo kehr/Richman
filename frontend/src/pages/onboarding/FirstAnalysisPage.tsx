@@ -53,18 +53,22 @@ export default function FirstAnalysisPage() {
 		return () => clearTimeout(timer);
 	}, [currentStep, error]);
 
-	// Finalise onboarding once every step has been shown AND the trigger
-	// mutation has settled (success or error handled below). completedRef
-	// guards against the mark-completed mutation being fired more than once.
+	// Finalise onboarding once every step has been shown. We intentionally do
+	// NOT gate on rerunAnalysis.isPending: the backend accepts the trigger as
+	// fire-and-forget (202 Accepted) and the real analysis work runs in a
+	// detached goroutine, so the mutation's pending flag is only meaningful
+	// for the HTTP round-trip. Blocking the UI on it previously caused users
+	// to hang on the "all done" screen when the mutation state failed to
+	// settle for any reason (flaky network, stale reference, data source
+	// failure mid-request). completedRef guards against double-firing.
 	// `markCompleted` and `navigate` are stable references from TanStack Query
-	// and React Router v7, so the effect only needs to react to the currentStep
-	// counter, the error state, and the mutation's pending flag.
+	// and React Router v7, so we only react to the currentStep counter and
+	// the error state.
 	// biome-ignore lint/correctness/useExhaustiveDependencies: markCompleted and navigate are stable
 	useEffect(() => {
 		if (completedRef.current) return;
 		if (error) return;
 		if (currentStep < ANALYSIS_STEPS.length) return;
-		if (rerunAnalysis.isPending) return;
 		completedRef.current = true;
 		markCompleted
 			.mutateAsync()
@@ -78,7 +82,7 @@ export default function FirstAnalysisPage() {
 				// better failure mode than an infinite spinner.
 				navigate("/dashboard", { replace: true });
 			});
-	}, [currentStep, error, rerunAnalysis.isPending]);
+	}, [currentStep, error]);
 
 	const handleRetry = () => {
 		// Reset UI state and re-fire the mutation directly; the mount-only
@@ -105,6 +109,12 @@ export default function FirstAnalysisPage() {
 		if (index === currentStep) return "active";
 		return "pending";
 	};
+
+	// Show an always-available skip link once every step has ticked through.
+	// In the happy path the finalise effect auto-advances, but if anything
+	// further downstream (markCompleted, navigate) hangs the user can bail
+	// out manually instead of being trapped on the progress screen.
+	const showSkipEscape = currentStep >= ANALYSIS_STEPS.length && !error;
 
 	return (
 		<OnboardingLayout
@@ -190,6 +200,18 @@ export default function FirstAnalysisPage() {
 					);
 				})}
 			</ol>
+
+			{showSkipEscape ? (
+				<div style={{ marginTop: 16, textAlign: "center" }}>
+					<Button
+						type="link"
+						onClick={handleSkip}
+						data-testid="onboarding-analysis-manual-continue"
+					>
+						看起来卡住了？直接进 Dashboard
+					</Button>
+				</div>
+			) : null}
 		</OnboardingLayout>
 	);
 }

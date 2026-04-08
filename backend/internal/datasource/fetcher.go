@@ -118,10 +118,33 @@ func (f *Fetcher) FetchAssetData(ctx context.Context, assetCode, assetType strin
 }
 
 // resolveGoldETFFetcher returns yahoo for US gold ETFs, akshare for Chinese ones.
+// Chinese ETF codes are all-digit 6-character strings across both exchanges:
+//   - Shanghai (SSE):  51xxxx / 56xxxx / 588xxx  (e.g. 518880 华安黄金 SSE)
+//   - Shenzhen (SZSE): 159xxx / 160xxx           (e.g. 159934 华安黄金 SZSE)
+//
+// US ETFs (GLD, IAU, SGOL, ...) are alphabetic tickers. Anything that parses
+// as a purely numeric code is routed to AKShare, the rest to Yahoo. The
+// previous rule only matched the leading '5' prefix and silently misrouted
+// SZSE 159xxx to Yahoo, which then 429'd.
 func (f *Fetcher) resolveGoldETFFetcher(code string) PriceHistoryFetcher {
-	if code != "" && code[0] == '5' {
-		// Chinese gold ETFs start with "5" (e.g., 518880).
+	if isChineseNumericCode(code) {
 		return f.akshare
 	}
 	return f.yahoo
+}
+
+// isChineseNumericCode reports whether the given asset code looks like a
+// mainland-China exchange ticker: a non-empty string whose first character
+// is a digit. We deliberately accept any length so future A-share codes
+// (stocks are 6-digit, futures may differ) are still routed to AKShare.
+func isChineseNumericCode(code string) bool {
+	if code == "" {
+		return false
+	}
+	for i := 0; i < len(code); i++ {
+		if code[i] < '0' || code[i] > '9' {
+			return false
+		}
+	}
+	return true
 }
