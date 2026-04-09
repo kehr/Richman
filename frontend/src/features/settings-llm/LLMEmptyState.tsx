@@ -1,4 +1,5 @@
 import { Button, Card, Empty, Space, Typography } from "@/ui-kit/eat";
+import { useTranslation } from "react-i18next";
 
 const { Text, Title } = Typography;
 
@@ -20,14 +21,16 @@ export function LLMEmptyState({
 	useSystemDefaultConsent,
 	onAddProvider,
 }: LLMEmptyStateProps) {
+	const { t } = useTranslation("settings");
+
 	const calloutCopy = (() => {
 		if (systemDefaultAvailable && useSystemDefaultConsent) {
-			return "当前分析将走 Richman 的系统默认 AI Provider。你可以配置自己的 Provider 以获得更好的额度和隐私控制。";
+			return t("llm.emptyState.callout.systemConsentGiven");
 		}
 		if (systemDefaultAvailable && !useSystemDefaultConsent) {
-			return "系统默认 AI Provider 可用，但你尚未同意使用。当前分析会降级到规则引擎。配置你自己的 Provider 或在 onboarding 中勾选同意可以启用 AI 解读。";
+			return t("llm.emptyState.callout.systemNoConsent");
 		}
-		return "当前分析走规则引擎。配置你自己的 LLM Provider 可以启用 AI 解读能力。";
+		return t("llm.emptyState.callout.noSystem");
 	})();
 
 	return (
@@ -37,14 +40,14 @@ export function LLMEmptyState({
 					description={
 						<Space direction="vertical" size={4}>
 							<Title level={5} style={{ margin: 0 }}>
-								尚未配置 AI Provider
+								{t("llm.emptyState.title")}
 							</Title>
 							<Text type="secondary">{calloutCopy}</Text>
 						</Space>
 					}
 				>
 					<Button type="primary" onClick={onAddProvider} data-testid="llm-add-provider-button">
-						添加 LLM Provider
+						{t("llm.emptyState.addButton")}
 					</Button>
 				</Empty>
 			</Space>

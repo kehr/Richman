@@ -1,6 +1,7 @@
 import { AddChannelDrawer, ChannelList, useChannels } from "@/features/notification-channels";
 import { Alert, Button, Divider, Flex, PlusOutlined, Typography } from "@/ui-kit/eat";
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 
 // ChannelsTab is the PRD §6.3 channel management view: header counter,
@@ -8,6 +9,7 @@ import { Link } from "react-router";
 // opens the drawer, and a footer pointer to the help anchor explaining
 // push windows.
 export function ChannelsTab() {
+	const { t } = useTranslation("settings");
 	const channelsQuery = useChannels();
 	const [drawerOpen, setDrawerOpen] = useState(false);
 
@@ -18,7 +20,7 @@ export function ChannelsTab() {
 		<Flex vertical gap={16} data-testid="channels-tab">
 			<Flex align="center" justify="space-between">
 				<Typography.Text type="secondary" data-testid="channels-counter">
-					当前已启用 {enabledCount} 个渠道
+					{t("channels.enabledCount", { count: enabledCount })}
 				</Typography.Text>
 				<Button
 					type="primary"
@@ -26,7 +28,7 @@ export function ChannelsTab() {
 					onClick={() => setDrawerOpen(true)}
 					data-testid="channels-add-button"
 				>
-					添加渠道
+					{t("channels.addButton")}
 				</Button>
 			</Flex>
 
@@ -34,8 +36,8 @@ export function ChannelsTab() {
 				<Alert
 					type="error"
 					showIcon
-					message="加载渠道列表失败"
-					description="请刷新页面或稍后再试"
+					message={t("channels.loadError")}
+					description={t("channels.loadErrorDesc")}
 					data-testid="channels-load-error"
 				/>
 			)}
@@ -45,9 +47,9 @@ export function ChannelsTab() {
 			<Divider style={{ margin: "8px 0" }} />
 
 			<Typography.Text type="secondary" style={{ fontSize: 12 }}>
-				推送时段：北京时间 08:30 / 15:30 / 次日 06:00，根据持仓自动筛选。
+				{t("channels.pushSchedule")}
 				<Link to="/help#push" style={{ marginLeft: 8 }}>
-					了解更多
+					{t("channels.learnMore")}
 				</Link>
 			</Typography.Text>
 

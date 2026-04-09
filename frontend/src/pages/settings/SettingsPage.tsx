@@ -1,5 +1,6 @@
 import { PageContainer } from "@/ui-kit/eat";
 import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router";
 import { type SettingsTabItem, SettingsTabsLayout } from "./components/SettingsTabsLayout";
 import { AITab } from "./tabs/AITab";
@@ -21,18 +22,19 @@ function isTabKey(value: string | null): value is TabKey {
 // LLM degraded contract work and hosts the LLMSection feature.
 export default function SettingsPage() {
 	const [searchParams, setSearchParams] = useSearchParams();
+	const { t } = useTranslation("settings");
 	const rawTab = searchParams.get("tab");
 	const activeKey: TabKey = isTabKey(rawTab) ? rawTab : "account";
 
 	const items = useMemo<SettingsTabItem[]>(
 		() => [
-			{ key: "account", label: "账户", content: <AccountTab /> },
-			{ key: "ai", label: "AI 解读", content: <AITab /> },
-			{ key: "channels", label: "推送渠道", content: <ChannelsTab /> },
-			{ key: "preferences", label: "偏好", content: <PreferencesTab /> },
-			{ key: "subscription", label: "订阅与额度", content: <SubscriptionTab /> },
+			{ key: "account", label: t("tabs.account"), content: <AccountTab /> },
+			{ key: "ai", label: t("tabs.ai"), content: <AITab /> },
+			{ key: "channels", label: t("tabs.channels"), content: <ChannelsTab /> },
+			{ key: "preferences", label: t("tabs.preferences"), content: <PreferencesTab /> },
+			{ key: "subscription", label: t("tabs.subscription"), content: <SubscriptionTab /> },
 		],
-		[],
+		[t],
 	);
 
 	const handleChange = (key: string) => {
@@ -42,7 +44,7 @@ export default function SettingsPage() {
 	};
 
 	return (
-		<PageContainer title="设置" data-testid="settings-page">
+		<PageContainer title={t("title")} data-testid="settings-page">
 			<SettingsTabsLayout items={items} activeKey={activeKey} onChange={handleChange} />
 		</PageContainer>
 	);

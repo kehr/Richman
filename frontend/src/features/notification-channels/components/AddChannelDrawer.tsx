@@ -1,5 +1,6 @@
 import { Button, Drawer, Flex, Form, Input, Radio, Typography, message } from "@/ui-kit/eat";
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type {
 	ChannelType,
 	CreateChannelInput,
@@ -31,6 +32,7 @@ interface WechatFormValues {
 // type, then fill in the per-type configuration form. The form fields mirror
 // the backend adapter config structs verbatim (see types.ts for citations).
 export function AddChannelDrawer({ open, onClose }: AddChannelDrawerProps) {
+	const { t } = useTranslation("settings");
 	const [channelType, setChannelType] = useState<ChannelType>("email");
 	const [emailForm] = Form.useForm<EmailFormValues>();
 	const [feishuForm] = Form.useForm<FeishuFormValues>();
@@ -44,6 +46,33 @@ export function AddChannelDrawer({ open, onClose }: AddChannelDrawerProps) {
 		setChannelType("email");
 		onClose();
 	};
+
+	// Memoize validation rules to stay reactive to locale changes.
+	const emailRules = useMemo(
+		() => [
+			{ required: true, message: t("channels.emailForm.validation.required") },
+			{ type: "email" as const, message: t("channels.emailForm.validation.invalid") },
+		],
+		[t],
+	);
+
+	const feishuRules = useMemo(
+		() => [
+			{ required: true, message: t("channels.feishuForm.validation.required") },
+			{ type: "url" as const, message: t("channels.feishuForm.validation.invalid") },
+		],
+		[t],
+	);
+
+	const wechatOpenIdRules = useMemo(
+		() => [{ required: true, message: t("channels.wechatForm.validation.openIdRequired") }],
+		[t],
+	);
+
+	const wechatTemplateIdRules = useMemo(
+		() => [{ required: true, message: t("channels.wechatForm.validation.templateIdRequired") }],
+		[t],
+	);
 
 	const buildPayload = async (): Promise<CreateChannelInput | null> => {
 		switch (channelType) {
@@ -75,7 +104,7 @@ export function AddChannelDrawer({ open, onClose }: AddChannelDrawerProps) {
 			const payload = await buildPayload();
 			if (!payload) return;
 			await createMutation.mutateAsync(payload);
-			message.success("渠道已添加");
+			message.success(t("channels.drawer.saveSuccess"));
 			handleClose();
 		} catch (err) {
 			// validateFields rejects with an error list; treat any other thrown
@@ -83,13 +112,13 @@ export function AddChannelDrawer({ open, onClose }: AddChannelDrawerProps) {
 			if (err && typeof err === "object" && "errorFields" in err) {
 				return;
 			}
-			message.error("添加渠道失败");
+			message.error(t("channels.drawer.saveError"));
 		}
 	};
 
 	return (
 		<Drawer
-			title="添加推送渠道"
+			title={t("channels.drawer.title")}
 			open={open}
 			onClose={handleClose}
 			placement="right"
@@ -97,43 +126,36 @@ export function AddChannelDrawer({ open, onClose }: AddChannelDrawerProps) {
 			data-testid="add-channel-drawer"
 			footer={
 				<Flex justify="flex-end" gap={8}>
-					<Button onClick={handleClose}>取消</Button>
+					<Button onClick={handleClose}>{t("action.cancel", { ns: "common" })}</Button>
 					<Button
 						type="primary"
 						loading={createMutation.isPending}
 						onClick={handleSubmit}
 						data-testid="add-channel-save"
 					>
-						保存
+						{t("action.save", { ns: "common" })}
 					</Button>
 				</Flex>
 			}
 		>
-			<Form.Item label="渠道类型">
+			<Form.Item label={t("channels.drawer.channelType")}>
 				<Radio.Group
 					value={channelType}
 					onChange={(e) => setChannelType(e.target.value as ChannelType)}
 					data-testid="channel-type-picker"
 				>
-					<Radio.Button value="email">邮件</Radio.Button>
-					<Radio.Button value="feishu">飞书机器人</Radio.Button>
-					<Radio.Button value="wechat">微信公众号</Radio.Button>
+					<Radio.Button value="email">{t("channels.drawer.email")}</Radio.Button>
+					<Radio.Button value="feishu">{t("channels.drawer.feishu")}</Radio.Button>
+					<Radio.Button value="wechat">{t("channels.drawer.wechat")}</Radio.Button>
 				</Radio.Group>
 			</Form.Item>
 
 			{channelType === "email" && (
 				<Form<EmailFormValues> form={emailForm} layout="vertical" data-testid="channel-form-email">
-					<Form.Item
-						label="收件邮箱"
-						name="to"
-						rules={[
-							{ required: true, message: "请输入收件邮箱" },
-							{ type: "email", message: "邮箱格式不正确" },
-						]}
-					>
-						<Input placeholder="user@example.com" />
+					<Form.Item label={t("channels.emailForm.recipient")} name="to" rules={emailRules}>
+						<Input placeholder={t("channels.emailForm.recipientPlaceholder")} />
 					</Form.Item>
-					<Typography.Text type="secondary">留空将默认发送到当前账户邮箱。</Typography.Text>
+					<Typography.Text type="secondary">{t("channels.emailForm.defaultHint")}</Typography.Text>
 				</Form>
 			)}
 
@@ -144,14 +166,11 @@ export function AddChannelDrawer({ open, onClose }: AddChannelDrawerProps) {
 					data-testid="channel-form-feishu"
 				>
 					<Form.Item
-						label="Webhook URL"
+						label={t("channels.feishuForm.webhookUrl")}
 						name="webhookUrl"
-						rules={[
-							{ required: true, message: "请输入飞书 Webhook URL" },
-							{ type: "url", message: "URL 格式不正确" },
-						]}
+						rules={feishuRules}
 					>
-						<Input placeholder="https://open.feishu.cn/open-apis/bot/v2/hook/..." />
+						<Input placeholder={t("channels.feishuForm.webhookPlaceholder")} />
 					</Form.Item>
 				</Form>
 			)}
@@ -163,18 +182,18 @@ export function AddChannelDrawer({ open, onClose }: AddChannelDrawerProps) {
 					data-testid="channel-form-wechat"
 				>
 					<Form.Item
-						label="OpenID"
+						label={t("channels.wechatForm.openId")}
 						name="openId"
-						rules={[{ required: true, message: "请输入用户 OpenID" }]}
+						rules={wechatOpenIdRules}
 					>
-						<Input placeholder="o6_bmjrPTlm6_2sgVt7hMZOPfL2M" />
+						<Input placeholder={t("channels.wechatForm.openIdPlaceholder")} />
 					</Form.Item>
 					<Form.Item
-						label="模板 ID"
+						label={t("channels.wechatForm.templateId")}
 						name="templateId"
-						rules={[{ required: true, message: "请输入模板消息 ID" }]}
+						rules={wechatTemplateIdRules}
 					>
-						<Input placeholder="模板消息 template_id" />
+						<Input placeholder={t("channels.wechatForm.templateIdPlaceholder")} />
 					</Form.Item>
 				</Form>
 			)}

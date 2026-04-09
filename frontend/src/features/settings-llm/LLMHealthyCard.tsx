@@ -1,4 +1,5 @@
 import { App, Button, Card, Popconfirm, Space, Switch, Tag, Typography } from "@/ui-kit/eat";
+import { useTranslation } from "react-i18next";
 import { LLMProbeButton } from "./LLMProbeButton";
 import { useDeleteLLMSettings, useUpsertLLMSettings } from "./hooks";
 import type { LLMSettingsDTO } from "./types";
@@ -11,6 +12,7 @@ interface LLMHealthyCardProps {
 }
 
 // providerLabel maps the provider enum to a human-readable brand label.
+// These are proper nouns / brand names and intentionally not translated.
 function providerLabel(providerType: LLMSettingsDTO["providerType"]): string {
 	switch (providerType) {
 		case "claude":
@@ -18,7 +20,7 @@ function providerLabel(providerType: LLMSettingsDTO["providerType"]): string {
 		case "openai":
 			return "OpenAI";
 		case "openai_compatible":
-			return "OpenAI 兼容";
+			return "OpenAI Compatible";
 		default:
 			return "Unknown";
 	}
@@ -28,6 +30,7 @@ function providerLabel(providerType: LLMSettingsDTO["providerType"]): string {
 // provider brand, model, masked key hint, health tag, fallback toggle and
 // the three standard action buttons.
 export function LLMHealthyCard({ config, onEdit }: LLMHealthyCardProps) {
+	const { t } = useTranslation("settings");
 	const { message } = App.useApp();
 	const upsertMutation = useUpsertLLMSettings();
 	const deleteMutation = useDeleteLLMSettings();
@@ -45,9 +48,9 @@ export function LLMHealthyCard({ config, onEdit }: LLMHealthyCardProps) {
 				fallbackToSystemDefaultOnFailure: checked,
 				probe: false,
 			});
-			message.success("已更新降级偏好");
+			message.success(t("llm.healthyCard.fallbackUpdated"));
 		} catch (err) {
-			const msg = err instanceof Error ? err.message : "更新失败";
+			const msg = err instanceof Error ? err.message : t("llm.healthyCard.fallbackUpdateError");
 			message.error(msg);
 		}
 	};
@@ -55,14 +58,16 @@ export function LLMHealthyCard({ config, onEdit }: LLMHealthyCardProps) {
 	const handleDelete = async () => {
 		try {
 			await deleteMutation.mutateAsync();
-			message.success("已删除 Provider 配置");
+			message.success(t("llm.healthyCard.deleteSuccess"));
 		} catch (err) {
-			const msg = err instanceof Error ? err.message : "删除失败";
+			const msg = err instanceof Error ? err.message : t("llm.healthyCard.deleteError");
 			message.error(msg);
 		}
 	};
 
-	const probeTime = config.lastProbeAt ? new Date(config.lastProbeAt).toLocaleString() : "尚未测试";
+	const probeTime = config.lastProbeAt
+		? new Date(config.lastProbeAt).toLocaleString()
+		: t("llm.healthyCard.notTested");
 
 	return (
 		<Card data-testid="llm-healthy-card">
@@ -72,24 +77,24 @@ export function LLMHealthyCard({ config, onEdit }: LLMHealthyCardProps) {
 						{providerLabel(config.providerType)}
 					</Title>
 					<Tag color="success" data-testid="llm-health-tag">
-						健康
+						{t("llm.healthyCard.healthy")}
 					</Tag>
 				</Space>
 
 				<Space direction="vertical" size={4}>
 					<Text>
-						模型: <Text code>{config.model ?? "-"}</Text>
+						{t("llm.healthyCard.modelLabel")}: <Text code>{config.model ?? "-"}</Text>
 					</Text>
 					<Text>
-						API Key: <Text code>{config.apiKeyHint ?? "..****"}</Text>
+						{t("llm.healthyCard.apiKeyLabel")}: <Text code>{config.apiKeyHint ?? "..****"}</Text>
 					</Text>
 					{config.baseUrl && (
 						<Text>
-							Base URL: <Text code>{config.baseUrl}</Text>
+							{t("llm.healthyCard.baseUrlLabel")}: <Text code>{config.baseUrl}</Text>
 						</Text>
 					)}
 					<Text type="secondary" style={{ fontSize: 12 }}>
-						最后测试: {probeTime}
+						{t("llm.healthyCard.lastProbed")}: {probeTime}
 					</Text>
 				</Space>
 
@@ -100,28 +105,27 @@ export function LLMHealthyCard({ config, onEdit }: LLMHealthyCardProps) {
 						onChange={handleToggleFallback}
 						data-testid="llm-fallback-switch"
 					/>
-					<Text>调用失败时自动降级到系统默认</Text>
+					<Text>{t("llm.healthyCard.fallbackToggle")}</Text>
 				</Space>
 				<Text type="secondary" style={{ fontSize: 12 }}>
-					开启后，当你的 Provider 失败时，持仓数据将以加密传输方式发给 Richman 的系统默认 AI
-					Provider 做分析。关闭则直接降级到规则引擎。
+					{t("llm.healthyCard.fallbackHint")}
 				</Text>
 
 				<Space wrap>
 					<LLMProbeButton />
 					<Button onClick={onEdit} data-testid="llm-edit-button">
-						编辑
+						{t("llm.healthyCard.editButton")}
 					</Button>
 					<Popconfirm
-						title="确认删除 LLM Provider 配置？"
-						description="删除后分析将降级到系统默认或规则引擎。"
-						okText="删除"
-						cancelText="取消"
+						title={t("llm.healthyCard.deleteConfirm.title")}
+						description={t("llm.healthyCard.deleteConfirm.description")}
+						okText={t("llm.healthyCard.deleteConfirm.ok")}
+						cancelText={t("llm.healthyCard.deleteConfirm.cancel")}
 						okButtonProps={{ danger: true }}
 						onConfirm={handleDelete}
 					>
 						<Button danger loading={deleteMutation.isPending} data-testid="llm-delete-button">
-							删除
+							{t("llm.healthyCard.deleteButton")}
 						</Button>
 					</Popconfirm>
 				</Space>

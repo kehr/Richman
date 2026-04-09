@@ -19,14 +19,9 @@ import {
 	Typography,
 	message,
 } from "@/ui-kit/eat";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router";
-
-const RISK_OPTIONS: { label: string; value: RiskPreference }[] = [
-	{ label: "稳健", value: "conservative" },
-	{ label: "中性", value: "neutral" },
-	{ label: "激进", value: "aggressive" },
-];
 
 interface CapitalFormValues {
 	totalCapitalCny?: number | null;
@@ -34,11 +29,12 @@ interface CapitalFormValues {
 
 // AccountTab renders the PRD §6.2 fields: read-only email, password reset
 // (disabled placeholder), total capital with privacy hint, risk preference
-// dropdown, logout, and a "重新走一遍引导" CTA that clears both the server
+// dropdown, logout, and a "redo onboarding" CTA that clears both the server
 // onboarding flags and the local nudge dismissal state before navigating to
 // the wizard. The CTA ships to production (no dev-only gate) because users
 // who dismissed the Dashboard nudge would otherwise have no regret path.
 export function AccountTab() {
+	const { t } = useTranslation("settings");
 	const settingsQuery = useUserSettings();
 	const patchMutation = usePatchUserSettings();
 	const resetOnboarding = useResetOnboarding();
@@ -50,6 +46,15 @@ export function AccountTab() {
 
 	const settings = settingsQuery.data;
 	const email = currentUser.data?.email ?? "—";
+
+	const riskOptions = useMemo(
+		() => [
+			{ label: t("account.riskOptions.conservative"), value: "conservative" as RiskPreference },
+			{ label: t("account.riskOptions.neutral"), value: "neutral" as RiskPreference },
+			{ label: t("account.riskOptions.aggressive"), value: "aggressive" as RiskPreference },
+		],
+		[t],
+	);
 
 	// Sync form initial value with the loaded settings snapshot. We rely on
 	// setFieldsValue rather than initialValues so the form picks up the
@@ -69,21 +74,21 @@ export function AccountTab() {
 			} else {
 				await patchMutation.mutateAsync({ totalCapitalCny: raw });
 			}
-			message.success("总资金已保存");
+			message.success(t("account.message.capitalSaved"));
 		} catch (err) {
 			// antd throws an object with errorFields when validation fails; we
 			// ignore that case because the form already renders per-field errors.
 			if (err && typeof err === "object" && "errorFields" in err) return;
-			message.error("保存总资金失败");
+			message.error(t("account.message.capitalSaveError"));
 		}
 	};
 
 	const handleRiskChange = async (value: RiskPreference) => {
 		try {
 			await patchMutation.mutateAsync({ riskPreference: value });
-			message.success("风险偏好已更新");
+			message.success(t("account.message.riskUpdated"));
 		} catch {
-			message.error("更新风险偏好失败");
+			message.error(t("account.message.riskUpdateError"));
 		}
 	};
 
@@ -96,21 +101,21 @@ export function AccountTab() {
 			// has settled so the guard sees the fresh not-completed status.
 			navigate("/onboarding/welcome");
 		} catch {
-			message.error("重置失败，请稍后重试");
+			message.error(t("account.message.resetError"));
 		}
 	};
 
 	return (
 		<Flex vertical gap={24} data-testid="account-tab">
 			<Flex vertical gap={4}>
-				<Typography.Text type="secondary">邮箱</Typography.Text>
+				<Typography.Text type="secondary">{t("account.email")}</Typography.Text>
 				<Typography.Text strong data-testid="account-email">
 					{email}
 				</Typography.Text>
 				<Space style={{ marginTop: 8 }}>
-					<Tooltip title="修改密码接口待后端补齐">
+					<Tooltip title={t("account.changePasswordTooltip")}>
 						<Button disabled data-testid="account-change-password">
-							发送修改链接到邮箱
+							{t("account.changePassword")}
 						</Button>
 					</Tooltip>
 				</Space>
@@ -119,7 +124,7 @@ export function AccountTab() {
 			<Divider style={{ margin: 0 }} />
 
 			<Flex vertical gap={8}>
-				<Typography.Text type="secondary">总资金</Typography.Text>
+				<Typography.Text type="secondary">{t("account.totalCapital")}</Typography.Text>
 				<Form<CapitalFormValues> form={capitalForm} layout="inline">
 					<Form.Item name="totalCapitalCny" style={{ marginBottom: 0 }}>
 						<InputNumber
@@ -127,7 +132,7 @@ export function AccountTab() {
 							step={1000}
 							style={{ width: 240 }}
 							addonAfter="CNY"
-							placeholder="例如 100000"
+							placeholder={t("account.totalCapitalPlaceholder")}
 							data-testid="account-total-capital-input"
 						/>
 					</Form.Item>
@@ -137,28 +142,28 @@ export function AccountTab() {
 						onClick={handleSaveCapital}
 						data-testid="account-total-capital-save"
 					>
-						保存
+						{t("action.save", { ns: "common" })}
 					</Button>
 				</Form>
 				<Typography.Text type="secondary" style={{ fontSize: 12 }}>
-					总资金仅本地保存用于金额换算，不会进入 LLM 分析上下文。
+					{t("account.totalCapitalHint")}
 				</Typography.Text>
 			</Flex>
 
 			<Divider style={{ margin: 0 }} />
 
 			<Flex vertical gap={8}>
-				<Typography.Text type="secondary">风险偏好</Typography.Text>
+				<Typography.Text type="secondary">{t("account.riskPreference")}</Typography.Text>
 				<Select<RiskPreference>
 					value={settings?.riskPreference}
 					onChange={handleRiskChange}
-					options={RISK_OPTIONS}
+					options={riskOptions}
 					style={{ width: 240 }}
 					loading={settingsQuery.isLoading}
 					data-testid="account-risk-preference"
 				/>
 				<Typography.Text type="secondary" style={{ fontSize: 12 }}>
-					影响 LLM 在权重微调范围内的倾向。
+					{t("account.riskPreferenceHint")}
 				</Typography.Text>
 			</Flex>
 
@@ -166,17 +171,17 @@ export function AccountTab() {
 
 			<Flex gap={12} align="center">
 				<Button danger onClick={logout} data-testid="account-logout">
-					退出登录
+					{t("account.logout")}
 				</Button>
 				<Popconfirm
-					title="重新走一遍引导？"
-					description="将清空本地引导草稿并让 Dashboard 的引导提示重新出现，当前持仓和决策卡不受影响。"
-					okText="开始引导"
-					cancelText="取消"
+					title={t("account.resetOnboardingConfirm.title")}
+					description={t("account.resetOnboardingConfirm.description")}
+					okText={t("account.resetOnboardingConfirm.ok")}
+					cancelText={t("account.resetOnboardingConfirm.cancel")}
 					onConfirm={handleResetOnboarding}
 				>
 					<Button loading={resetOnboarding.isPending} data-testid="account-reset-onboarding">
-						重新走一遍引导
+						{t("account.resetOnboarding")}
 					</Button>
 				</Popconfirm>
 			</Flex>

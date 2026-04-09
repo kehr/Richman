@@ -12,6 +12,7 @@ import {
 	Typography,
 	message,
 } from "@/ui-kit/eat";
+import { useTranslation } from "react-i18next";
 import type { ChannelDto, ChannelType } from "../types";
 import { useDeleteChannel, useUpdateChannel } from "../use-channels";
 import { ChannelTestButton } from "./ChannelTestButton";
@@ -21,34 +22,39 @@ interface ChannelListProps {
 	loading?: boolean;
 }
 
-const TYPE_LABEL: Record<ChannelType, string> = {
-	email: "邮件",
-	feishu: "飞书机器人",
-	wechat: "微信公众号",
-};
-
-// summarizeConfig produces a one-line description of the channel's config
-// for the row body. Because the backend stores config as a free-form JSON
-// object we narrow it locally before reading the per-type fields.
-function summarizeConfig(channel: ChannelDto): string {
-	const cfg = (channel.config ?? {}) as Record<string, unknown>;
-	switch (channel.channelType) {
-		case "email":
-			return typeof cfg.to === "string" && cfg.to.length > 0 ? cfg.to : "默认收件人";
-		case "feishu":
-			return typeof cfg.webhookUrl === "string" ? cfg.webhookUrl : "未配置 webhook";
-		case "wechat": {
-			const openId = typeof cfg.openId === "string" ? cfg.openId : "";
-			return openId.length > 0 ? `OpenID ${openId}` : "未配置 OpenID";
-		}
-		default:
-			return "";
-	}
-}
-
 export function ChannelList({ channels, loading }: ChannelListProps) {
+	const { t } = useTranslation("settings");
+
+	// summarizeConfig produces a one-line description of the channel's config
+	// for the row body. Because the backend stores config as a free-form JSON
+	// object we narrow it locally before reading the per-type fields.
+	const summarizeConfig = (channel: ChannelDto): string => {
+		const cfg = (channel.config ?? {}) as Record<string, unknown>;
+		switch (channel.channelType) {
+			case "email":
+				return typeof cfg.to === "string" && cfg.to.length > 0
+					? cfg.to
+					: t("channels.list.defaultRecipient");
+			case "feishu":
+				return typeof cfg.webhookUrl === "string"
+					? cfg.webhookUrl
+					: t("channels.list.webhookNotConfigured");
+			case "wechat": {
+				const openId = typeof cfg.openId === "string" ? cfg.openId : "";
+				return openId.length > 0 ? `OpenID ${openId}` : t("channels.list.openIdNotConfigured");
+			}
+			default:
+				return "";
+		}
+	};
 	const updateMutation = useUpdateChannel();
 	const deleteMutation = useDeleteChannel();
+
+	const typeLabel: Record<ChannelType, string> = {
+		email: t("channels.list.typeLabel.email"),
+		feishu: t("channels.list.typeLabel.feishu"),
+		wechat: t("channels.list.typeLabel.wechat"),
+	};
 
 	const handleToggle = async (channel: ChannelDto, enabled: boolean) => {
 		try {
@@ -56,25 +62,27 @@ export function ChannelList({ channels, loading }: ChannelListProps) {
 				channelId: channel.channelId,
 				input: { enabled },
 			});
-			message.success(enabled ? "渠道已启用" : "渠道已停用");
+			message.success(
+				enabled ? t("channels.list.enableSuccess") : t("channels.list.disableSuccess"),
+			);
 		} catch {
-			message.error("更新渠道失败");
+			message.error(t("channels.list.updateError"));
 		}
 	};
 
 	const handleDelete = async (channel: ChannelDto) => {
 		try {
 			await deleteMutation.mutateAsync(channel.channelId);
-			message.success("渠道已删除");
+			message.success(t("channels.list.deleteSuccess"));
 		} catch {
-			message.error("删除渠道失败");
+			message.error(t("channels.list.deleteError"));
 		}
 	};
 
 	if (!loading && channels.length === 0) {
 		return (
 			<Empty
-				description="尚未配置任何推送渠道"
+				description={t("channels.list.empty")}
 				data-testid="channel-list-empty"
 				style={{ padding: "32px 0" }}
 			/>
@@ -100,10 +108,10 @@ export function ChannelList({ channels, loading }: ChannelListProps) {
 						<ChannelTestButton key="test" />,
 						<Popconfirm
 							key="delete"
-							title="删除渠道"
-							description="确认删除此推送渠道？"
-							okText="删除"
-							cancelText="取消"
+							title={t("channels.list.deleteConfirm.title")}
+							description={t("channels.list.deleteConfirm.description")}
+							okText={t("channels.list.deleteConfirm.ok")}
+							cancelText={t("channels.list.deleteConfirm.cancel")}
 							onConfirm={() => handleDelete(channel)}
 						>
 							<Button
@@ -113,7 +121,7 @@ export function ChannelList({ channels, loading }: ChannelListProps) {
 								icon={<DeleteOutlined />}
 								data-testid={`channel-delete-${channel.channelId}`}
 							>
-								删除
+								{t("channels.list.deleteButton")}
 							</Button>
 						</Popconfirm>,
 					]}
@@ -122,8 +130,8 @@ export function ChannelList({ channels, loading }: ChannelListProps) {
 						avatar={<BellOutlined style={{ fontSize: 20 }} />}
 						title={
 							<Space>
-								<Typography.Text strong>{TYPE_LABEL[channel.channelType]}</Typography.Text>
-								{!channel.enabled && <Tag color="default">已停用</Tag>}
+								<Typography.Text strong>{typeLabel[channel.channelType]}</Typography.Text>
+								{!channel.enabled && <Tag color="default">{t("channels.list.disabled")}</Tag>}
 							</Space>
 						}
 						description={

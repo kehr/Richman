@@ -1,5 +1,6 @@
 import { useLocale } from "@/domain/i18n/provider";
 import { Collapse, Divider, Flex, Radio, Select, Typography } from "@/ui-kit/eat";
+import { useTranslation } from "react-i18next";
 
 // PreferencesTab covers PRD §6.4: language radio, timezone select (frozen at
 // Asia/Shanghai for MVP), theme placeholder, and a collapsible "advanced
@@ -8,11 +9,12 @@ import { Collapse, Divider, Flex, Radio, Select, Typography } from "@/ui-kit/eat
 // existing i18n provider.
 export function PreferencesTab() {
 	const { locale, setLocale } = useLocale();
+	const { t } = useTranslation("settings");
 
 	return (
 		<Flex vertical gap={24} data-testid="preferences-tab">
 			<Flex vertical gap={8}>
-				<Typography.Text type="secondary">语言</Typography.Text>
+				<Typography.Text type="secondary">{t("preferences.language")}</Typography.Text>
 				<Radio.Group
 					value={locale}
 					onChange={(e) => setLocale(e.target.value)}
@@ -26,7 +28,7 @@ export function PreferencesTab() {
 			<Divider style={{ margin: 0 }} />
 
 			<Flex vertical gap={8}>
-				<Typography.Text type="secondary">时区</Typography.Text>
+				<Typography.Text type="secondary">{t("preferences.timezone")}</Typography.Text>
 				<Select
 					defaultValue="Asia/Shanghai"
 					style={{ width: 240 }}
@@ -38,19 +40,19 @@ export function PreferencesTab() {
 					data-testid="preferences-timezone"
 				/>
 				<Typography.Text type="secondary" style={{ fontSize: 12 }}>
-					MVP 默认 Asia/Shanghai，时区切换暂不影响推送窗口。
+					{t("preferences.timezoneHint")}
 				</Typography.Text>
 			</Flex>
 
 			<Divider style={{ margin: 0 }} />
 
 			<Flex vertical gap={8}>
-				<Typography.Text type="secondary">主题</Typography.Text>
+				<Typography.Text type="secondary">{t("preferences.theme")}</Typography.Text>
 				<Radio.Group value="light" disabled data-testid="preferences-theme">
-					<Radio value="light">亮色</Radio>
+					<Radio value="light">{t("preferences.themeLight")}</Radio>
 				</Radio.Group>
 				<Typography.Text type="secondary" style={{ fontSize: 12 }}>
-					MVP 暂不支持暗色。
+					{t("preferences.themeHint")}
 				</Typography.Text>
 			</Flex>
 
@@ -59,11 +61,11 @@ export function PreferencesTab() {
 				items={[
 					{
 						key: "number-format",
-						label: "数字格式（高级选项）",
+						label: t("preferences.numberFormat"),
 						children: (
 							<Flex vertical gap={8}>
 								<Typography.Text type="secondary">
-									千分位分隔符 / 货币符号位置 / 小数位数等高级选项预留位，MVP 暂未启用。
+									{t("preferences.numberFormatHint")}
 								</Typography.Text>
 							</Flex>
 						),

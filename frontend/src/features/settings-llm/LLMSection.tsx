@@ -1,5 +1,6 @@
 import { Skeleton, Space, Typography } from "@/ui-kit/eat";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { LLMConfigForm } from "./LLMConfigForm";
 import { LLMEmptyState } from "./LLMEmptyState";
 import { LLMFailingCard } from "./LLMFailingCard";
@@ -16,11 +17,12 @@ interface LLMSectionProps {
 	systemDefaultAvailable: boolean;
 }
 
-// LLMSection is the top-level container for the "AI 解读" settings tab.
-// It owns the mode-switching between Empty / Healthy / Failing cards and
+// LLMSection is the top-level container for the AI interpretation settings
+// tab. It owns the mode-switching between Empty / Healthy / Failing cards and
 // the add/edit modal lifecycle. All API interaction is delegated to the
 // hooks exported by the feature.
 export function LLMSection({ systemDefaultAvailable }: LLMSectionProps) {
+	const { t } = useTranslation("settings");
 	const query = useLLMSettings();
 	const [isFormOpen, setIsFormOpen] = useState(false);
 
@@ -32,7 +34,7 @@ export function LLMSection({ systemDefaultAvailable }: LLMSectionProps) {
 		return (
 			<Space direction="vertical" size={16} style={{ width: "100%" }} data-testid="llm-section">
 				<Title level={4} style={{ margin: 0 }}>
-					AI 解读 Provider
+					{t("llm.title")}
 				</Title>
 				<Skeleton active paragraph={{ rows: 3 }} />
 			</Space>
@@ -48,10 +50,10 @@ export function LLMSection({ systemDefaultAvailable }: LLMSectionProps) {
 		<Space direction="vertical" size={16} style={{ width: "100%" }} data-testid="llm-section">
 			<div>
 				<Title level={4} style={{ margin: 0 }}>
-					AI 解读 Provider
+					{t("llm.title")}
 				</Title>
 				<Paragraph type="secondary" style={{ marginBottom: 0, marginTop: 4 }}>
-					配置你自己的 LLM Provider 以启用 AI 解读能力。未配置时可选择使用系统默认或规则引擎。
+					{t("llm.description")}
 				</Paragraph>
 			</div>
 
