@@ -1,0 +1,11 @@
+{
+	"nav": {
+		"dashboard": "Dashboard",
+		"portfolio": "Portfolio",
+		"settings": "Settings"
+	},
+	"action": {
+		"save": "Save",
+		"cancel": "Cancel"
+	}
+}
