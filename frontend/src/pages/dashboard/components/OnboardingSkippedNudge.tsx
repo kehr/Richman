@@ -1,6 +1,7 @@
 import { useOnboardingStatus } from "@/features/user-settings";
 import { Alert, Button, Space } from "@/ui-kit/eat";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router";
 
 // DISMISS_KEY is the localStorage key that records a "不再提示" click on the
@@ -28,6 +29,7 @@ function readDismissed(): boolean {
 // persisted in localStorage; EmptyHoldingsHero still exposes a secondary
 // text link so dismissed users are not dead-ended.
 export function OnboardingSkippedNudge() {
+	const { t } = useTranslation("app");
 	const { data: status, isLoading } = useOnboardingStatus();
 	const navigate = useNavigate();
 	// Read the dismissed flag once on mount via a lazy initializer so we don't
@@ -56,7 +58,7 @@ export function OnboardingSkippedNudge() {
 			data-testid="onboarding-skipped-nudge"
 			type="info"
 			showIcon
-			message="你跳过了引导，可以重新走一遍以熟悉决策卡和风险提示。"
+			message={t("dashboard.skippedNudge.message")}
 			action={
 				<Space>
 					<Button
@@ -65,14 +67,14 @@ export function OnboardingSkippedNudge() {
 						onClick={handleRestart}
 						data-testid="onboarding-skipped-nudge-restart"
 					>
-						开始引导
+						{t("dashboard.skippedNudge.restart")}
 					</Button>
 					<Button
 						size="small"
 						onClick={handleDismiss}
 						data-testid="onboarding-skipped-nudge-dismiss"
 					>
-						不再提示
+						{t("dashboard.skippedNudge.dismiss")}
 					</Button>
 				</Space>
 			}

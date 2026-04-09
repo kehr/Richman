@@ -1,4 +1,5 @@
 import { Button, Card, Space, Typography } from "@/ui-kit/eat";
+import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router";
 
 const { Paragraph, Text, Title } = Typography;
@@ -20,6 +21,7 @@ interface EmptyHoldingsHeroProps {
 // The OnboardingGuard permits skipped=true users to access onboarding routes
 // directly (step 15), so navigate() needs no special handling here.
 export function EmptyHoldingsHero({ onAddHolding }: EmptyHoldingsHeroProps) {
+	const { t } = useTranslation("app");
 	const navigate = useNavigate();
 
 	return (
@@ -37,10 +39,10 @@ export function EmptyHoldingsHero({ onAddHolding }: EmptyHoldingsHeroProps) {
 		>
 			<Space direction="vertical" align="center" size={16}>
 				<Title level={2} style={{ margin: 0, textAlign: "center" }}>
-					先添加一个持仓
+					{t("dashboard.emptyHero.title")}
 				</Title>
 				<Paragraph type="secondary" style={{ marginBottom: 0, textAlign: "center" }}>
-					Richman 基于你的真实持仓生成每日决策卡，添加第一笔持仓后分析会在几秒内返回。
+					{t("dashboard.emptyHero.description")}
 				</Paragraph>
 				<Button
 					type="primary"
@@ -48,10 +50,10 @@ export function EmptyHoldingsHero({ onAddHolding }: EmptyHoldingsHeroProps) {
 					onClick={onAddHolding}
 					data-testid="empty-holdings-hero-cta"
 				>
-					添加持仓 →
+					{t("dashboard.emptyHero.addButton")}
 				</Button>
 				<Text type="secondary" style={{ fontSize: 13, marginTop: 12, textAlign: "center" }}>
-					想先跟着引导走一遍？
+					{t("dashboard.emptyHero.onboardingHint")}
 					<Button
 						type="link"
 						size="small"
@@ -59,7 +61,7 @@ export function EmptyHoldingsHero({ onAddHolding }: EmptyHoldingsHeroProps) {
 						onClick={() => navigate("/onboarding/welcome")}
 						data-testid="empty-holdings-hero-onboarding-link"
 					>
-						重新开始引导
+						{t("dashboard.emptyHero.restartOnboarding")}
 					</Button>
 				</Text>
 			</Space>

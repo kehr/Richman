@@ -10,6 +10,7 @@ import {
 	Typography,
 } from "@/ui-kit/eat";
 import type { CSSProperties } from "react";
+import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 
 const { Text, Title, Paragraph } = Typography;
@@ -58,6 +59,7 @@ function formatWeightDelta(current: number, previous?: number): string {
 // border switches to the dimension color and a callout is appended below the
 // summary explaining the flip is the main driver of the badge change.
 function DimensionCard({ view, flipped }: { view: DimensionView; flipped: boolean }) {
+	const { t } = useTranslation("app");
 	const color = dimensionColor(view.current);
 	const containerStyle: CSSProperties = flipped
 		? {
@@ -87,13 +89,15 @@ function DimensionCard({ view, flipped }: { view: DimensionView; flipped: boolea
 		>
 			<Space direction="vertical" size={4} style={{ width: "100%" }}>
 				<Text type="secondary">
-					权重: {view.weight.toFixed(0)}
+					{t("decisionCard.dimension.weight")}: {view.weight.toFixed(0)}
 					{formatWeightDelta(view.weight, view.prevWeight)}
 				</Text>
-				<Paragraph style={{ margin: 0 }}>{view.summary || "(暂无说明)"}</Paragraph>
+				<Paragraph style={{ margin: 0 }}>
+					{view.summary || t("decisionCard.dimension.noSummary")}
+				</Paragraph>
 				{flipped && (
 					<Text type="warning" strong data-testid={`dimension-flip-note-${view.key}`}>
-						提示：此维度发生翻转是本次建议升级的主要驱动因素
+						{t("decisionCard.dimension.flipNote")}
 					</Text>
 				)}
 			</Space>
@@ -107,10 +111,11 @@ function DimensionCard({ view, flipped }: { view: DimensionView; flipped: boolea
 // analysis. The dimension whose direction flipped vs the previous card gets
 // a colored border and explainer callout.
 export function DimensionReasoning({ card, prevCard }: DimensionReasoningProps) {
+	const { t } = useTranslation("app");
 	const views: DimensionView[] = [
 		{
 			key: "trend",
-			label: "趋势 Trend",
+			label: t("decisionCard.dimension.label.trend"),
 			current: card.trendDirection,
 			previous: prevCard?.trendDirection,
 			weight: card.weightTrend,
@@ -119,7 +124,7 @@ export function DimensionReasoning({ card, prevCard }: DimensionReasoningProps) 
 		},
 		{
 			key: "position",
-			label: "仓位 Position",
+			label: t("decisionCard.dimension.label.position"),
 			current: card.positionDirection,
 			previous: prevCard?.positionDirection,
 			weight: card.weightPosition,
@@ -128,7 +133,7 @@ export function DimensionReasoning({ card, prevCard }: DimensionReasoningProps) 
 		},
 		{
 			key: "catalyst",
-			label: "催化 Catalyst",
+			label: t("decisionCard.dimension.label.catalyst"),
 			current: card.catalystDirection,
 			previous: prevCard?.catalystDirection,
 			weight: card.weightCatalyst,
@@ -142,12 +147,12 @@ export function DimensionReasoning({ card, prevCard }: DimensionReasoningProps) 
 			title={
 				<Space size={4}>
 					<Title level={5} style={{ margin: 0 }}>
-						三维度推理
+						{t("decisionCard.dimension.title")}
 					</Title>
-					<Tooltip title="查看三维分析说明">
+					<Tooltip title={t("decisionCard.dimension.title")}>
 						<Link
 							to="/help#dimensions"
-							aria-label="三维分析帮助"
+							aria-label={t("decisionCard.dimension.title")}
 							data-testid="dimension-reasoning-help"
 						>
 							<QuestionCircleOutlined style={{ color: "#8c8c8c" }} />

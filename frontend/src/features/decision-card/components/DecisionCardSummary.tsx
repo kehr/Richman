@@ -1,5 +1,6 @@
 import { useMoney } from "@/domain/money/useMoney";
 import { Card, Divider, Space, Tag, Typography } from "@/ui-kit/eat";
+import { useTranslation } from "react-i18next";
 import type { DecisionCardDTO } from "../types";
 import { ChangeBadge } from "./ChangeBadge";
 import { DimensionBadges } from "./DimensionBadges";
@@ -41,6 +42,7 @@ export function DecisionCardSummary({
 	onClick,
 	onShowFullPlan,
 }: DecisionCardSummaryProps) {
+	const { t } = useTranslation("app");
 	const money = useMoney();
 	const positionText = money.format(card.positionRatio, card.positionAmount);
 	const marketValueText = money.formatAmountOnly(card.positionAmount);
@@ -62,7 +64,11 @@ export function DecisionCardSummary({
 			onKeyDown={handleKeyDown}
 			role={interactive ? "button" : undefined}
 			tabIndex={interactive ? 0 : undefined}
-			aria-label={interactive ? `${card.assetName} ${card.assetCode} 查看完整推理` : undefined}
+			aria-label={
+				interactive
+					? `${card.assetName} ${card.assetCode} ${t("decisionCard.viewFullReasoning")}`
+					: undefined
+			}
 			data-testid={`decision-card-${card.cardId}`}
 		>
 			<div
@@ -82,11 +88,15 @@ export function DecisionCardSummary({
 						<Text type="secondary">{card.assetCode}</Text>
 					</Space>
 					<Space size="middle" wrap>
-						<Text type="secondary">成本: {card.costPrice.toFixed(2)}</Text>
-						<Text type="secondary">仓位: {positionText}</Text>
+						<Text type="secondary">
+							{t("decisionCard.costLabel")}: {card.costPrice.toFixed(2)}
+						</Text>
+						<Text type="secondary">
+							{t("decisionCard.positionLabel")}: {positionText}
+						</Text>
 						{marketValueText && (
 							<Text type="secondary" data-testid="card-market-value">
-								市值: {marketValueText}
+								{t("decisionCard.marketValueLabel")}: {marketValueText}
 							</Text>
 						)}
 					</Space>
@@ -143,9 +153,9 @@ export function DecisionCardSummary({
 
 			<div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
 				<Text type="secondary" data-testid="card-confidence">
-					信心度: {Math.round(card.confidence * 100)}%
+					{t("decisionCard.confidenceLabel")}: {Math.round(card.confidence * 100)}%
 				</Text>
-				<Text type="secondary">查看完整推理 →</Text>
+				<Text type="secondary">{t("decisionCard.viewFullReasoning")}</Text>
 			</div>
 		</Card>
 	);

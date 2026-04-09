@@ -1,6 +1,7 @@
 import { type DecisionCardDTO, computeNextAnalysisTime } from "@/features/decision-card";
 import { Card, Divider, Space, Typography } from "@/ui-kit/eat";
 import type { MouseEvent } from "react";
+import { useTranslation } from "react-i18next";
 
 const { Text, Paragraph } = Typography;
 
@@ -20,10 +21,13 @@ const SHANGHAI_TZ = "Asia/Shanghai";
 
 // formatShanghaiDateTime renders a Date as "YYYY-MM-DD HH:mm" in Shanghai
 // wall-clock. Returns a dash placeholder when input is null so the sidebar
-// always has a stable layout.
-function formatShanghaiDateTime(date: Date | null): string {
+// always has a stable layout. The locale parameter controls number/separator
+// formatting; "zh" maps to "zh-CN", all other values fall back to "en-US"
+// so the output always uses the predictable YYYY-MM-DD HH:mm shape.
+function formatShanghaiDateTime(date: Date | null, locale: string): string {
 	if (!date) return "--";
-	const fmt = new Intl.DateTimeFormat("en-GB", {
+	const intlLocale = locale === "zh" ? "zh-CN" : "en-US";
+	const fmt = new Intl.DateTimeFormat(intlLocale, {
 		timeZone: SHANGHAI_TZ,
 		year: "numeric",
 		month: "2-digit",
@@ -45,6 +49,7 @@ function formatShanghaiDateTime(date: Date | null): string {
 // backend DTO does not yet expose per-source freshness; Step 17 (trade
 // ledger + screenshot intake) is expected to add the real feed.
 export function MetaSidebar({ card, historicalCards = [], onSelectHistory }: MetaSidebarProps) {
+	const { t, i18n } = useTranslation("app");
 	const analyzedAt = new Date(card.analyzedAt);
 	const nextAnalysisAt = computeNextAnalysisTime(new Date());
 	const historyItems = historicalCards.filter((c) => c.cardId !== card.cardId).slice(0, 5);
@@ -55,34 +60,36 @@ export function MetaSidebar({ card, historicalCards = [], onSelectHistory }: Met
 	};
 
 	return (
-		<Card data-testid="meta-sidebar" size="small" title="分析元信息">
+		<Card data-testid="meta-sidebar" size="small" title={t("decisionCard.metaSidebar.title")}>
 			<Space direction="vertical" size={12} style={{ width: "100%" }}>
 				<div>
-					<Text type="secondary">分析时间</Text>
+					<Text type="secondary">{t("decisionCard.metaSidebar.analyzedAt")}</Text>
 					<div data-testid="meta-analyzed-at">
-						{formatShanghaiDateTime(analyzedAt)} (Asia/Shanghai)
+						{formatShanghaiDateTime(analyzedAt, i18n.language)} (Asia/Shanghai)
 					</div>
 				</div>
 
 				<div data-testid="meta-data-source">
-					<Text type="secondary">数据源状态</Text>
+					<Text type="secondary">{t("decisionCard.metaSidebar.dataSource")}</Text>
 					<Paragraph type="secondary" style={{ margin: 0 }}>
-						数据源健康检查将在后续版本开放
+						{t("decisionCard.metaSidebar.dataSourcePending")}
 					</Paragraph>
 				</div>
 
 				<div>
-					<Text type="secondary">下一次自动分析</Text>
-					<div data-testid="meta-next-analysis">{formatShanghaiDateTime(nextAnalysisAt)}</div>
+					<Text type="secondary">{t("decisionCard.metaSidebar.nextAnalysis")}</Text>
+					<div data-testid="meta-next-analysis">
+						{formatShanghaiDateTime(nextAnalysisAt, i18n.language)}
+					</div>
 				</div>
 
 				<Divider style={{ margin: "4px 0" }} />
 
 				<div>
-					<Text type="secondary">历史分析</Text>
+					<Text type="secondary">{t("decisionCard.metaSidebar.history")}</Text>
 					{historyItems.length === 0 ? (
 						<Paragraph type="secondary" style={{ margin: 0 }}>
-							暂无更多历史
+							{t("decisionCard.metaSidebar.noHistory")}
 						</Paragraph>
 					) : (
 						<Space direction="vertical" size={4} style={{ width: "100%" }}>
@@ -101,7 +108,8 @@ export function MetaSidebar({ card, historicalCards = [], onSelectHistory }: Met
 										color: "#1677ff",
 									}}
 								>
-									{formatShanghaiDateTime(new Date(h.analyzedAt))} · {h.recommendation.label}
+									{formatShanghaiDateTime(new Date(h.analyzedAt), i18n.language)} ·{" "}
+									{h.recommendation.label}
 								</button>
 							))}
 						</Space>
@@ -111,7 +119,7 @@ export function MetaSidebar({ card, historicalCards = [], onSelectHistory }: Met
 				<Divider style={{ margin: "4px 0" }} />
 
 				<Text type="secondary" data-testid="meta-disclaimer">
-					本内容仅供参考，不构成投资建议。投资有风险，决策需谨慎。
+					{t("decisionCard.metaSidebar.disclaimer")}
 				</Text>
 			</Space>
 		</Card>

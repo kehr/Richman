@@ -1,5 +1,6 @@
 import { Space, Typography } from "@/ui-kit/eat";
 import type { CSSProperties } from "react";
+import { useTranslation } from "react-i18next";
 import type { Execution, Step } from "../types";
 
 const { Text } = Typography;
@@ -69,14 +70,22 @@ export function ExecutionPlanStrip({
 	maxSteps = 3,
 	onShowAll,
 }: ExecutionPlanStripProps) {
+	const { t } = useTranslation("app");
+
 	if (execution.type === "monitor") {
 		return (
 			<Space direction="vertical" size={2} style={{ width: "100%" }}>
 				<Text type="secondary" data-testid="plan-monitor-stop-loss">
-					止损: {execution.stopLoss != null ? execution.stopLoss.toFixed(2) : "未设置"}
+					{t("decisionCard.executionPlan.stopLoss")}:{" "}
+					{execution.stopLoss != null
+						? execution.stopLoss.toFixed(2)
+						: t("decisionCard.executionPlan.notSet")}
 				</Text>
 				<Text type="secondary" data-testid="plan-monitor-take-profit">
-					止盈: {execution.takeProfit != null ? execution.takeProfit.toFixed(2) : "未设置"}
+					{t("decisionCard.executionPlan.takeProfit")}:{" "}
+					{execution.takeProfit != null
+						? execution.takeProfit.toFixed(2)
+						: t("decisionCard.executionPlan.notSet")}
 				</Text>
 			</Space>
 		);
@@ -118,7 +127,7 @@ export function ExecutionPlanStrip({
 					tabIndex={onShowAll ? 0 : undefined}
 					data-testid="plan-more-link"
 				>
-					+ 还有 {hidden} 步
+					{t("decisionCard.executionPlan.moreSteps", { count: hidden })}
 				</Text>
 			)}
 		</Space>

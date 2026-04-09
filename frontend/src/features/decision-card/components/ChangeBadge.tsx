@@ -1,18 +1,19 @@
 import { Tag } from "@/ui-kit/eat";
 import type { CSSProperties } from "react";
+import { useTranslation } from "react-i18next";
 import type { BadgeState } from "../types";
 
-// BADGE_TEXT is the canonical, reusable copy for each of the 8 badge states
-// defined in PRD §3.4. Exported so the Help page and tests can reference the
-// same source of truth instead of duplicating strings.
+// BADGE_TEXT is kept as a stable English fallback used by ChangeAnchorList
+// (which calls it outside of a React component context via buildChangeSummary).
+// UI-visible badge labels are rendered via useTranslation inside ChangeBadge.
 export const BADGE_TEXT: Record<Exclude<BadgeState, "none">, string> = {
-	data_degraded: "数据降级",
-	first_analysis: "首次分析",
-	action_upgrade: "建议升级",
-	action_downgrade: "建议降级",
-	signal_flip: "信号翻转",
-	plan_adjust: "计划调整",
-	confidence_shift: "信心度波动",
+	data_degraded: "Data Degraded",
+	first_analysis: "First Analysis",
+	action_upgrade: "Recommendation Upgrade",
+	action_downgrade: "Recommendation Downgrade",
+	signal_flip: "Signal Flip",
+	plan_adjust: "Plan Adjusted",
+	confidence_shift: "Confidence Shift",
 };
 
 // BADGE_COLORS maps each badge state to an antd Tag color token. Inline
@@ -44,11 +45,13 @@ interface ChangeBadgeProps {
 // in the top-right corner of DecisionCardSummary. Returns null for the
 // `none` state so callers can unconditionally render it without a wrapper.
 export function ChangeBadge({ badgeState, style }: ChangeBadgeProps) {
+	const { t } = useTranslation("app");
+
 	if (badgeState === "none") {
 		return null;
 	}
 	const color = BADGE_COLORS[badgeState];
-	const text = BADGE_TEXT[badgeState];
+	const text = t(`decisionCard.badge.${badgeState}`);
 	return (
 		<Tag color={color} style={style} data-testid={`change-badge-${badgeState}`}>
 			{text}

@@ -1,5 +1,6 @@
 import { type DecisionCardDTO, DecisionCardSummary } from "@/features/decision-card";
 import { Alert, Button, Col, Empty, Row, Skeleton } from "@/ui-kit/eat";
+import { useTranslation } from "react-i18next";
 
 interface DecisionCardWallProps {
 	cards: DecisionCardDTO[];
@@ -29,6 +30,7 @@ export function DecisionCardWall({
 	onRetry,
 	cardRefs,
 }: DecisionCardWallProps) {
+	const { t } = useTranslation("app");
 	if (isLoading) {
 		return (
 			<Row gutter={[16, 16]} data-testid="decision-card-wall-loading">
@@ -46,11 +48,11 @@ export function DecisionCardWall({
 			<Alert
 				type="error"
 				showIcon
-				message="加载决策卡失败"
-				description="请检查网络连接后重试。"
+				message={t("dashboard.cardWall.loadError")}
+				description={t("dashboard.cardWall.loadErrorDesc")}
 				action={
 					<Button size="small" onClick={onRetry}>
-						重试
+						{t("dashboard.cardWall.retry")}
 					</Button>
 				}
 				data-testid="decision-card-wall-error"
@@ -60,10 +62,7 @@ export function DecisionCardWall({
 
 	if (cards.length === 0) {
 		return (
-			<Empty
-				description="暂无决策卡，点击“重新分析”生成。"
-				data-testid="decision-card-wall-empty"
-			/>
+			<Empty description={t("dashboard.cardWall.empty")} data-testid="decision-card-wall-empty" />
 		);
 	}
 

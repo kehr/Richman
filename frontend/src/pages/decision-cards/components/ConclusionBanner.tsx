@@ -1,5 +1,6 @@
 import type { BadgeState, DecisionCardDTO } from "@/features/decision-card";
 import { QuestionCircleOutlined, Space, Tooltip, Typography } from "@/ui-kit/eat";
+import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 
 const { Text, Title } = Typography;
@@ -35,11 +36,14 @@ function formatDelta(delta: number): string {
 // target position narrative, right side surfaces the model confidence plus
 // delta compared to the previous card.
 export function ConclusionBanner({ card, prevCard }: ConclusionBannerProps) {
+	const { t } = useTranslation("app");
 	const borderColor = BORDER_COLORS[card.badgeState];
 	const confidencePct = Math.round(card.confidence * 100);
 	const targetPct = card.targetPositionRatio;
 	const currentPct = card.positionRatio;
-	const narrative = `目标仓位 ${targetPct.toFixed(0)}% (当前 ${currentPct.toFixed(0)}%)`;
+	const gapPct = targetPct - currentPct;
+	const gapSign = gapPct > 0 ? "+" : "";
+	const narrative = t("decisionCard.hero.targetGap", { gap: `${gapSign}${gapPct.toFixed(0)}` });
 
 	return (
 		<div
@@ -56,24 +60,24 @@ export function ConclusionBanner({ card, prevCard }: ConclusionBannerProps) {
 			}}
 		>
 			<Space direction="vertical" size={4} style={{ flex: 1 }}>
-				<Text type="secondary">今日建议</Text>
+				<Text type="secondary">{t("decisionCard.conclusion.todayAdvice")}</Text>
 				<Title level={3} style={{ margin: 0 }}>
 					{card.recommendation.label}
 				</Title>
 				<Text>{narrative}</Text>
 				{prevCard && (
 					<Text type="secondary" data-testid="conclusion-prev">
-						← 旧建议: {prevCard.recommendation.label}
+						{t("decisionCard.conclusion.previousAdvice")} {prevCard.recommendation.label}
 					</Text>
 				)}
 			</Space>
 			<Space direction="vertical" size={0} align="end">
 				<Space size={4}>
-					<Text type="secondary">信心度</Text>
-					<Tooltip title="查看信心度说明">
+					<Text type="secondary">{t("decisionCard.conclusion.confidence")}</Text>
+					<Tooltip title={t("decisionCard.conclusion.confidence")}>
 						<Link
 							to="/help#confidence"
-							aria-label="信心度帮助"
+							aria-label={t("decisionCard.conclusion.confidence")}
 							data-testid="conclusion-confidence-help"
 						>
 							<QuestionCircleOutlined style={{ color: "#8c8c8c" }} />

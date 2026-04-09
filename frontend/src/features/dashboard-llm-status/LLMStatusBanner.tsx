@@ -1,4 +1,5 @@
 import { Alert, App, Button, Space, Typography } from "@/ui-kit/eat";
+import { useTranslation } from "react-i18next";
 import { useLLMStatusBanner } from "./useLLMStatusBanner";
 
 const { Text } = Typography;
@@ -35,21 +36,20 @@ export function LLMStatusBanner({
 	onReanalyze,
 	isReanalyzing,
 }: LLMStatusBannerProps) {
+	const { t } = useTranslation("app");
 	const { message } = App.useApp();
 	const { dismissed, dismiss } = useLLMStatusBanner();
 
 	if (!needsReanalysis) return null;
 	if (dismissed) return null;
 
-	const countCopy = typeof staleCardCount === "number" ? `${staleCardCount} 个` : "部分";
-
 	const handleReanalyze = async () => {
 		try {
 			await onReanalyze();
-			message.success("已触发重新分析，请稍后刷新查看。");
+			message.success(t("dashboard.llmBanner.reanalyzeSuccess"));
 		} catch (err) {
-			const msg = err instanceof Error ? err.message : "请稍后再试";
-			message.error(`重新分析请求失败：${msg}`);
+			const msg = err instanceof Error ? err.message : "";
+			message.error(t("dashboard.llmBanner.reanalyzeError", { msg }));
 		}
 	};
 
@@ -62,11 +62,8 @@ export function LLMStatusBanner({
 			data-testid="llm-status-banner"
 			message={
 				<Space direction="vertical" size={2}>
-					<Text strong>AI 解读已配置</Text>
-					<Text>
-						你有 {countCopy} 持仓的历史卡片仍基于规则引擎生成，
-						点击右侧按钮可触发一次重新分析以升级到 AI 解读。
-					</Text>
+					<Text strong>{t("dashboard.llmBanner.title")}</Text>
+					<Text>{t("dashboard.llmBanner.description", { count: staleCardCount ?? 0 })}</Text>
 				</Space>
 			}
 			action={
@@ -77,7 +74,7 @@ export function LLMStatusBanner({
 					onClick={handleReanalyze}
 					data-testid="llm-status-banner-reanalyze"
 				>
-					重新分析所有持仓
+					{t("dashboard.llmBanner.reanalyzeButton")}
 				</Button>
 			}
 		/>

@@ -1,6 +1,7 @@
 import { useMoney } from "@/domain/money/useMoney";
 import { computeNextAnalysisTime, formatHm } from "@/features/decision-card";
 import { Button, Card, Col, ReloadOutlined, Row, Space, Tooltip, Typography } from "@/ui-kit/eat";
+import { useTranslation } from "react-i18next";
 
 // Re-export the schedule helpers for callers that already imported them
 // from this module before the helpers were promoted into the feature
@@ -38,6 +39,7 @@ export function DashboardTopStrip({
 	rerunLoading,
 	onConfigureCapital,
 }: DashboardTopStripProps) {
+	const { t } = useTranslation("app");
 	const money = useMoney();
 	const hasCapital = totalCapitalCny != null;
 	const capitalDisplay = hasCapital
@@ -50,10 +52,11 @@ export function DashboardTopStrip({
 				<Col flex="auto">
 					<Space direction="vertical" size={2}>
 						<Title level={3} style={{ margin: 0 }}>
-							今日决策
+							{t("dashboard.todayDecision")}
 						</Title>
 						<Text type="secondary" data-testid="dashboard-top-strip-times">
-							最后分析 {formatHm(lastAnalyzedAt)} · 下次自动 {formatHm(nextAnalysisAt)}
+							{t("dashboard.lastAnalyzed")} {formatHm(lastAnalyzedAt)} · {t("dashboard.nextAuto")}{" "}
+							{formatHm(nextAnalysisAt)}
 						</Text>
 					</Space>
 				</Col>
@@ -66,7 +69,7 @@ export function DashboardTopStrip({
 						onClick={onRerun}
 						data-testid="dashboard-rerun-button"
 					>
-						重新分析
+						{t("dashboard.rerunButton")}
 					</Button>
 				</Col>
 			</Row>
@@ -74,7 +77,7 @@ export function DashboardTopStrip({
 			<Row gutter={[16, 16]} style={{ marginTop: 20 }}>
 				<Col xs={12} md={6}>
 					<Space direction="vertical" size={2}>
-						<Text type="secondary">持仓数</Text>
+						<Text type="secondary">{t("dashboard.stat.holdingCount")}</Text>
 						<Text strong style={{ fontSize: 22 }} data-testid="stat-holding-count">
 							{holdingCount}
 						</Text>
@@ -82,7 +85,7 @@ export function DashboardTopStrip({
 				</Col>
 				<Col xs={12} md={6}>
 					<Space direction="vertical" size={2}>
-						<Text type="secondary">总资金</Text>
+						<Text type="secondary">{t("dashboard.stat.totalCapital")}</Text>
 						{hasCapital ? (
 							<Text strong style={{ fontSize: 22 }} data-testid="stat-total-capital">
 								{capitalDisplay}
@@ -95,16 +98,14 @@ export function DashboardTopStrip({
 								onClick={onConfigureCapital}
 								data-testid="stat-total-capital-cta"
 							>
-								设置以查看 →
+								{t("dashboard.stat.totalCapitalCta")}
 							</Button>
 						)}
 					</Space>
 				</Col>
 				<Col xs={12} md={6}>
 					<Space direction="vertical" size={2}>
-						<Tooltip title="按当前推荐目标仓位计算的整体调仓金额。MVP 阶段使用 (target - current) 作为代理；真实持仓盈亏将在 Step 17 接入交易记录后替换。">
-							<Text type="secondary">建议调仓</Text>
-						</Tooltip>
+						<Text type="secondary">{t("dashboard.stat.suggestedRebalance")}</Text>
 						<Text
 							strong
 							style={{
@@ -122,7 +123,7 @@ export function DashboardTopStrip({
 				</Col>
 				<Col xs={12} md={6}>
 					<Space direction="vertical" size={2}>
-						<Text type="secondary">已分配仓位</Text>
+						<Text type="secondary">{t("dashboard.stat.allocatedPosition")}</Text>
 						<Text strong style={{ fontSize: 22 }} data-testid="stat-allocated-position">
 							{money.format(totalPositionRatio)}
 						</Text>

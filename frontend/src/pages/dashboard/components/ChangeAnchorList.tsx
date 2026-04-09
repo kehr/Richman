@@ -1,6 +1,7 @@
 import { BADGE_TEXT, ChangeBadge, type DecisionCardDTO } from "@/features/decision-card";
 import { Card, Space, Typography } from "@/ui-kit/eat";
 import { useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import "./ChangeAnchorList.css";
 
 const { Text, Title } = Typography;
@@ -32,6 +33,7 @@ function buildChangeSummary(card: DecisionCardDTO): string {
 // the matching card in the wall. When there are no changed cards the whole
 // block returns null so the Dashboard layout collapses cleanly.
 export function ChangeAnchorList({ cards, cardRefs }: ChangeAnchorListProps) {
+	const { t } = useTranslation("app");
 	// Track the active highlight timer + node so a rapid second click cancels
 	// the previous timer and we can clean up on unmount. Without this the
 	// timer would race against re-clicks and could leave the highlight class
@@ -88,7 +90,7 @@ export function ChangeAnchorList({ cards, cardRefs }: ChangeAnchorListProps) {
 	return (
 		<Card data-testid="change-anchor-list">
 			<Title level={5} style={{ marginTop: 0 }}>
-				今日变化
+				{t("dashboard.changeAnchor.title")}
 			</Title>
 			<Space direction="vertical" size={8} style={{ width: "100%" }}>
 				{changed.map((card) => (

@@ -10,6 +10,7 @@ import { useHoldings } from "@/features/portfolio";
 import { useUserSettings } from "@/features/user-settings";
 import { App, Flex, PageContainer, Space } from "@/ui-kit/eat";
 import { useMemo, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router";
 import { ChangeAnchorList } from "./components/ChangeAnchorList";
 import { DashboardTopStrip, computeNextAnalysisTime } from "./components/DashboardTopStrip";
@@ -22,6 +23,7 @@ import { OnboardingSkippedNudge } from "./components/OnboardingSkippedNudge";
 // orchestrates data flow between hooks and presentational sub-components.
 export default function DashboardPage() {
 	const navigate = useNavigate();
+	const { t } = useTranslation("app");
 	const { message } = App.useApp();
 
 	const holdingsQuery = useHoldings();
@@ -88,9 +90,9 @@ export default function DashboardPage() {
 	const handleRerun = async () => {
 		try {
 			await rerun.mutateAsync();
-			message.success("已触发重新分析，稍后刷新查看新卡。");
+			message.success(t("dashboard.message.rerunSuccess"));
 		} catch {
-			message.error("重新分析请求失败，请稍后再试。");
+			message.error(t("dashboard.message.rerunError"));
 		}
 	};
 
@@ -132,7 +134,7 @@ export default function DashboardPage() {
 	const showEmptyHero = holdingsReady && holdings.length === 0;
 
 	return (
-		<PageContainer title="Dashboard" data-testid="dashboard-page">
+		<PageContainer title={t("dashboard.title")} data-testid="dashboard-page">
 			<Flex vertical gap={16}>
 				<LLMStatusBanner
 					needsReanalysis={needsReanalysis}

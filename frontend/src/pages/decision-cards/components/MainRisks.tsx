@@ -1,4 +1,5 @@
 import { Alert, Space, Typography } from "@/ui-kit/eat";
+import { useTranslation } from "react-i18next";
 
 const { Text } = Typography;
 
@@ -11,13 +12,14 @@ interface MainRisksProps {
 // page does not collapse — the user wants to see risk reasoning even when
 // the model produced none ("no significant risks identified").
 export function MainRisks({ riskWarnings }: MainRisksProps) {
+	const { t } = useTranslation("app");
 	const hasRisks = riskWarnings.length > 0;
 	return (
 		<Alert
 			type="warning"
 			showIcon
 			data-testid="main-risks"
-			message={<Text strong>主要风险</Text>}
+			message={<Text strong>{t("decisionCard.mainRisks.title")}</Text>}
 			description={
 				<Space direction="vertical" size={4} style={{ width: "100%" }}>
 					{hasRisks ? (
@@ -27,9 +29,9 @@ export function MainRisks({ riskWarnings }: MainRisksProps) {
 							))}
 						</ul>
 					) : (
-						<Text type="secondary">本次分析未识别到显著风险。</Text>
+						<Text type="secondary">{t("decisionCard.mainRisks.noRisks")}</Text>
 					)}
-					<Text type="secondary">终止本计划的条件: 触发上述任一风险，或执行计划止损线。</Text>
+					<Text type="secondary">{t("decisionCard.mainRisks.exitCondition")}</Text>
 				</Space>
 			}
 		/>

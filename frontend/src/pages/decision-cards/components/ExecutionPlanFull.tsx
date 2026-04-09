@@ -1,6 +1,7 @@
 import type { Execution, Step } from "@/features/decision-card";
 import { Alert, Card, Space, Typography } from "@/ui-kit/eat";
 import type { CSSProperties } from "react";
+import { useTranslation } from "react-i18next";
 
 const { Text, Paragraph, Title } = Typography;
 
@@ -72,17 +73,27 @@ function StepRow({ step, index }: { step: Step; index: number }) {
 // each trigger. Monitor plans render as two lines (stop-loss / take-profit);
 // staged and one-shot plans render numbered step rows.
 export function ExecutionPlanFull({ execution }: ExecutionPlanFullProps) {
-	const validDaysText = `本计划适用未来 ${execution.validDays} 天，超过或触发止损条件会自动重新分析。`;
+	const { t } = useTranslation("app");
+	const validDaysText = t("decisionCard.executionPlan.validDays", { days: execution.validDays });
 
 	if (execution.type === "monitor") {
 		return (
-			<Card data-testid="plan-full" title={<Title level={5}>执行计划</Title>}>
+			<Card
+				data-testid="plan-full"
+				title={<Title level={5}>{t("decisionCard.executionPlan.title")}</Title>}
+			>
 				<Space direction="vertical" size={8} style={{ width: "100%" }}>
 					<Text data-testid="plan-full-stop-loss">
-						止损: {execution.stopLoss != null ? execution.stopLoss.toFixed(2) : "未设置"}
+						{t("decisionCard.executionPlan.stopLoss")}:{" "}
+						{execution.stopLoss != null
+							? execution.stopLoss.toFixed(2)
+							: t("decisionCard.executionPlan.notSet")}
 					</Text>
 					<Text data-testid="plan-full-take-profit">
-						止盈: {execution.takeProfit != null ? execution.takeProfit.toFixed(2) : "未设置"}
+						{t("decisionCard.executionPlan.takeProfit")}:{" "}
+						{execution.takeProfit != null
+							? execution.takeProfit.toFixed(2)
+							: t("decisionCard.executionPlan.notSet")}
 					</Text>
 					<Alert type="warning" showIcon message={validDaysText} style={{ marginTop: 8 }} />
 				</Space>
@@ -93,7 +104,10 @@ export function ExecutionPlanFull({ execution }: ExecutionPlanFullProps) {
 	const steps = execution.steps ?? [];
 
 	return (
-		<Card data-testid="plan-full" title={<Title level={5}>执行计划</Title>}>
+		<Card
+			data-testid="plan-full"
+			title={<Title level={5}>{t("decisionCard.executionPlan.title")}</Title>}
+		>
 			<Space direction="vertical" size={16} style={{ width: "100%" }}>
 				{steps.map((step, idx) => (
 					<StepRow key={step.order} step={step} index={idx} />

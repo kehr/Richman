@@ -1,5 +1,6 @@
 import { useDecisionCardDetail, useDecisionCards } from "@/features/decision-card";
 import { Alert, Col, PageContainer, Row, Skeleton, Space, Typography } from "@/ui-kit/eat";
+import { useTranslation } from "react-i18next";
 import { Link, useNavigate, useParams } from "react-router";
 import { CardHero } from "./components/CardHero";
 import { ConclusionBanner } from "./components/ConclusionBanner";
@@ -45,6 +46,7 @@ function formatBreadcrumbDateTime(iso: string | undefined): string {
 //                                            short history strip on the
 //                                            sidebar by filtering same holding
 export default function DecisionCardDetailPage() {
+	const { t } = useTranslation("app");
 	const { id } = useParams<{ id: string }>();
 	const navigate = useNavigate();
 	// Parse the route param defensively: a non-numeric or zero/negative id
@@ -78,12 +80,12 @@ export default function DecisionCardDetailPage() {
 	// will never produce data.
 	if (cardId === 0) {
 		return (
-			<PageContainer title="决策卡详情">
+			<PageContainer title={t("decisionCard.detailTitle")}>
 				<Alert
 					type="warning"
 					showIcon
-					message="未找到决策卡"
-					description="链接无效或决策卡不存在。"
+					message={t("decisionCard.notFound.title")}
+					description={t("decisionCard.notFound.description")}
 					data-testid="detail-not-found"
 				/>
 			</PageContainer>
@@ -92,7 +94,7 @@ export default function DecisionCardDetailPage() {
 
 	if (detailQuery.isLoading) {
 		return (
-			<PageContainer title="决策卡详情">
+			<PageContainer title={t("decisionCard.detailTitle")}>
 				<Skeleton active paragraph={{ rows: 12 }} />
 			</PageContainer>
 		);
@@ -100,12 +102,12 @@ export default function DecisionCardDetailPage() {
 
 	if (detailQuery.error) {
 		return (
-			<PageContainer title="决策卡详情">
+			<PageContainer title={t("decisionCard.detailTitle")}>
 				<Alert
 					type="error"
 					showIcon
-					message="加载失败"
-					description="无法加载该决策卡，请稍后重试。"
+					message={t("decisionCard.loadError.title")}
+					description={t("decisionCard.loadError.description")}
 					data-testid="detail-error"
 				/>
 			</PageContainer>
@@ -114,12 +116,12 @@ export default function DecisionCardDetailPage() {
 
 	if (!card) {
 		return (
-			<PageContainer title="决策卡详情">
+			<PageContainer title={t("decisionCard.detailTitle")}>
 				<Alert
 					type="warning"
 					showIcon
-					message="未找到决策卡"
-					description="该决策卡可能不存在或已被删除。"
+					message={t("decisionCard.notFound.title")}
+					description={t("decisionCard.notFound.deleted")}
 					data-testid="detail-not-found"
 				/>
 			</PageContainer>
@@ -130,7 +132,7 @@ export default function DecisionCardDetailPage() {
 		<Space size={4} data-testid="detail-breadcrumb">
 			<Link to="/dashboard">← Dashboard</Link>
 			<Text type="secondary">/</Text>
-			<Text type="secondary">决策卡</Text>
+			<Text type="secondary">{t("decisionCard.breadcrumb.decisionCard")}</Text>
 			<Text type="secondary">/</Text>
 			<Text>
 				{card.assetName} · {formatBreadcrumbDateTime(card.analyzedAt)}
@@ -140,7 +142,7 @@ export default function DecisionCardDetailPage() {
 
 	return (
 		<PageContainer
-			title="决策卡详情"
+			title={t("decisionCard.detailTitle")}
 			header={{ extra: breadcrumb }}
 			data-testid="decision-card-detail"
 		>

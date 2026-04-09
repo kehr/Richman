@@ -1,25 +1,10 @@
 import { Tag, Tooltip } from "@/ui-kit/eat";
+import { useTranslation } from "react-i18next";
 import type { ProviderUsed, SynthesisSource } from "../types";
 
 interface SourcePillProps {
 	source: SynthesisSource;
 	provider: ProviderUsed;
-}
-
-// providerLabel renders a human-friendly label for the tooltip copy so
-// the user sees "Claude (user config)" or "System default" instead of
-// raw enum values.
-function providerLabel(provider: ProviderUsed): string {
-	switch (provider) {
-		case "user":
-			return "你配置的 Provider";
-		case "system_default":
-			return "Richman 系统默认 Provider";
-		case "none":
-			return "未使用 LLM";
-		default:
-			return "未知";
-	}
 }
 
 // SourcePill renders a small provenance tag on each decision card that
@@ -28,13 +13,30 @@ function providerLabel(provider: ProviderUsed): string {
 // covers historical rows written before migration 007 — the pill is
 // hidden entirely so the user is not burdened with a sentinel value.
 export function SourcePill({ source, provider }: SourcePillProps) {
+	const { t } = useTranslation("app");
+
+	// providerLabel maps the ProviderUsed enum to a human-readable string
+	// using i18n so the label updates when the user switches language.
+	const providerLabel = (p: ProviderUsed): string => {
+		switch (p) {
+			case "user":
+				return t("decisionCard.provider.user");
+			case "system_default":
+				return t("decisionCard.provider.system_default");
+			case "none":
+				return t("decisionCard.provider.none");
+			default:
+				return t("decisionCard.provider.unknown");
+		}
+	};
+
 	if (source === "unknown") return null;
 
 	if (source === "llm") {
 		return (
-			<Tooltip title={`由 AI 解读生成（${providerLabel(provider)}）`}>
+			<Tooltip title={t("decisionCard.source.llmTooltip", { provider: providerLabel(provider) })}>
 				<Tag color="processing" data-testid="source-pill-llm">
-					AI
+					{t("decisionCard.source.llm")}
 				</Tag>
 			</Tooltip>
 		);
@@ -42,9 +44,10 @@ export function SourcePill({ source, provider }: SourcePillProps) {
 
 	if (source === "mixed") {
 		return (
-			<Tooltip title={`文案由 AI 解读生成，建议动作由规则引擎兜底（${providerLabel(provider)}）`}>
-				<Tag color="default" data-testid="source-pill-mixed">
-					Mixed
+<<<<<<< HEAD
+			<Tooltip title={t("decisionCard.source.mixedTooltip", { provider: providerLabel(provider) })}>
+				<Tag color="blue" data-testid="source-pill-mixed" style={{ background: "transparent" }}>
+					{t("decisionCard.source.mixed")}
 				</Tag>
 			</Tooltip>
 		);
@@ -52,9 +55,9 @@ export function SourcePill({ source, provider }: SourcePillProps) {
 
 	// template branch
 	return (
-		<Tooltip title="由规则引擎生成 · 配置 LLM Provider 可启用 AI 解读">
+		<Tooltip title={t("decisionCard.source.templateTooltip")}>
 			<Tag color="default" data-testid="source-pill-template">
-				Rules
+				{t("decisionCard.source.template")}
 			</Tag>
 		</Tooltip>
 	);

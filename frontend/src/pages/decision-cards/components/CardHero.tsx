@@ -1,6 +1,7 @@
 import { useMoney } from "@/domain/money/useMoney";
 import { ChangeBadge, type DecisionCardDTO } from "@/features/decision-card";
 import { QuestionCircleOutlined, Space, Tag, Tooltip, Typography } from "@/ui-kit/eat";
+import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 
 const { Text, Title } = Typography;
@@ -30,6 +31,7 @@ function computeTargetGapPct(card: DecisionCardDTO): number | null {
 // omitted until the backend DTO carries them; the file-level comment on
 // computeTargetGapPct documents the placeholder semantics.
 export function CardHero({ card }: CardHeroProps) {
+	const { t } = useTranslation("app");
 	const money = useMoney();
 	const positionText = money.format(card.positionRatio, card.positionAmount);
 	const targetGapPct = computeTargetGapPct(card);
@@ -54,20 +56,27 @@ export function CardHero({ card }: CardHeroProps) {
 					{card.assetName}
 				</Title>
 				<Space size="middle" wrap>
-					<Text type="secondary">成本: {card.costPrice.toFixed(2)}</Text>
-					<Text type="secondary">仓位: {positionText}</Text>
+					<Text type="secondary">
+						{t("decisionCard.hero.cost")}: {card.costPrice.toFixed(2)}
+					</Text>
+					<Text type="secondary">
+						{t("decisionCard.hero.position")}: {positionText}
+					</Text>
 				</Space>
 				{targetGapPct != null && targetGapPct !== 0 && (
 					<Text type="secondary" data-testid="card-hero-target-gap">
-						目标偏离: {gapSign}
-						{targetGapPct.toFixed(2)}%（建议调仓幅度，非盈亏）
+						{t("decisionCard.hero.targetGap", { gap: `${gapSign}${targetGapPct.toFixed(2)}` })}
 					</Text>
 				)}
 			</Space>
 			<Space size={4}>
 				<ChangeBadge badgeState={card.badgeState} />
-				<Tooltip title="查看变化徽章说明">
-					<Link to="/help#badge" aria-label="变化徽章帮助" data-testid="card-hero-badge-help">
+				<Tooltip title={t("decisionCard.badge.action_upgrade")}>
+					<Link
+						to="/help#badge"
+						aria-label={t("decisionCard.badge.action_upgrade")}
+						data-testid="card-hero-badge-help"
+					>
 						<QuestionCircleOutlined style={{ color: "#8c8c8c" }} />
 					</Link>
 				</Tooltip>
