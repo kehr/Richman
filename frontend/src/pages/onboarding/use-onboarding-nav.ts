@@ -3,10 +3,12 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { useOnboardingState } from "./state";
 
-// OnboardingStep is the four-step wizard index. Keep as a literal union so
+// OnboardingStep is the five-step wizard index. Keep as a literal union so
 // array indexing, route table lookups, and the reachedStep watermark all
-// share the exact same domain.
-export type OnboardingStep = 1 | 2 | 3 | 4;
+// share the exact same domain. Step 4 (llm-consent) was added by the LLM
+// degraded contract work; the previous "first analysis" terminal step
+// moved from position 4 to position 5.
+export type OnboardingStep = 1 | 2 | 3 | 4 | 5;
 
 // STEP_PATHS is the single source of truth for step ordering. Both the
 // forward/backward navigation math and the current-path reverse lookup read
@@ -15,7 +17,8 @@ export const STEP_PATHS: Record<OnboardingStep, string> = {
 	1: "/onboarding/welcome",
 	2: "/onboarding/categories",
 	3: "/onboarding/first-holding",
-	4: "/onboarding/first-analysis",
+	4: "/onboarding/llm-consent",
+	5: "/onboarding/first-analysis",
 };
 
 // SHAKE_EVENT_NAME is dispatched on `window` when `next()` is called while
@@ -41,7 +44,7 @@ export interface UseOnboardingNavReturn {
 // to 1 when no match is found so the header/indicator always has a sane value
 // even on transient mismatches.
 function pathToStep(pathname: string): OnboardingStep {
-	const steps: OnboardingStep[] = [4, 3, 2, 1];
+	const steps: OnboardingStep[] = [5, 4, 3, 2, 1];
 	for (const step of steps) {
 		if (pathname === STEP_PATHS[step] || pathname.startsWith(`${STEP_PATHS[step]}/`)) {
 			return step;
@@ -50,11 +53,11 @@ function pathToStep(pathname: string): OnboardingStep {
 	return 1;
 }
 
-// clampStep clamps an arbitrary number to the 1..4 OnboardingStep range. Used
-// when advancing past step 4 (which would overflow) or retreating below 1.
+// clampStep clamps an arbitrary number to the 1..5 OnboardingStep range. Used
+// when advancing past step 5 (which would overflow) or retreating below 1.
 function clampStep(n: number): OnboardingStep {
 	if (n <= 1) return 1;
-	if (n >= 4) return 4;
+	if (n >= 5) return 5;
 	return n as OnboardingStep;
 }
 
@@ -128,10 +131,10 @@ export function useOnboardingNav(): UseOnboardingNavReturn {
 	}, [currentStep, navigate]);
 
 	const next = useCallback(async () => {
-		// Step 4 has no "next" — it owns its own completion CTA. Early-return so
-		// keyboard ArrowRight at step 4 is a true no-op rather than a silent
-		// navigation overflow.
-		if (currentStep >= 4) return;
+		// Step 5 (FirstAnalysisPage) has no "next" — it owns its own completion
+		// CTA. Early-return so keyboard ArrowRight at the terminal step is a
+		// true no-op rather than a silent navigation overflow.
+		if (currentStep >= 5) return;
 		if (!canGoNext) {
 			try {
 				window.dispatchEvent(new CustomEvent(SHAKE_EVENT_NAME));

@@ -21,7 +21,7 @@ interface OnboardingLayoutProps {
 // predictable.
 export function OnboardingLayout({
 	currentStep,
-	totalSteps = 4,
+	totalSteps = 5,
 	title,
 	description,
 	children,

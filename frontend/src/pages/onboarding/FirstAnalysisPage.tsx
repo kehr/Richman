@@ -118,7 +118,7 @@ export default function FirstAnalysisPage() {
 
 	return (
 		<OnboardingLayout
-			currentStep={4}
+			currentStep={5}
 			title="正在为你生成第一张决策卡"
 			description="这一步只需十几秒，Richman 会扫描你的持仓并跑一遍三维分析。"
 		>
