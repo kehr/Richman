@@ -37,7 +37,6 @@ export {
 	Switch,
 	Table,
 	Tabs,
-	Tag,
 	Timeline,
 	Tooltip,
 	Typography,
@@ -50,6 +49,8 @@ export {
 	Image,
 	theme,
 } from "antd";
+
+export { Tag } from "./Tag";
 
 export type { UploadProps, UploadFile } from "antd";
 

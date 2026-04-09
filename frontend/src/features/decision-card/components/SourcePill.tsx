@@ -43,7 +43,7 @@ export function SourcePill({ source, provider }: SourcePillProps) {
 	if (source === "mixed") {
 		return (
 			<Tooltip title={`文案由 AI 解读生成，建议动作由规则引擎兜底（${providerLabel(provider)}）`}>
-				<Tag color="blue" data-testid="source-pill-mixed" style={{ background: "transparent" }}>
+				<Tag color="default" data-testid="source-pill-mixed">
 					Mixed
 				</Tag>
 			</Tooltip>

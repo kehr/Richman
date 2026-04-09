@@ -1,51 +1,119 @@
 import { theme } from "@/ui-kit/eat";
 import type { ThemeConfig } from "@/ui-kit/eat";
 
-// Neutral palette tuned for a black primary color.
-// Keeps backgrounds near-white and uses grayscale for menu states so the
-// primary black reads as a sharp accent instead of a flat background.
+// Palette for a monochrome financial-editorial theme.
+//
+// Background scale (light → dark):
+//   bgContainer  #FFFFFF  — card / form surfaces
+//   bgElevated   #FAFAFA  — modals, dropdowns, popovers (sits above layout)
+//   bgLayout     #F5F5F5  — page canvas
+//   bgHover      #EFEFEF  — hover states (must differ from bgLayout)
+//   bgSelected   #E8E8E8  — selected / active states
+//
+// In a monochrome theme there is no distinct "info blue" — info maps to the
+// same black scale as primary. colorInfoBg is pinned explicitly because the
+// algorithm generates near-black for black inputs; the correct derived value
+// for info backgrounds is the neutral gray scale.
 const palette = {
+	// Primaries
 	black: "#000000",
 	ink: "#141414",
-	text: "#1F1F1F",
-	textSecondary: "#595959",
+	// Text hierarchy
+	text: "#1A1A1A",
+	textSecondary: "#5C5C5C",
 	textTertiary: "#8C8C8C",
-	border: "#E5E7EB",
+	textDisabled: "#BFBFBF",
+	// Borders
+	border: "#E4E4E4",
 	borderSecondary: "#F0F0F0",
-	bgLayout: "#F5F5F5",
+	// Backgrounds — each step is intentionally distinct
 	bgContainer: "#FFFFFF",
-	bgElevated: "#FFFFFF",
-	bgHover: "#F5F5F5",
-	bgSelected: "#EBEBEB",
+	bgElevated: "#FAFAFA",
+	bgLayout: "#F5F5F5",
+	bgHover: "#EFEFEF",
+	bgSelected: "#E8E8E8",
+	// Semantic — info maps to black (monochrome; no distinct "info blue")
+	info: "#000000",
 	success: "#10B981",
 	warning: "#F59E0B",
 	error: "#EF4444",
-	info: "#000000",
-};
+} as const;
 
 export function getThemeConfig(mode: "light" | "dark"): ThemeConfig {
 	return {
 		token: {
+			// --- Brand ---
 			colorPrimary: palette.black,
+			colorLink: palette.black,
+
+			// --- Semantic ---
+			// info maps to black (same as primary) so the monochrome theme stays
+			// fully achromatic. colorInfoBg is pinned below to a neutral gray so
+			// "processing" tags get a visible background; Alert overrides it back
+			// to white at the component level so alert surfaces stay card-like.
 			colorInfo: palette.info,
 			colorSuccess: palette.success,
 			colorWarning: palette.warning,
 			colorError: palette.error,
-			colorLink: palette.black,
-			colorTextBase: palette.text,
+
+			// --- Typography ---
+			// Tabular figures (tnum) keep numbers aligned in data tables.
+			// PingFang SC / Hiragino / Microsoft YaHei for CJK fallback.
+			fontFamily:
+				"'SF Pro Text', -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif",
+			fontFamilyCode: "'SF Mono', 'JetBrains Mono', 'Fira Code', Menlo, Consolas, monospace",
+			fontSize: 13,
+			lineHeight: 1.6,
+
+			// --- Backgrounds ---
 			colorBgBase: palette.bgContainer,
+			colorBgContainer: palette.bgContainer,
+			colorBgElevated: palette.bgElevated,
 			colorBgLayout: palette.bgLayout,
+
+			// --- Borders ---
 			colorBorder: palette.border,
 			colorBorderSecondary: palette.borderSecondary,
+
+			// --- Text ---
+			colorTextBase: palette.text,
+
+			// --- Shape ---
 			borderRadius: 4,
+			borderRadiusSM: 3,
+			borderRadiusLG: 6,
 			wireframe: false,
+
+			// --- Motion ---
+			motionDurationFast: "0.1s",
+			motionDurationMid: "0.18s",
+			motionDurationSlow: "0.25s",
+
+			// --- Intercept algorithm bg-scale for primary ---
+			// colorPrimary = #000000 makes the algorithm generate near-black for
+			// colorPrimaryBg (the "selected state" tint). Pin to our neutral scale
+			// so every component inherits the correct light-hover behavior without
+			// needing per-component patches.
+			colorPrimaryBg: palette.bgSelected,
+			colorPrimaryBgHover: palette.bgHover,
+			// colorInfo = #000000 makes the algorithm generate near-black for
+			// colorInfoBg. Pin to bgSelected (#E8E8E8) so "processing" tags render
+			// with a clear gray swatch. Alert overrides this back to bgContainer
+			// at the component level so info alerts remain card-like on the page.
+			colorInfoBg: palette.bgSelected,
+			colorInfoBgHover: palette.bgHover,
+			colorInfoBorder: palette.border,
+			colorInfoBorderHover: palette.border,
 		},
 		components: {
 			Button: {
+				// Primary button stays solid black with ink hover.
 				colorPrimary: palette.black,
 				colorPrimaryHover: palette.ink,
 				colorPrimaryActive: palette.black,
 				primaryShadow: "none",
+				defaultShadow: "none",
+				dangerShadow: "none",
 			},
 			Menu: {
 				itemSelectedBg: palette.bgSelected,
@@ -59,55 +127,36 @@ export function getThemeConfig(mode: "light" | "dark"): ThemeConfig {
 				itemHoverColor: palette.ink,
 				inkBarColor: palette.black,
 			},
-			Switch: {
-				colorPrimary: palette.black,
-				colorPrimaryHover: palette.ink,
+			// Tag default color uses colorFillTertiary (~#F0F0F0) which is nearly
+			// invisible on a white Card surface. Bump the default background to
+			// bgSelected (#E8E8E8) so neutral tags have clear visual weight.
+			// Tag default: light gray bg + secondary text keeps tags in the same
+			// tonal range — avoids the high-contrast clash of dark-on-gray that
+			// reads as muddy. Semantic tags (bullish/bearish) use preset colors.
+			Tag: {
+				defaultBg: palette.bgSelected,
+				defaultColor: palette.textSecondary,
 			},
-			Checkbox: {
-				colorPrimary: palette.black,
-				colorPrimaryHover: palette.ink,
-			},
-			Radio: {
-				colorPrimary: palette.black,
-				colorPrimaryHover: palette.ink,
-			},
-			Slider: {
-				colorPrimary: palette.black,
-				colorPrimaryBorder: palette.black,
-			},
+			// Alert info type: override colorInfoBg back to white so the alert
+			// surface floats as a card above the #F5F5F5 page canvas. The global
+			// colorInfoBg (#E8E8E8) is intentionally left for Tag "processing".
 			Alert: {
-				colorInfoBg: palette.bgHover,
-				colorInfoBorder: palette.border,
+				colorInfoBg: palette.bgContainer,
+				colorInfoBorder: "#CFCFCF",
 			},
-			// Select: colorPrimaryBg derived from black generates a near-black
-			// optionSelectedBg; override to neutral gray so selected options
-			// render with a light highlight rather than an inverted dark block.
-			Select: {
-				optionSelectedBg: palette.bgSelected,
-				optionActiveBg: palette.bgHover,
-				optionSelectedColor: palette.black,
-			},
-			// Table / ProTable: rowSelectedBg also derives from colorPrimaryBg.
-			// Without the override, checked rows get an almost-black background.
-			Table: {
-				rowSelectedBg: palette.bgHover,
-				rowSelectedHoverBg: palette.bgSelected,
-			},
-			// DatePicker: cells inside a selected range use colorPrimaryBg-derived
-			// tokens. The selected endpoints stay black (intentional), but the
-			// in-between cells need neutral highlights.
-			DatePicker: {
-				cellActiveWithRangeBg: palette.bgHover,
-				cellHoverWithRangeBg: palette.bgSelected,
-			},
+			// Switch / Checkbox / Radio / Slider only need the hover override;
+			// colorPrimary is inherited from the global token automatically.
+			Switch: { colorPrimaryHover: palette.ink },
+			Checkbox: { colorPrimaryHover: palette.ink },
+			Radio: { colorPrimaryHover: palette.ink },
+			Slider: { colorPrimaryBorder: palette.black },
 		},
 		algorithm: mode === "dark" ? theme.darkAlgorithm : theme.defaultAlgorithm,
 	};
 }
 
-// ProLayout-specific tokens. Applied via the `token` prop on ProLayout so the
-// sider, header, and page container pick up the same black-neutral palette as
-// the global antd theme. See https://procomponents.ant.design/components/layout#token
+// ProLayout-specific tokens. Applied via the `token` prop on ProLayout.
+// See https://procomponents.ant.design/components/layout#token
 export const layoutToken = {
 	bgLayout: palette.bgLayout,
 	sider: {

@@ -26,11 +26,11 @@ interface DimensionBadgesProps {
 function colorForValue(value: string): string {
 	switch (value) {
 		case "bullish":
+		case "upward":
 			return "green";
 		case "bearish":
+		case "downward":
 			return "red";
-		case "neutral":
-			return "default";
 		default:
 			return "default";
 	}
