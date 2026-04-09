@@ -23,6 +23,7 @@ import {
 } from "@/ui-kit/eat";
 import { type Variants, motion, useReducedMotion } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { OnboardingLayout } from "./components/OnboardingLayout";
 import { useOnboardingState } from "./state";
 import { useOnboardingNav } from "./use-onboarding-nav";
@@ -72,6 +73,7 @@ interface QuickModeFormProps {
 }
 
 function QuickModeForm({ itemsVariant }: QuickModeFormProps) {
+	const { t } = useTranslation("auth");
 	const [form] = Form.useForm<QuickModeValues>();
 	const { state, updateHoldingDraft } = useOnboardingState();
 	// The radio category is transient UI state: it only controls which asset
@@ -153,11 +155,32 @@ function QuickModeForm({ itemsVariant }: QuickModeFormProps) {
 		updateHoldingDraft(patch);
 	};
 
+	const quickFormRules = useMemo(
+		() => ({
+			assetCode: [
+				{ required: true, message: t("onboarding.firstHolding.validation.assetRequired") },
+			],
+			costPrice: [
+				{ required: true, message: t("onboarding.firstHolding.validation.costPriceRequired") },
+			],
+			positionRatio: [
+				{ required: true, message: t("onboarding.firstHolding.validation.positionRatioRequired") },
+				{
+					type: "number" as const,
+					min: 0,
+					max: 100,
+					message: t("onboarding.firstHolding.validation.positionRatioRange"),
+				},
+			],
+		}),
+		[t],
+	);
+
 	return (
 		<Form<QuickModeValues> form={form} layout="vertical" onValuesChange={handleValuesChange}>
 			<motion.div variants={containerVariants} initial="hidden" animate="visible">
 				<motion.div variants={itemsVariant}>
-					<Form.Item label="标的类型" required>
+					<Form.Item label={t("onboarding.firstHolding.assetType")} required>
 						<Radio.Group
 							value={category}
 							onChange={(e) => handleCategoryChange(e.target.value as AssetCategory)}
@@ -173,42 +196,44 @@ function QuickModeForm({ itemsVariant }: QuickModeFormProps) {
 
 				<motion.div variants={itemsVariant}>
 					<Form.Item
-						label="标的"
+						label={t("onboarding.firstHolding.asset")}
 						name="assetCode"
-						rules={[{ required: true, message: "请选择一个标的" }]}
+						rules={quickFormRules.assetCode}
 					>
 						<Select
 							showSearch
 							allowClear
-							placeholder="搜索代码或名称"
+							placeholder={t("onboarding.firstHolding.assetPlaceholder")}
 							loading={isLoading}
 							filterOption={false}
 							onSearch={setKeyword}
 							options={assetOptions.map(({ value, label }) => ({ value, label }))}
-							notFoundContent={isLoading ? "加载中..." : "暂无匹配"}
+							notFoundContent={t("onboarding.firstHolding.error.noMatchFound")}
 						/>
 					</Form.Item>
 				</motion.div>
 
 				<motion.div variants={itemsVariant}>
 					<Form.Item
-						label="均价成本（单价）"
+						label={t("onboarding.firstHolding.costPrice")}
 						name="costPrice"
-						rules={[{ required: true, message: "请输入均价成本" }]}
+						rules={quickFormRules.costPrice}
 					>
-						<InputNumber min={0} step={0.01} style={{ width: "100%" }} placeholder="例如 3.25" />
+						<InputNumber
+							min={0}
+							step={0.01}
+							style={{ width: "100%" }}
+							placeholder={t("onboarding.firstHolding.costPricePlaceholder")}
+						/>
 					</Form.Item>
 				</motion.div>
 
 				<motion.div variants={itemsVariant}>
 					<Form.Item
-						label="仓位比例（%）"
+						label={t("onboarding.firstHolding.positionRatio")}
 						name="positionRatio"
-						rules={[
-							{ required: true, message: "请输入仓位比例" },
-							{ type: "number", min: 0, max: 100, message: "0 - 100 之间" },
-						]}
-						extra="该标的占你整体资金的比例，无需总资金也能计算"
+						rules={quickFormRules.positionRatio}
+						extra={t("onboarding.firstHolding.positionRatioExtra")}
 					>
 						<InputNumber min={0} max={100} step={1} style={{ width: "100%" }} />
 					</Form.Item>
@@ -219,6 +244,7 @@ function QuickModeForm({ itemsVariant }: QuickModeFormProps) {
 }
 
 function TotalCapitalCollapse() {
+	const { t } = useTranslation("auth");
 	const { data: settings } = useUserSettings();
 	const patch = usePatchUserSettings();
 	const [value, setValue] = useState<number | null>(settings?.totalCapitalCny ?? null);
@@ -234,14 +260,14 @@ function TotalCapitalCollapse() {
 
 	const handleSave = async () => {
 		if (value == null || value <= 0) {
-			message.error("请输入有效的总资金");
+			message.error(t("onboarding.firstHolding.totalCapital.invalidValue"));
 			return;
 		}
 		try {
 			await patch.mutateAsync({ totalCapitalCny: value });
-			message.success("总资金已保存");
+			message.success(t("onboarding.firstHolding.totalCapital.saved"));
 		} catch {
-			message.error("保存失败");
+			message.error(t("onboarding.firstHolding.totalCapital.saveError"));
 		}
 	};
 
@@ -253,7 +279,7 @@ function TotalCapitalCollapse() {
 					key: "capital",
 					label: (
 						<Text type="secondary" style={{ fontSize: 13 }}>
-							想看具体金额？设置总资金（可选）
+							{t("onboarding.firstHolding.totalCapital.label")}
 						</Text>
 					),
 					children: (
@@ -264,7 +290,7 @@ function TotalCapitalCollapse() {
 								value={value}
 								onChange={(v) => setValue(v)}
 								style={{ flex: 1 }}
-								placeholder="例如 100000"
+								placeholder={t("onboarding.firstHolding.totalCapital.placeholder")}
 								data-testid="onboarding-total-capital-input"
 							/>
 							<Button
@@ -273,7 +299,7 @@ function TotalCapitalCollapse() {
 								onClick={handleSave}
 								data-testid="onboarding-total-capital-save"
 							>
-								保存
+								{t("onboarding.firstHolding.totalCapital.save")}
 							</Button>
 						</Space.Compact>
 					),
@@ -284,6 +310,7 @@ function TotalCapitalCollapse() {
 }
 
 export default function FirstHoldingPage() {
+	const { t } = useTranslation("auth");
 	const nav = useOnboardingNav();
 	const { state, updateHoldingDraft } = useOnboardingState();
 	const { data: holdings } = useHoldings();
@@ -293,7 +320,7 @@ export default function FirstHoldingPage() {
 	const [activeTab, setActiveTab] = useState<string>(state.holdingDraft.mode ?? "quick");
 
 	const existingCount = holdings?.length ?? 0;
-	const disabledTooltip = "即将推出（Step 16/17）";
+	const disabledTooltip = t("onboarding.firstHolding.comingSoon");
 
 	// Register a canGoNext predicate that validates the active mode's required
 	// fields. Only the quick mode is enabled in this release; detail and
@@ -322,11 +349,11 @@ export default function FirstHoldingPage() {
 		if (!nav.canGoNext) return;
 		const draft = state.holdingDraft;
 		if (!draft.assetCode || !draft.assetName || !draft.assetType) {
-			message.error("请选择一个标的");
+			message.error(t("onboarding.firstHolding.validation.holdingAssetRequired"));
 			return;
 		}
 		if (draft.costPrice == null || draft.positionRatio == null) {
-			message.error("请填写成本价和仓位比例");
+			message.error(t("onboarding.firstHolding.validation.holdingCostAndRatioRequired"));
 			return;
 		}
 		try {
@@ -340,10 +367,9 @@ export default function FirstHoldingPage() {
 				// enters real trade quantities later on the transactions sub-page.
 				quantity: 0,
 			});
-			message.success("持仓已保存");
 			await nav.next();
 		} catch {
-			message.error("保存持仓失败，请稍后重试");
+			message.error(t("onboarding.firstHolding.error.saveFailed"));
 		}
 	};
 
@@ -358,8 +384,8 @@ export default function FirstHoldingPage() {
 	return (
 		<OnboardingLayout
 			currentStep={3}
-			title="先录一个持仓"
-			description="先录一个就行，后面随时可以加。我们需要至少一个持仓才能生成决策卡。"
+			title={t("onboarding.firstHolding.title")}
+			description={t("onboarding.firstHolding.description")}
 			footer={
 				<Button
 					type="primary"
@@ -369,7 +395,7 @@ export default function FirstHoldingPage() {
 					loading={createHolding.isPending}
 					onClick={handleSubmit}
 				>
-					保存并开始分析 →
+					{t("onboarding.firstHolding.submitButton")}
 				</Button>
 			}
 		>
@@ -378,8 +404,8 @@ export default function FirstHoldingPage() {
 					type="info"
 					showIcon
 					style={{ marginBottom: 16 }}
-					message={`检测到你已有 ${existingCount} 个持仓`}
-					description="可以直接用已有持仓进入分析，或继续在下面添加一个新的。"
+					message={t("onboarding.firstHolding.existingHoldings.detected", { count: existingCount })}
+					description={t("onboarding.firstHolding.existingHoldings.description")}
 					action={
 						<Button
 							type="primary"
@@ -387,7 +413,7 @@ export default function FirstHoldingPage() {
 							data-testid="onboarding-skip-to-analysis"
 							onClick={handleFastForward}
 						>
-							用已有持仓直接分析 →
+							{t("onboarding.firstHolding.existingHoldings.directAnalysis")}
 						</Button>
 					}
 				/>
@@ -399,14 +425,14 @@ export default function FirstHoldingPage() {
 				items={[
 					{
 						key: "quick",
-						label: "快速模式",
+						label: t("onboarding.firstHolding.tab.quick"),
 						children: <QuickModeForm itemsVariant={items} />,
 					},
 					{
 						key: "detail",
 						label: (
 							<Tooltip title={disabledTooltip}>
-								<span>明细模式</span>
+								<span>{t("onboarding.firstHolding.tab.detail")}</span>
 							</Tooltip>
 						),
 						disabled: true,
@@ -416,7 +442,7 @@ export default function FirstHoldingPage() {
 						key: "screenshot",
 						label: (
 							<Tooltip title={disabledTooltip}>
-								<span>截图识别</span>
+								<span>{t("onboarding.firstHolding.tab.screenshot")}</span>
 							</Tooltip>
 						),
 						disabled: true,

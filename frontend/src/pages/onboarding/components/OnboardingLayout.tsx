@@ -1,6 +1,7 @@
 import { App, Button, LeftOutlined, Typography } from "@/ui-kit/eat";
 import { motion } from "framer-motion";
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { SHAKE_EVENT_NAME, useOnboardingNav } from "../use-onboarding-nav";
 import { OnboardingBackground } from "./OnboardingBackground";
 import { OnboardingPageTransition } from "./OnboardingPageTransition";
@@ -52,6 +53,7 @@ export function OnboardingLayout({
 	// error toast render through the active ConfigProvider context. Static
 	// Modal.confirm / message.error are broken under React 19 + antd 5 without
 	// the compat patch; App.useApp() is the officially recommended path.
+	const { t } = useTranslation("auth");
 	const { modal, message } = App.useApp();
 
 	// Track the previous step so we can tell forward vs backward navigation and
@@ -79,11 +81,10 @@ export function OnboardingLayout({
 	const handleSkip = useCallback(() => {
 		setTimeout(() => {
 			modal.confirm({
-				title: "跳过引导？",
-				content:
-					"你可以稍后在 Settings 重新发起引导，或在 Dashboard 顶部的提示条点击「开始引导」回到这里。",
-				okText: "跳过",
-				cancelText: "继续引导",
+				title: t("onboarding.layout.skipModal.title"),
+				content: t("onboarding.layout.skipModal.content"),
+				okText: t("onboarding.layout.skipModal.ok"),
+				cancelText: t("onboarding.layout.skipModal.cancel"),
 				okType: "primary",
 				onOk: async () => {
 					try {
@@ -91,13 +92,13 @@ export function OnboardingLayout({
 					} catch (err) {
 						// Re-throw so antd keeps the Modal open on failure; the toast
 						// above tells the user what went wrong and lets them retry.
-						message.error("跳过失败，请稍后重试");
+						message.error(t("onboarding.layout.skipModal.skipError"));
 						throw err;
 					}
 				},
 			});
 		}, 0);
-	}, [modal, message, nav]);
+	}, [modal, message, nav, t]);
 
 	// Shake subscription: bump the key counter on every CustomEvent so the
 	// motion.div wrapping the footer remounts and replays its animate sequence.
@@ -157,7 +158,7 @@ export function OnboardingLayout({
 									data-testid="onboarding-back-button"
 									onClick={nav.prev}
 								>
-									上一步
+									{t("onboarding.layout.back")}
 								</Button>
 							) : null}
 						</div>
@@ -171,7 +172,7 @@ export function OnboardingLayout({
 						</div>
 						<div style={headerRightStyle}>
 							<Button type="text" data-testid="onboarding-skip-button" onClick={handleSkip}>
-								跳过引导
+								{t("onboarding.layout.skip")}
 							</Button>
 						</div>
 					</header>

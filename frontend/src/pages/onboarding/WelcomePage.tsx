@@ -1,31 +1,12 @@
 import { Button, Card, Col, Row, Typography } from "@/ui-kit/eat";
 import { motion, useReducedMotion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import { OnboardingLayout } from "./components/OnboardingLayout";
 import { useOnboardingNav } from "./use-onboarding-nav";
 
 const { Text, Title } = Typography;
 
-// Intro card data for the three-dimension preview. Keeping the copy inline
-// (rather than routing it through i18n) mirrors the other onboarding pages
-// and keeps Step 13 self-contained; post-MVP i18n work (Step 19) can migrate
-// these strings.
-const DIMENSIONS = [
-	{
-		key: "trend",
-		title: "趋势",
-		description: "持仓所在行业与大盘的方向信号",
-	},
-	{
-		key: "position",
-		title: "位置",
-		description: "当前点位相对区间的偏高或偏低",
-	},
-	{
-		key: "catalyst",
-		title: "催化剂",
-		description: "即将发生的事件与新闻对预期的冲击",
-	},
-];
+const DIMENSION_KEYS = ["trend", "position", "catalyst"] as const;
 
 const containerVariants = {
 	hidden: { opacity: 0 },
@@ -50,6 +31,7 @@ const reducedItemVariants = {
 };
 
 export default function WelcomePage() {
+	const { t } = useTranslation("auth");
 	const nav = useOnboardingNav();
 	const reducedMotion = useReducedMotion();
 	const items = reducedMotion ? reducedItemVariants : itemVariants;
@@ -57,14 +39,12 @@ export default function WelcomePage() {
 	return (
 		<OnboardingLayout
 			currentStep={1}
-			title="欢迎，让我们开始"
+			title={t("onboarding.welcome.title")}
 			description={
 				<>
-					Richman 基于你的真实持仓给出明确建议。
+					{t("onboarding.welcome.description")}
 					<br />
-					三维分析覆盖趋势、位置与催化剂，只看重要的变化。
-					<br />
-					每一次回来都有一张新决策卡，不是一堆你消化不完的信息流。
+					{t("onboarding.welcome.descriptionLine2")}
 				</>
 			}
 			footer={
@@ -76,7 +56,7 @@ export default function WelcomePage() {
 						void nav.next();
 					}}
 				>
-					开始设置 →
+					{t("onboarding.welcome.startButton")}
 				</Button>
 			}
 		>
@@ -86,16 +66,16 @@ export default function WelcomePage() {
 				animate="visible"
 				style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(3, 1fr)" }}
 			>
-				{DIMENSIONS.map((dim) => (
-					<motion.div key={dim.key} variants={items}>
+				{DIMENSION_KEYS.map((key) => (
+					<motion.div key={key} variants={items}>
 						<Card
-							data-testid={`dimension-card-${dim.key}`}
+							data-testid={`dimension-card-${key}`}
 							style={{ height: "100%", textAlign: "center" }}
 						>
 							<Title level={4} style={{ marginTop: 0 }}>
-								{dim.title}
+								{t(`onboarding.welcome.dimension.${key}.title`)}
 							</Title>
-							<Text type="secondary">{dim.description}</Text>
+							<Text type="secondary">{t(`onboarding.welcome.dimension.${key}.description`)}</Text>
 						</Card>
 					</motion.div>
 				))}

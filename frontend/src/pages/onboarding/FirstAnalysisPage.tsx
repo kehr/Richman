@@ -2,14 +2,13 @@ import { useRerunAnalysis } from "@/features/decision-card";
 import { useMarkOnboardingCompleted } from "@/features/user-settings";
 import { Alert, Button, Space, Spin, Typography } from "@/ui-kit/eat";
 import { motion, useReducedMotion } from "framer-motion";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router";
 import { OnboardingLayout } from "./components/OnboardingLayout";
 import { useOnboardingState } from "./state";
 
 const { Text } = Typography;
-
-const ANALYSIS_STEPS = ["拉取行情数据", "计算三维信号", "LLM 增强催化剂", "生成决策卡"];
 
 const STEP_INTERVAL_MS = 4000;
 
@@ -27,6 +26,7 @@ type StepStatus = "pending" | "active" | "done";
 // 4-step visual animation still plays on every mount so returning users see
 // consistent feedback; only the underlying mutation is suppressed.
 export default function FirstAnalysisPage() {
+	const { t } = useTranslation("auth");
 	const navigate = useNavigate();
 	const rerunAnalysis = useRerunAnalysis();
 	const markCompleted = useMarkOnboardingCompleted();
@@ -36,6 +36,16 @@ export default function FirstAnalysisPage() {
 	const [currentStep, setCurrentStep] = useState(0);
 	const [error, setError] = useState<string | null>(null);
 	const completedRef = useRef(false);
+
+	const analysisSteps = useMemo(
+		() => [
+			t("onboarding.firstAnalysis.steps.fetchMarketData"),
+			t("onboarding.firstAnalysis.steps.computeSignals"),
+			t("onboarding.firstAnalysis.steps.llmEnhance"),
+			t("onboarding.firstAnalysis.steps.generateCard"),
+		],
+		[t],
+	);
 
 	// Kick off the analysis mutation exactly once per onboarding session. The
 	// guard reads `state.analysisFired` on first render only — subsequent
@@ -55,7 +65,8 @@ export default function FirstAnalysisPage() {
 			// rejection here means the HTTP round-trip itself failed, which we
 			// surface as an error so the user can retry rather than silently
 			// hanging on the progress screen.
-			const msg = err instanceof Error ? err.message : "分析触发失败";
+			const msg =
+				err instanceof Error ? err.message : t("onboarding.firstAnalysis.error.triggerFailed");
 			setError(msg);
 		});
 	}, []);
@@ -64,12 +75,12 @@ export default function FirstAnalysisPage() {
 	// cleared when the component unmounts or once all steps are visible.
 	useEffect(() => {
 		if (error) return;
-		if (currentStep >= ANALYSIS_STEPS.length) return;
+		if (currentStep >= analysisSteps.length) return;
 		const timer = setTimeout(() => {
 			setCurrentStep((prev) => prev + 1);
 		}, STEP_INTERVAL_MS);
 		return () => clearTimeout(timer);
-	}, [currentStep, error]);
+	}, [currentStep, error, analysisSteps.length]);
 
 	// Finalise onboarding once every step has been shown. We intentionally do
 	// NOT gate on rerunAnalysis.isPending: the backend accepts the trigger as
@@ -86,7 +97,7 @@ export default function FirstAnalysisPage() {
 	useEffect(() => {
 		if (completedRef.current) return;
 		if (error) return;
-		if (currentStep < ANALYSIS_STEPS.length) return;
+		if (currentStep < analysisSteps.length) return;
 		completedRef.current = true;
 		markCompleted
 			.mutateAsync()
@@ -122,7 +133,8 @@ export default function FirstAnalysisPage() {
 		setCurrentStep(0);
 		completedRef.current = false;
 		rerunAnalysis.mutateAsync().catch((err: unknown) => {
-			const msg = err instanceof Error ? err.message : "分析触发失败";
+			const msg =
+				err instanceof Error ? err.message : t("onboarding.firstAnalysis.error.triggerFailed");
 			setError(msg);
 		});
 	};
@@ -146,25 +158,25 @@ export default function FirstAnalysisPage() {
 	// In the happy path the finalise effect auto-advances, but if anything
 	// further downstream (markCompleted, navigate) hangs the user can bail
 	// out manually instead of being trapped on the progress screen.
-	const showSkipEscape = currentStep >= ANALYSIS_STEPS.length && !error;
+	const showSkipEscape = currentStep >= analysisSteps.length && !error;
 
 	return (
 		<OnboardingLayout
 			currentStep={5}
-			title="正在为你生成第一张决策卡"
-			description="这一步只需十几秒，Richman 会扫描你的持仓并跑一遍三维分析。"
+			title={t("onboarding.firstAnalysis.title")}
+			description={t("onboarding.firstAnalysis.description")}
 		>
 			{error ? (
 				<Alert
 					type="error"
 					showIcon
-					message="首次分析失败"
+					message={t("onboarding.firstAnalysis.error.title")}
 					description={error}
 					style={{ marginBottom: 16 }}
 					action={
 						<Space>
 							<Button size="small" onClick={handleRetry} data-testid="onboarding-analysis-retry">
-								重试
+								{t("onboarding.firstAnalysis.error.retry")}
 							</Button>
 							<Button
 								size="small"
@@ -172,7 +184,7 @@ export default function FirstAnalysisPage() {
 								onClick={handleSkip}
 								data-testid="onboarding-analysis-skip"
 							>
-								跳过先看 Dashboard
+								{t("onboarding.firstAnalysis.error.skipToDashboard")}
 							</Button>
 						</Space>
 					}
@@ -190,7 +202,7 @@ export default function FirstAnalysisPage() {
 					gap: 16,
 				}}
 			>
-				{ANALYSIS_STEPS.map((label, index) => {
+				{analysisSteps.map((label, index) => {
 					const status = statusOf(index);
 					return (
 						<li
@@ -267,7 +279,7 @@ export default function FirstAnalysisPage() {
 						onClick={handleSkip}
 						data-testid="onboarding-analysis-manual-continue"
 					>
-						看起来卡住了？直接进 Dashboard
+						{t("onboarding.firstAnalysis.stuckEscape")}
 					</Button>
 				</div>
 			) : null}

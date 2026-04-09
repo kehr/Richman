@@ -1,6 +1,7 @@
 import { Typography } from "@/ui-kit/eat";
 import { motion, useReducedMotion } from "framer-motion";
 import type { CSSProperties } from "react";
+import { useTranslation } from "react-i18next";
 
 const { Text } = Typography;
 
@@ -35,6 +36,7 @@ export function StepIndicator({
 	reachedStep,
 	onStepClick,
 }: StepIndicatorProps) {
+	const { t } = useTranslation("auth");
 	const reducedMotion = useReducedMotion();
 	const watermark = reachedStep ?? currentStep;
 	const dots = Array.from({ length: totalSteps }, (_, index) => index + 1);
@@ -66,7 +68,7 @@ export function StepIndicator({
 							type="button"
 							data-testid={`step-dot-${step}`}
 							aria-current={isCurrent ? "step" : undefined}
-							aria-label={`第 ${step} / ${totalSteps} 步`}
+							aria-label={t("onboarding.layout.stepLabel", { current: step, total: totalSteps })}
 							onClick={() => onStepClick(step)}
 							style={buttonResetStyle}
 						>
@@ -107,7 +109,7 @@ export function StepIndicator({
 				);
 			})}
 			<Text type="secondary" style={{ marginLeft: 8, fontSize: 13 }}>
-				第 {currentStep} / {totalSteps} 步
+				{t("onboarding.layout.stepLabel", { current: currentStep, total: totalSteps })}
 			</Text>
 		</div>
 	);

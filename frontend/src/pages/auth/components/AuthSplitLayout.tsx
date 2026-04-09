@@ -1,55 +1,36 @@
 import { useTypewriter } from "@/domain/ui/use-typewriter";
-import { Fragment, type ReactNode } from "react";
+import { Fragment, type ReactNode, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { SampleDecisionCard } from "./SampleDecisionCard";
 
 interface AuthSplitLayoutProps {
 	form: ReactNode;
 }
 
-// AUTH_SLOGANS is the rotating copy shown in the hero section of the auth
-// split layout. Each entry is a slogan, each slogan is an array of lines that
-// render on their own visual row. Keep every slogan at exactly two lines so
-// the container can reserve a stable min-height and prevent layout shift
-// between rotations. If marketing wants to A/B test, swap the strings here;
-// the typewriter primitive is intentionally agnostic to content selection.
-const AUTH_SLOGANS: readonly (readonly string[])[] = [
-	["把基金经理的思维方式", "装进你的电脑"],
-	["不是另一份新闻摘要", "是可执行的建议"],
-	["每天一张决策卡", "告诉你下一步该怎么做"],
-	["趋势 · 位置 · 催化剂", "三问解构你的每一笔持仓"],
-	["让每次加减仓", "都有可追溯的理由"],
-];
-
-// ARIA-visible fallback text. Screen readers get the brand-anchor slogan in
-// full immediately; the animated copy is aria-hidden so readers are not
-// flooded with partial strings as characters type in.
-const SLOGAN_ARIA_LABEL = `${AUTH_SLOGANS[0]?.[0] ?? ""}，${AUTH_SLOGANS[0]?.[1] ?? ""}`;
-
-// AuthSplitLayout is the responsive 2-column shell shared by LoginPage and
-// RegisterPage. It implements an editorial-style split layout:
-//   - Left column: right-anchored content block near the divider, large
-//     display slogan, a single supporting paragraph, SampleDecisionCard as
-//     the visual anchor, and a thin footer line. Background is a very
-//     subtle gradient to add depth without competing with the card.
-//   - Right column: form block left-anchored near the divider so both
-//     columns share the divider as a visual rail.
-//
-// The responsive breakpoints match PRD §2.1:
-//   - >= 1200px: left 60% / right 40%, content asymmetrically anchored
-//   - 1024-1199px: left 50% / right 50%, same anchoring with tighter gaps
-//   - <  1024px: single column stack, content re-centered
-//
-// The layout uses CSS Grid via inline style + a scoped <style> block so we
-// don't need to add a new global stylesheet or pull in antd's Grid (which
-// doesn't expose true CSS-driven percentage breakpoints without JS).
 // Hold the fully-typed slogan on screen for 3 seconds before beginning the
 // deletion animation. The default hook value (1.5s) is too short for users to
-// comfortably read a ~20-character Chinese slogan on page load, so we extend
-// it at the call site without changing the hook's general-purpose default.
+// comfortably read a slogan on page load, so we extend it at the call site
+// without changing the hook's general-purpose default.
 const AUTH_SLOGAN_HOLD_MS = 3000;
 
 export function AuthSplitLayout({ form }: AuthSplitLayoutProps) {
-	const typewriter = useTypewriter(AUTH_SLOGANS, { holdMs: AUTH_SLOGAN_HOLD_MS });
+	const { t } = useTranslation("auth");
+
+	// AUTH_SLOGANS is the rotating copy shown in the hero section. Each entry is
+	// a slogan, each slogan is an array of lines that render on their own visual
+	// row. Keep every slogan at exactly two lines so the container can reserve a
+	// stable min-height and prevent layout shift between rotations.
+	const authSlogans = useMemo(
+		() => t("hero.slogans", { returnObjects: true }) as readonly (readonly string[])[],
+		[t],
+	);
+
+	// ARIA-visible fallback text. Screen readers get the brand-anchor slogan in
+	// full immediately; the animated copy is aria-hidden so readers are not
+	// flooded with partial strings as characters type in.
+	const sloganAriaLabel = `${authSlogans[0]?.[0] ?? ""} ${authSlogans[0]?.[1] ?? ""}`;
+
+	const typewriter = useTypewriter(authSlogans, { holdMs: AUTH_SLOGAN_HOLD_MS });
 	const { displayed, cursorLine, isReducedMotion } = typewriter;
 
 	return (
@@ -71,7 +52,7 @@ export function AuthSplitLayout({ form }: AuthSplitLayoutProps) {
 					<div className="auth-split-layout__hero">
 						<h1
 							className="auth-split-layout__slogan"
-							aria-label={SLOGAN_ARIA_LABEL}
+							aria-label={sloganAriaLabel}
 							data-testid="auth-split-layout-slogan"
 						>
 							{displayed.map((line, lineIdx) => (
@@ -87,9 +68,7 @@ export function AuthSplitLayout({ form }: AuthSplitLayoutProps) {
 								</Fragment>
 							))}
 						</h1>
-						<p className="auth-split-layout__subtitle">
-							基于你的真实持仓，每天给出可执行的建议，而不是另一份新闻摘要。
-						</p>
+						<p className="auth-split-layout__subtitle">{t("hero.subtitle")}</p>
 					</div>
 
 					<div className="auth-split-layout__sample">

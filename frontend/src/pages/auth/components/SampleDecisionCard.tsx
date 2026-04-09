@@ -1,4 +1,5 @@
 import { Card, Space, Tag, Typography } from "@/ui-kit/eat";
+import { useTranslation } from "react-i18next";
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -14,6 +15,8 @@ const { Title, Text, Paragraph } = Typography;
 // features/decision-card/components/DimensionBadges (bullish=green,
 // neutral=default, bearish=red) so the language is consistent.
 export function SampleDecisionCard() {
+	const { t } = useTranslation("auth");
+
 	return (
 		<Card
 			data-testid="sample-decision-card"
@@ -39,12 +42,12 @@ export function SampleDecisionCard() {
 						600519
 					</Text>
 				</div>
-				<Tag color="#000000">首次分析</Tag>
+				<Tag color="#000000">{t("sampleCard.firstAnalysis")}</Tag>
 			</div>
 			<Space size="small" wrap style={{ marginBottom: 12 }}>
-				<Tag color="green">趋势: bullish</Tag>
-				<Tag color="default">位置: neutral</Tag>
-				<Tag color="green">催化剂: bullish</Tag>
+				<Tag color="green">{t("sampleCard.trend")}: bullish</Tag>
+				<Tag color="default">{t("sampleCard.position")}: neutral</Tag>
+				<Tag color="green">{t("sampleCard.catalyst")}: bullish</Tag>
 			</Space>
 			<div
 				style={{
@@ -55,12 +58,12 @@ export function SampleDecisionCard() {
 				}}
 			>
 				<Text strong style={{ fontSize: 16 }}>
-					建议：小幅加仓
+					{t("sampleCard.recommendation")}
 				</Text>
-				<Text type="secondary">信心度 82</Text>
+				<Text type="secondary">{t("sampleCard.confidence")} 82</Text>
 			</div>
 			<Paragraph type="secondary" style={{ marginBottom: 0, fontSize: 13 }}>
-				趋势向上、位置中性，近期催化剂偏正面，可在当前价位附近小幅加仓，控制单笔仓位风险。
+				{t("sampleCard.summary")}
 			</Paragraph>
 		</Card>
 	);

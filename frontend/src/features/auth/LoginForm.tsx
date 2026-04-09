@@ -1,4 +1,6 @@
 import { Alert, Button, Form, Input } from "@/ui-kit/eat";
+import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 import type { LoginInput } from "./api";
 import { useLogin } from "./useAuth";
@@ -13,7 +15,19 @@ interface LoginFormProps {
 // single source of truth for form width and horizontal anchoring; see
 // .auth-split-layout__form-wrapper.
 export function LoginForm({ redirectTo }: LoginFormProps) {
+	const { t } = useTranslation("auth");
 	const { mutate, isPending, error } = useLogin({ redirectTo });
+
+	const validationRules = useMemo(
+		() => ({
+			email: [
+				{ required: true, message: t("validation.emailRequired") },
+				{ type: "email" as const, message: t("validation.emailInvalid") },
+			],
+			password: [{ required: true, message: t("validation.passwordRequired") }],
+		}),
+		[t],
+	);
 
 	const handleSubmit = (values: LoginInput) => {
 		mutate(values);
@@ -32,7 +46,7 @@ export function LoginForm({ redirectTo }: LoginFormProps) {
 						lineHeight: 1.2,
 					}}
 				>
-					Sign In
+					{t("login.title")}
 				</h2>
 				<p
 					style={{
@@ -42,7 +56,7 @@ export function LoginForm({ redirectTo }: LoginFormProps) {
 						lineHeight: 1.6,
 					}}
 				>
-					输入邮箱和密码继续你的决策。
+					{t("login.subtitle")}
 				</p>
 			</div>
 
@@ -51,33 +65,22 @@ export function LoginForm({ redirectTo }: LoginFormProps) {
 			)}
 
 			<Form layout="vertical" onFinish={handleSubmit} autoComplete="off">
-				<Form.Item
-					name="email"
-					label="Email"
-					rules={[
-						{ required: true, message: "Please enter your email" },
-						{ type: "email", message: "Invalid email format" },
-					]}
-				>
-					<Input placeholder="Email" size="large" />
+				<Form.Item name="email" label={t("field.email")} rules={validationRules.email}>
+					<Input placeholder={t("field.emailPlaceholder")} size="large" />
 				</Form.Item>
 
-				<Form.Item
-					name="password"
-					label="Password"
-					rules={[{ required: true, message: "Please enter your password" }]}
-				>
-					<Input.Password placeholder="Password" size="large" />
+				<Form.Item name="password" label={t("field.password")} rules={validationRules.password}>
+					<Input.Password placeholder={t("field.passwordPlaceholder")} size="large" />
 				</Form.Item>
 
 				<Form.Item style={{ marginBottom: 16 }}>
 					<Button type="primary" htmlType="submit" block size="large" loading={isPending}>
-						Sign In
+						{t("login.submit")}
 					</Button>
 				</Form.Item>
 
 				<div style={{ fontSize: 14, color: "#6b6b70" }}>
-					Don&apos;t have an account? <Link to="/register">Register</Link>
+					{t("login.noAccount")} <Link to="/register">{t("login.registerLink")}</Link>
 				</div>
 			</Form>
 		</div>

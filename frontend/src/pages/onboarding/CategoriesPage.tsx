@@ -7,6 +7,7 @@ import { usePatchUserSettings } from "@/features/user-settings";
 import { Button, Card, Col, Row, Typography, message } from "@/ui-kit/eat";
 import { motion, useReducedMotion } from "framer-motion";
 import { useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { OnboardingLayout } from "./components/OnboardingLayout";
 import { useOnboardingState } from "./state";
 import { useOnboardingNav } from "./use-onboarding-nav";
@@ -36,6 +37,7 @@ const reducedItemVariants = {
 };
 
 export default function CategoriesPage() {
+	const { t } = useTranslation("auth");
 	const nav = useOnboardingNav();
 	const { state, update } = useOnboardingState();
 	const patch = usePatchUserSettings();
@@ -59,15 +61,15 @@ export default function CategoriesPage() {
 			await patch.mutateAsync({ categories: state.categories });
 			await nav.next();
 		} catch {
-			message.error("保存失败，请稍后重试");
+			message.error(t("onboarding.categories.saveError"));
 		}
 	};
 
 	return (
 		<OnboardingLayout
 			currentStep={2}
-			title="你想关注哪些类型？"
-			description="至少选 1 个。我们只分析你选的类型，后续随时可以在设置里调整。"
+			title={t("onboarding.categories.title")}
+			description={t("onboarding.categories.description")}
 			footer={
 				<Button
 					type="primary"
@@ -77,7 +79,7 @@ export default function CategoriesPage() {
 					loading={patch.isPending}
 					onClick={handleNext}
 				>
-					下一步 →
+					{t("onboarding.categories.nextButton")}
 				</Button>
 			}
 		>
@@ -130,7 +132,10 @@ export default function CategoriesPage() {
 										<Text type="secondary" style={{ display: "block", marginBottom: 8 }}>
 											{meta.description}
 										</Text>
-										<Text style={{ fontSize: 12, color: "#8c8c8c" }}>例如：{meta.examples}</Text>
+										<Text style={{ fontSize: 12, color: "#8c8c8c" }}>
+											{t("onboarding.categories.example")}
+											{meta.examples}
+										</Text>
 									</Card>
 								</motion.div>
 							</button>

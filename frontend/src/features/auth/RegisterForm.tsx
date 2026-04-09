@@ -1,4 +1,6 @@
 import { Alert, Button, Form, Input } from "@/ui-kit/eat";
+import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 import type { RegisterInput } from "./api";
 import { useRegister } from "./useAuth";
@@ -12,7 +14,23 @@ interface RegisterFormProps {
 // RegisterForm mirrors LoginForm layout: width comes from the parent
 // (AuthSplitLayout's form-wrapper), title is left-aligned display style.
 export function RegisterForm({ redirectTo }: RegisterFormProps) {
+	const { t } = useTranslation("auth");
 	const { mutate, isPending, error } = useRegister({ redirectTo });
+
+	const validationRules = useMemo(
+		() => ({
+			email: [
+				{ required: true, message: t("validation.emailRequired") },
+				{ type: "email" as const, message: t("validation.emailInvalid") },
+			],
+			password: [
+				{ required: true, message: t("validation.passwordRequired") },
+				{ min: 8, message: t("validation.passwordMinLength") },
+			],
+			inviteCode: [{ required: true, message: t("validation.inviteCodeRequired") }],
+		}),
+		[t],
+	);
 
 	const handleSubmit = (values: RegisterInput) => {
 		mutate(values);
@@ -31,7 +49,7 @@ export function RegisterForm({ redirectTo }: RegisterFormProps) {
 						lineHeight: 1.2,
 					}}
 				>
-					Create Account
+					{t("register.title")}
 				</h2>
 				<p
 					style={{
@@ -41,7 +59,7 @@ export function RegisterForm({ redirectTo }: RegisterFormProps) {
 						lineHeight: 1.6,
 					}}
 				>
-					只需邀请码即可加入，立即开始你的第一张决策卡。
+					{t("register.subtitle")}
 				</p>
 			</div>
 
@@ -50,44 +68,30 @@ export function RegisterForm({ redirectTo }: RegisterFormProps) {
 			)}
 
 			<Form layout="vertical" onFinish={handleSubmit} autoComplete="off">
-				<Form.Item
-					name="email"
-					label="Email"
-					rules={[
-						{ required: true, message: "Please enter your email" },
-						{ type: "email", message: "Invalid email format" },
-					]}
-				>
-					<Input placeholder="Email" size="large" />
+				<Form.Item name="email" label={t("field.email")} rules={validationRules.email}>
+					<Input placeholder={t("field.emailPlaceholder")} size="large" />
 				</Form.Item>
 
-				<Form.Item
-					name="password"
-					label="Password"
-					rules={[
-						{ required: true, message: "Please enter your password" },
-						{ min: 8, message: "Password must be at least 8 characters" },
-					]}
-				>
-					<Input.Password placeholder="Password" size="large" />
+				<Form.Item name="password" label={t("field.password")} rules={validationRules.password}>
+					<Input.Password placeholder={t("field.passwordPlaceholder")} size="large" />
 				</Form.Item>
 
 				<Form.Item
 					name="inviteCode"
-					label="Invite Code"
-					rules={[{ required: true, message: "Please enter your invite code" }]}
+					label={t("field.inviteCode")}
+					rules={validationRules.inviteCode}
 				>
-					<Input placeholder="Invite Code" size="large" />
+					<Input placeholder={t("field.inviteCodePlaceholder")} size="large" />
 				</Form.Item>
 
 				<Form.Item style={{ marginBottom: 16 }}>
 					<Button type="primary" htmlType="submit" block size="large" loading={isPending}>
-						Register
+						{t("register.submit")}
 					</Button>
 				</Form.Item>
 
 				<div style={{ fontSize: 14, color: "#6b6b70" }}>
-					Already have an account? <Link to="/login">Sign In</Link>
+					{t("register.hasAccount")} <Link to="/login">{t("register.loginLink")}</Link>
 				</div>
 			</Form>
 		</div>
