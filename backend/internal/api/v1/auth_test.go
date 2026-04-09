@@ -18,7 +18,9 @@ import (
 // newTestContext spins up a gin test context with a recorder, a request, and
 // an optional request-scoped logger. Returns the context, recorder, and the
 // log observer for inspection.
-func newTestContext(t *testing.T, attachLogger bool) (*gin.Context, *httptest.ResponseRecorder, *observer.ObservedLogs) {
+func newTestContext(
+	t *testing.T, attachLogger bool,
+) (*gin.Context, *httptest.ResponseRecorder, *observer.ObservedLogs) {
 	t.Helper()
 	gin.SetMode(gin.TestMode)
 	core, logs := observer.New(zapcore.ErrorLevel)
@@ -26,7 +28,7 @@ func newTestContext(t *testing.T, attachLogger bool) (*gin.Context, *httptest.Re
 
 	rec := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(rec)
-	c.Request = httptest.NewRequest(http.MethodPost, "/api/v1/auth/login", nil)
+	c.Request = httptest.NewRequest(http.MethodPost, "/api/v1/auth/login", http.NoBody)
 	if attachLogger {
 		c.Set("logger", reqLogger)
 	}
