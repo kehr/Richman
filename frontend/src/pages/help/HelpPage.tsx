@@ -1,7 +1,7 @@
-import { useLocale } from "@/domain/i18n/provider";
 import { getHelpContent } from "@/i18n/help";
 import { PageContainer, Typography } from "@/ui-kit/eat";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useLocation } from "react-router";
 import { HelpSection } from "./components/HelpSection";
 import { HelpSidebar } from "./components/HelpSidebar";
@@ -23,7 +23,8 @@ const { Title, Paragraph } = Typography;
 // IntersectionObserver is created in a ref so it can be disconnected cleanly
 // when the locale switches (which replaces all section DOM nodes).
 export default function HelpPage() {
-	const { locale } = useLocale();
+	const { i18n } = useTranslation();
+	const locale = i18n.language as "en" | "zh";
 	const content = useMemo(() => getHelpContent(locale), [locale]);
 	const location = useLocation();
 
