@@ -75,6 +75,31 @@ export function getThemeConfig(mode: "light" | "dark"): ThemeConfig {
 				colorPrimary: palette.black,
 				colorPrimaryBorder: palette.black,
 			},
+			Alert: {
+				colorInfoBg: palette.bgHover,
+				colorInfoBorder: palette.border,
+			},
+			// Select: colorPrimaryBg derived from black generates a near-black
+			// optionSelectedBg; override to neutral gray so selected options
+			// render with a light highlight rather than an inverted dark block.
+			Select: {
+				optionSelectedBg: palette.bgSelected,
+				optionActiveBg: palette.bgHover,
+				optionSelectedColor: palette.black,
+			},
+			// Table / ProTable: rowSelectedBg also derives from colorPrimaryBg.
+			// Without the override, checked rows get an almost-black background.
+			Table: {
+				rowSelectedBg: palette.bgHover,
+				rowSelectedHoverBg: palette.bgSelected,
+			},
+			// DatePicker: cells inside a selected range use colorPrimaryBg-derived
+			// tokens. The selected endpoints stay black (intentional), but the
+			// in-between cells need neutral highlights.
+			DatePicker: {
+				cellActiveWithRangeBg: palette.bgHover,
+				cellHoverWithRangeBg: palette.bgSelected,
+			},
 		},
 		algorithm: mode === "dark" ? theme.darkAlgorithm : theme.defaultAlgorithm,
 	};
