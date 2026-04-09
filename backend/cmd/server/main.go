@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	"time"
 
@@ -27,6 +28,7 @@ import (
 	yahoo "github.com/richman/backend/internal/datasource/yahoo"
 	"github.com/richman/backend/internal/llm"
 	"github.com/richman/backend/internal/logger"
+	"github.com/richman/backend/internal/migration"
 	"github.com/richman/backend/internal/notification"
 	emailAdapter "github.com/richman/backend/internal/notification/adapter/email"
 	feishuAdapter "github.com/richman/backend/internal/notification/adapter/feishu"
@@ -77,6 +79,19 @@ func main() {
 	defer dbPool.Close()
 
 	zapLogger.Info("database connected")
+
+	// Verify that every migration committed on disk has been applied to the
+	// current database. Booting a server with stale schema causes confusing
+	// "500 internal server error" responses at runtime whose root cause
+	// (e.g. missing column) is hidden several layers deep in the SQL driver.
+	// Fail loudly here with a remediation hint instead.
+	if err := migration.VerifyCurrent(ctx, dbPool, filepath.Join("db", "migration")); err != nil {
+		zapLogger.Fatal("schema drift detected at startup",
+			zap.Error(err),
+			zap.String("remediation", "run 'make migrate-up' from the backend directory"),
+		)
+	}
+	zapLogger.Info("schema migrations verified up-to-date")
 
 	// Initialize repos
 	userRepo := repo.NewUserRepo(dbPool)

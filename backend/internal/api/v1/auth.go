@@ -8,6 +8,7 @@ import (
 	"github.com/richman/backend/internal/api/middleware"
 	"github.com/richman/backend/internal/model"
 	"github.com/richman/backend/internal/service/auth"
+	"go.uber.org/zap"
 )
 
 // AuthHandler handles authentication-related HTTP requests.
@@ -104,7 +105,19 @@ func (h *AuthHandler) Me(c *gin.Context) {
 }
 
 // handleServiceError maps service errors to appropriate HTTP responses.
+//
+// AppError values carry a structured business error (HTTP status + code +
+// message) and are considered expected outcomes, so they are forwarded to
+// the client without generating server-side ERROR logs. Any other error is
+// treated as unexpected: it is logged at ERROR level with the full wrapped
+// chain, request path and method, so that "500 internal server error" is
+// never a silent failure in the access log. The request-scoped zap logger
+// (carrying requestId) is used when available, otherwise the global logger
+// is used as a fallback.
 func handleServiceError(c *gin.Context, err error) {
+	if err == nil {
+		return
+	}
 	var appErr *model.AppError
 	if errors.As(err, &appErr) {
 		c.JSON(appErr.StatusCode, gin.H{
@@ -115,6 +128,17 @@ func handleServiceError(c *gin.Context, err error) {
 		})
 		return
 	}
+	logger := zap.L()
+	if v, exists := c.Get("logger"); exists {
+		if lg, ok := v.(*zap.Logger); ok && lg != nil {
+			logger = lg
+		}
+	}
+	logger.Error("unhandled service error",
+		zap.String("path", c.Request.URL.Path),
+		zap.String("method", c.Request.Method),
+		zap.Error(err),
+	)
 	c.JSON(http.StatusInternalServerError, gin.H{
 		"error": gin.H{
 			"code":    "INTERNAL_ERROR",
