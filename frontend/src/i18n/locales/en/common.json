@@ -5,7 +5,7 @@
 		"settings": "Settings",
 		"help": "Help",
 		"logout": "Logout",
-		"switchLanguage": "Switch language"
+		"language": "Language"
 	},
 	"action": {
 		"save": "Save",
