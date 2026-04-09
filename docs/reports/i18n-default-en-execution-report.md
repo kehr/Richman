@@ -86,10 +86,16 @@
 - 偏差说明：提前修复了 HelpPage.test.tsx（原属 Step 11 范围），Step 11 可跳过此文件
 
 ### Step 11: 测试文件迁移
-- 状态：待执行
+- 状态：已完成
+- commit：75f1695
+- 关键决策：mock API 数据（贵州茅台、沪深300 等资产名）保留中文（领域数据非 UI 标签）；仅更新 UI 断言（SmallAdd/NotSet 等翻译后的标签）；typewriter 测试输入数据保留中文
+- 偏差说明：Step 11 background agent 可能卡在 pnpm test，实际由独立 fix agent 完成（只改了 2 处真正需要更新的断言）
 
 ### Step 12: 清理 + 验证
-- 状态：待执行
+- 状态：已完成
+- commit：d2ac341
+- 关键决策：asset-catalog/types.ts 的 ASSET_CATEGORY_META 中文 label 保留（A 股领域数据，非通用 UI 文案）；代码注释中的中文保留（不影响运行时）
+- 偏差说明：部分测试文件由 Step 12 agent 一并纳入提交（从 Step 11 background agent 的未提交修改中收集）
 
 ## 已修复问题
 
