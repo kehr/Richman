@@ -74,7 +74,7 @@ function makeCard(overrides: Partial<DecisionCardDTO> = {}): DecisionCardDTO {
 		recommendation: {
 			action: "small_add",
 			actionLevel: 1,
-			label: "小幅加仓",
+			label: "Small Add",
 			currentPositionPct: 20,
 			targetPositionPct: 25,
 			execution: {
@@ -131,7 +131,7 @@ describe("DecisionCardDetailPage", () => {
 		expect(screen.getByTestId("main-risks")).toBeInTheDocument();
 		expect(screen.getByTestId("meta-sidebar")).toBeInTheDocument();
 		expect(screen.getByText("贵州茅台")).toBeInTheDocument();
-		expect(screen.getByText("小幅加仓")).toBeInTheDocument();
+		expect(screen.getByText("Small Add")).toBeInTheDocument();
 		expect(screen.getByText("高位回调风险")).toBeInTheDocument();
 	});
 

@@ -54,7 +54,7 @@ describe("ExecutionPlanStrip", () => {
 		expect(screen.getByTestId("plan-monitor-take-profit")).toHaveTextContent("120");
 	});
 
-	it("shows '未设置' when monitor guardrails are missing", () => {
+	it("shows 'Not set' when monitor guardrails are missing", () => {
 		const execution: Execution = {
 			type: "monitor",
 			stopLoss: null,
