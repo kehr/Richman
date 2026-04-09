@@ -1,4 +1,5 @@
-import { Space, Tag } from "@/ui-kit/eat";
+import { Badge, Space } from "@/ui-kit/eat";
+import { useTranslation } from "react-i18next";
 
 // DimensionValue is the canonical 3-way label for one of the three decision
 // card dimensions (trend / position / catalyst). The backend contract is
@@ -18,52 +19,51 @@ interface DimensionBadgesProps {
 	catalyst: DimensionValue;
 }
 
-// colorForValue maps the canonical 3-way labels to antd Tag colors. This
-// color is applied in both the steady-state and flip-state renders so a
-// stable "bullish" position is still visually distinct from a stable
-// "bearish" one; the flip state adds an arrow + strikethrough on top of
-// the base color to draw the eye to the change.
-function colorForValue(value: string): string {
+type BadgeStatus = "success" | "error" | "warning" | "processing" | "default";
+
+// statusForValue maps canonical direction values to antd Badge status dots.
+function statusForValue(value: string): BadgeStatus {
 	switch (value) {
 		case "bullish":
 		case "upward":
-			return "green";
+			return "success";
 		case "bearish":
 		case "downward":
-			return "red";
+			return "error";
 		default:
 			return "default";
 	}
 }
 
-// DimensionBadge renders a single labelled badge. The Tag color is always
-// driven by the current value so tri-color semantics survive across renders
-// (reviewer called out that gating color on flipped-state removed product
-// signal). When a non-null previous value differs from the current value
-// we add a strikethrough old value + arrow to layer the flip affordance
-// on top of the base color.
+// DimensionBadge renders a single labelled Badge status dot. When a previous
+// value differs from current we layer the flip affordance as strikethrough
+// old value + arrow inside the Badge text.
 function DimensionBadge({ value }: { value: DimensionValue }) {
+	const { t } = useTranslation("app");
 	const flipped = value.previous != null && value.previous !== value.current;
-	const color = colorForValue(value.current);
-	return (
-		<Tag color={color} data-testid={`dim-${value.label.toLowerCase()}`}>
-			<span style={{ marginRight: 4 }}>{value.label}:</span>
-			{flipped ? (
-				<>
-					<span
-						style={{ textDecoration: "line-through", opacity: 0.6 }}
-						data-testid={`dim-${value.label.toLowerCase()}-prev`}
-					>
-						{value.previous}
-					</span>
-					<span style={{ margin: "0 4px" }}>→</span>
-					<span data-testid={`dim-${value.label.toLowerCase()}-current`}>{value.current}</span>
-				</>
-			) : (
-				<span data-testid={`dim-${value.label.toLowerCase()}-current`}>{value.current}</span>
-			)}
-		</Tag>
+	const status = statusForValue(value.current);
+	const dirKey = (v: string) => t(`decisionCard.dimension.direction.${v}`, { defaultValue: v });
+
+	const text = flipped ? (
+		<span data-testid={`dim-${value.label.toLowerCase()}`}>
+			{value.label}:{" "}
+			<span
+				style={{ textDecoration: "line-through", opacity: 0.6 }}
+				data-testid={`dim-${value.label.toLowerCase()}-prev`}
+			>
+				{dirKey(value.previous ?? "")}
+			</span>
+			{" → "}
+			<span data-testid={`dim-${value.label.toLowerCase()}-current`}>{dirKey(value.current)}</span>
+		</span>
+	) : (
+		<span data-testid={`dim-${value.label.toLowerCase()}`}>
+			{value.label}:{" "}
+			<span data-testid={`dim-${value.label.toLowerCase()}-current`}>{dirKey(value.current)}</span>
+		</span>
 	);
+
+	return <Badge status={status} text={text} />;
 }
 
 // DimensionBadges renders the three-dimension strip shown directly under the
@@ -71,7 +71,7 @@ function DimensionBadge({ value }: { value: DimensionValue }) {
 // value to opt in to the flip animation.
 export function DimensionBadges({ trend, position, catalyst }: DimensionBadgesProps) {
 	return (
-		<Space size="small" wrap>
+		<Space size="middle" wrap>
 			<DimensionBadge value={trend} />
 			<DimensionBadge value={position} />
 			<DimensionBadge value={catalyst} />

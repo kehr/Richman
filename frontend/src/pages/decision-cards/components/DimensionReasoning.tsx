@@ -1,11 +1,11 @@
 import type { DecisionCardDTO } from "@/features/decision-card";
 import {
+	Badge,
 	Card,
 	Col,
 	QuestionCircleOutlined,
 	Row,
 	Space,
-	Tag,
 	Tooltip,
 	Typography,
 } from "@/ui-kit/eat";
@@ -30,17 +30,32 @@ interface DimensionView {
 	summary: string;
 }
 
-// dimensionColor maps the canonical 3-way labels to a hex used for the
-// dimension card border. Falls through to neutral gray when the backend
-// returns an unknown direction so the UI never crashes on a typo.
-function dimensionColor(value: string): string {
+type BadgeStatus = "success" | "error" | "warning" | "processing" | "default";
+
+// directionStatus maps the canonical direction values to an antd Badge status.
+// Enumerable status values should use Badge status dots, not colored Tags.
+function directionStatus(value: string): BadgeStatus {
 	switch (value) {
 		case "bullish":
+		case "upward":
+			return "success";
+		case "bearish":
+		case "downward":
+			return "error";
+		default:
+			return "default";
+	}
+}
+
+// dimensionBorderColor is used only for the flipped-card border highlight.
+function dimensionBorderColor(value: string): string {
+	switch (value) {
+		case "bullish":
+		case "upward":
 			return "#52c41a";
 		case "bearish":
+		case "downward":
 			return "#f5222d";
-		case "neutral":
-			return "#8c8c8c";
 		default:
 			return "#8c8c8c";
 	}
@@ -60,31 +75,37 @@ function formatWeightDelta(current: number, previous?: number): string {
 // summary explaining the flip is the main driver of the badge change.
 function DimensionCard({ view, flipped }: { view: DimensionView; flipped: boolean }) {
 	const { t } = useTranslation("app");
-	const color = dimensionColor(view.current);
+	const dirLabel = (v: string) => t(`decisionCard.dimension.direction.${v}`, { defaultValue: v });
+	const status = directionStatus(view.current);
 	const containerStyle: CSSProperties = flipped
 		? {
-				borderColor: color,
+				borderColor: dimensionBorderColor(view.current),
 				borderWidth: 2,
 				background: "#fffbe6",
 			}
 		: {};
+	const badgeText =
+		view.previous && view.previous !== view.current
+			? `${dirLabel(view.previous)} → ${dirLabel(view.current)}`
+			: dirLabel(view.current);
 	return (
 		<Card
 			size="small"
 			style={containerStyle}
 			data-testid={`dimension-card-${view.key}`}
 			title={
-				<Space>
+				<div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
 					<Text strong>{view.label}</Text>
-					{view.previous && view.previous !== view.current && (
-						<Tag color={color} data-testid={`dimension-flip-${view.key}`}>
-							{view.previous} → {view.current}
-						</Tag>
-					)}
-					{(!view.previous || view.previous === view.current) && (
-						<Tag color={color}>{view.current}</Tag>
-					)}
-				</Space>
+					<Badge
+						status={status}
+						text={badgeText}
+						data-testid={
+							view.previous && view.previous !== view.current
+								? `dimension-flip-${view.key}`
+								: undefined
+						}
+					/>
+				</div>
 			}
 		>
 			<Space direction="vertical" size={4} style={{ width: "100%" }}>

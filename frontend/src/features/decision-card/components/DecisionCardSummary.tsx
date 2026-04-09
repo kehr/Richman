@@ -7,7 +7,7 @@ import { DimensionBadges } from "./DimensionBadges";
 import { ExecutionPlanStrip } from "./ExecutionPlanStrip";
 import { SourcePill } from "./SourcePill";
 
-const { Text, Title, Paragraph } = Typography;
+const { Text, Title } = Typography;
 
 interface DecisionCardSummaryProps {
 	card: DecisionCardDTO;
@@ -110,17 +110,17 @@ export function DecisionCardSummary({
 			<div style={{ marginTop: 12 }}>
 				<DimensionBadges
 					trend={{
-						label: "Trend",
+						label: t("decisionCard.dimension.badgeLabel.trend"),
 						current: card.trendDirection,
 						previous: previousCard?.trendDirection,
 					}}
 					position={{
-						label: "Position",
+						label: t("decisionCard.dimension.badgeLabel.position"),
 						current: card.positionDirection,
 						previous: previousCard?.positionDirection,
 					}}
 					catalyst={{
-						label: "Catalyst",
+						label: t("decisionCard.dimension.badgeLabel.catalyst"),
 						current: card.catalystDirection,
 						previous: previousCard?.catalystDirection,
 					}}
@@ -137,7 +137,7 @@ export function DecisionCardSummary({
 				data-testid="card-recommendation-box"
 			>
 				<Title level={5} style={{ margin: 0, marginBottom: 8 }}>
-					{card.recommendation.label}
+					{t(`decisionCard.recommendation.${card.recommendation.action}`)}
 				</Title>
 				<ExecutionPlanStrip
 					execution={card.recommendation.execution}
@@ -146,15 +146,22 @@ export function DecisionCardSummary({
 			</div>
 
 			{card.todayHighlights && (
-				<Paragraph style={{ marginTop: 12, marginBottom: 0 }}>{card.todayHighlights}</Paragraph>
+				<Text type="secondary" style={{ display: "block", marginTop: 8, fontSize: 12 }}>
+					{card.todayHighlights}
+				</Text>
 			)}
 
 			<Divider style={{ margin: "12px 0" }} />
 
 			<div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-				<Text type="secondary" data-testid="card-confidence">
-					{t("decisionCard.confidenceLabel")}: {Math.round(card.confidence * 100)}%
-				</Text>
+				<Space size={4} align="baseline">
+					<Text strong style={{ fontSize: 18 }} data-testid="card-confidence">
+						{Math.round(card.confidence * 100)}%
+					</Text>
+					<Text type="secondary" style={{ fontSize: 12 }}>
+						{t("decisionCard.confidenceLabel")}
+					</Text>
+				</Space>
 				<Text type="secondary">{t("decisionCard.viewFullReasoning")}</Text>
 			</div>
 		</Card>
