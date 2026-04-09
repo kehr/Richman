@@ -59,7 +59,7 @@ export function MainLayout() {
 					key: "language",
 					icon: <GlobalOutlined />,
 					label: t("nav.language"),
-					popupClassName: "lang-submenu-popup",
+					// popupClassName: "lang-submenu-popup",
 					children: [
 						{ key: "lang-en", label: "English" },
 						{ key: "lang-zh", label: "中文" },
