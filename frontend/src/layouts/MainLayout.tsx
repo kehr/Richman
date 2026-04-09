@@ -32,7 +32,6 @@ export function MainLayout() {
 			routes: [
 				{ path: "/dashboard", name: t("nav.dashboard"), icon: <DashboardOutlined /> },
 				{ path: "/portfolio", name: t("nav.portfolio"), icon: <PieChartOutlined /> },
-				{ path: "/settings", name: t("nav.settings"), icon: <SettingOutlined /> },
 			],
 		}),
 		[t],
@@ -42,7 +41,8 @@ export function MainLayout() {
 		() => ({
 			selectedKeys: [`lang-${i18n.language}`],
 			onClick: ({ key }: { key: string }) => {
-				if (key === "lang-en") i18n.changeLanguage("en");
+				if (key === "settings") navigate("/settings");
+				else if (key === "lang-en") i18n.changeLanguage("en");
 				else if (key === "lang-zh") i18n.changeLanguage("zh");
 				else if (key === "logout") {
 					clearAuth();
@@ -50,6 +50,11 @@ export function MainLayout() {
 				}
 			},
 			items: [
+				{
+					key: "settings",
+					icon: <SettingOutlined />,
+					label: t("nav.settings"),
+				},
 				{
 					key: "language",
 					icon: <GlobalOutlined />,
