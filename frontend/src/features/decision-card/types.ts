@@ -70,9 +70,7 @@ export interface StructuredRationale {
 // a plain string. The backend custom UnmarshalJSON converts legacy strings
 // into StructuredRationale, but the API response may still contain old-format
 // cards during the migration window.
-export function isStructuredRationale(
-	r: unknown,
-): r is StructuredRationale {
+export function isStructuredRationale(r: unknown): r is StructuredRationale {
 	return typeof r === "object" && r !== null && "triggerReason" in r;
 }
 

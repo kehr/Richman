@@ -50,12 +50,11 @@ const RATIONALE_KEYS: (keyof StructuredRationale)[] = [
 function RationaleBlock({
 	rationale,
 	stepOrder,
-	t,
 }: {
 	rationale: StructuredRationale | string;
 	stepOrder: number;
-	t: (key: string) => string;
 }) {
+	const { t } = useTranslation("app");
 	if (typeof rationale === "string") {
 		if (!rationale) return null;
 		return (
@@ -94,13 +93,12 @@ function StepRow({
 	step,
 	index,
 	isMonitor,
-	t,
 }: {
 	step: Step;
 	index: number;
 	isMonitor: boolean;
-	t: (key: string) => string;
 }) {
+	const { t } = useTranslation("app");
 	return (
 		<div
 			data-testid={`plan-full-step-${step.order}`}
@@ -125,7 +123,7 @@ function StepRow({
 						{t("decisionCard.executionPlan.lotUnit")}
 					</Text>
 				)}
-				<RationaleBlock rationale={step.rationale} stepOrder={step.order} t={t} />
+				<RationaleBlock rationale={step.rationale} stepOrder={step.order} />
 			</Space>
 		</div>
 	);
@@ -175,7 +173,7 @@ export function ExecutionPlanFull({ execution }: ExecutionPlanFullProps) {
 		>
 			<Space direction="vertical" size={16} style={{ width: "100%" }}>
 				{steps.map((step, idx) => (
-					<StepRow key={step.order} step={step} index={idx} isMonitor={isMonitor} t={t} />
+					<StepRow key={step.order} step={step} index={idx} isMonitor={isMonitor} />
 				))}
 				{isMonitor && (execution.stopLoss != null || execution.takeProfit != null) && (
 					<Text type="secondary" style={{ fontSize: 12 }}>
