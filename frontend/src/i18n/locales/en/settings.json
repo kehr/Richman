@@ -2,6 +2,232 @@
 	"title": "Settings",
 	"tabs": {
 		"account": "Account",
-		"preferences": "Preferences"
+		"ai": "AI Interpretation",
+		"channels": "Push Channels",
+		"preferences": "Preferences",
+		"subscription": "Subscription & Quota"
+	},
+	"account": {
+		"email": "Email",
+		"changePassword": "Send change link to email",
+		"changePasswordTooltip": "Change password API pending backend",
+		"totalCapital": "Total Capital",
+		"totalCapitalPlaceholder": "e.g. 100000",
+		"totalCapitalHint": "Total capital is saved locally for amount conversion only — it will not be included in LLM analysis context.",
+		"riskPreference": "Risk Preference",
+		"riskPreferenceHint": "Affects the LLM's tendency within weight adjustment ranges.",
+		"riskOptions": {
+			"conservative": "Conservative",
+			"neutral": "Neutral",
+			"aggressive": "Aggressive"
+		},
+		"logout": "Logout",
+		"resetOnboarding": "Redo onboarding",
+		"resetOnboardingConfirm": {
+			"title": "Redo onboarding?",
+			"description": "This will clear local onboarding drafts and make the Dashboard onboarding prompt reappear. Current holdings and decision cards are not affected.",
+			"ok": "Start onboarding",
+			"cancel": "Cancel"
+		},
+		"message": {
+			"capitalSaved": "Total capital saved",
+			"capitalSaveError": "Failed to save total capital",
+			"riskUpdated": "Risk preference updated",
+			"riskUpdateError": "Failed to update risk preference",
+			"resetError": "Reset failed, please try again later"
+		}
+	},
+	"preferences": {
+		"language": "Language",
+		"timezone": "Timezone",
+		"timezoneHint": "MVP defaults to Asia/Shanghai — timezone switching does not affect push windows yet.",
+		"theme": "Theme",
+		"themeHint": "Dark mode not supported in MVP.",
+		"themeLight": "Light",
+		"numberFormat": "Number Format (Advanced)",
+		"numberFormatHint": "Thousands separator / currency symbol position / decimal places and other advanced options — not enabled in MVP."
+	},
+	"subscription": {
+		"currentPlan": "Current Plan",
+		"inviteExclusive": "Invite user exclusive quota",
+		"quota": {
+			"holdings": "Holdings",
+			"dailyAnalysis": "Daily Analysis",
+			"unlimited": "Unlimited",
+			"channels": "Available Push Channels",
+			"model": "LLM Model"
+		},
+		"upgradeButton": "Request Upgrade",
+		"upgradeTooltip": "Coming soon"
+	},
+	"channels": {
+		"enabledCount": "Currently {{count}} channel(s) enabled",
+		"addButton": "Add Channel",
+		"loadError": "Failed to load channel list",
+		"loadErrorDesc": "Please refresh the page or try again later",
+		"pushSchedule": "Push schedule: Beijing time 08:30 / 15:30 / next day 06:00, filtered automatically by holdings.",
+		"learnMore": "Learn more",
+		"drawer": {
+			"title": "Add Push Channel",
+			"channelType": "Channel Type",
+			"email": "Email",
+			"feishu": "Feishu Bot",
+			"wechat": "WeChat Official Account",
+			"saveSuccess": "Channel added",
+			"saveError": "Failed to add channel"
+		},
+		"emailForm": {
+			"recipient": "Recipient Email",
+			"recipientPlaceholder": "user@example.com",
+			"defaultHint": "Leave blank to send to current account email.",
+			"validation": {
+				"required": "Please enter recipient email",
+				"invalid": "Email format is incorrect"
+			}
+		},
+		"feishuForm": {
+			"webhookUrl": "Webhook URL",
+			"webhookPlaceholder": "https://open.feishu.cn/open-apis/bot/v2/hook/...",
+			"validation": {
+				"required": "Please enter Feishu Webhook URL",
+				"invalid": "URL format is incorrect"
+			}
+		},
+		"wechatForm": {
+			"openId": "OpenID",
+			"openIdPlaceholder": "o6_bmjrPTlm6_2sgVt7hMZOPfL2M",
+			"templateId": "Template ID",
+			"templateIdPlaceholder": "Template message template_id",
+			"validation": {
+				"openIdRequired": "Please enter user OpenID",
+				"templateIdRequired": "Please enter template message ID"
+			}
+		},
+		"list": {
+			"empty": "No push channels configured",
+			"typeLabel": {
+				"email": "Email",
+				"feishu": "Feishu Bot",
+				"wechat": "WeChat Official Account"
+			},
+			"defaultRecipient": "Default recipient",
+			"webhookNotConfigured": "Webhook not configured",
+			"openIdNotConfigured": "OpenID not configured",
+			"disabled": "Disabled",
+			"enableSuccess": "Channel enabled",
+			"disableSuccess": "Channel disabled",
+			"updateError": "Failed to update channel",
+			"deleteSuccess": "Channel deleted",
+			"deleteError": "Failed to delete channel",
+			"deleteConfirm": {
+				"title": "Delete Channel",
+				"description": "Confirm delete this push channel?",
+				"ok": "Delete",
+				"cancel": "Cancel"
+			},
+			"testButton": "Test Send",
+			"testTooltip": "Test send API pending backend",
+			"deleteButton": "Delete"
+		}
+	},
+	"llm": {
+		"title": "AI Interpretation Provider",
+		"description": "Configure your own LLM provider to enable AI interpretation. When not configured, you can choose to use the system default or the rules engine.",
+		"emptyState": {
+			"title": "No AI Provider configured",
+			"callout": {
+				"systemConsentGiven": "Current analysis uses Richman's system default AI provider. You can configure your own provider for better quota and privacy control.",
+				"systemNoConsent": "System default AI provider is available, but you haven't agreed to use it. Current analysis falls back to the rules engine. Configure your own provider or agree during onboarding to enable AI interpretation.",
+				"noSystem": "Current analysis uses the rules engine. Configure your own LLM provider to enable AI interpretation."
+			},
+			"addButton": "Add LLM Provider"
+		},
+		"healthyCard": {
+			"healthy": "Healthy",
+			"modelLabel": "Model",
+			"apiKeyLabel": "API Key",
+			"baseUrlLabel": "Base URL",
+			"lastProbed": "Last tested",
+			"notTested": "Not tested yet",
+			"fallbackToggle": "Auto fallback to system default on failure",
+			"fallbackHint": "When enabled, if your provider fails, holdings data will be sent to Richman's system default AI provider for analysis via encrypted transmission. When disabled, it falls back directly to the rules engine.",
+			"fallbackUpdated": "Fallback preference updated",
+			"fallbackUpdateError": "Update failed",
+			"probeButton": "Test connectivity",
+			"editButton": "Edit",
+			"deleteButton": "Delete",
+			"deleteSuccess": "Provider config deleted",
+			"deleteError": "Delete failed",
+			"deleteConfirm": {
+				"title": "Confirm delete LLM Provider config?",
+				"description": "After deletion, analysis will fall back to system default or rules engine.",
+				"ok": "Delete",
+				"cancel": "Cancel"
+			}
+		},
+		"failingCard": {
+			"failing": "Failing",
+			"connectivityFailed": "LLM Provider connectivity test failed",
+			"modelLabel": "Model",
+			"apiKeyLabel": "API Key",
+			"baseUrlLabel": "Base URL",
+			"lastProbed": "Last tested",
+			"unknown": "Unknown",
+			"fallback": {
+				"systemAvailable": "You have enabled failure fallback: on failure, analysis will automatically use Richman's system default AI provider.",
+				"systemUnavailable": "You have enabled failure fallback, but the system default provider is currently unavailable. Analysis will fall back to the rules engine.",
+				"noFallback": "You have not enabled failure fallback — analysis will use the rules engine directly."
+			},
+			"retestButton": "Retest",
+			"editButton": "Edit",
+			"deleteButton": "Delete",
+			"deleteSuccess": "Provider config deleted",
+			"deleteConfirm": {
+				"title": "Confirm delete LLM Provider config?",
+				"description": "After deletion, analysis will fall back to system default or rules engine.",
+				"ok": "Delete",
+				"cancel": "Cancel"
+			}
+		},
+		"configForm": {
+			"addTitle": "Add LLM Provider",
+			"editTitle": "Edit LLM Provider",
+			"providerType": "Provider Type",
+			"providerTypeRequired": "Please select provider type",
+			"baseUrl": "Base URL",
+			"baseUrlRequired": "Please fill in Base URL",
+			"baseUrlHttpsRequired": "Base URL must start with https://",
+			"apiKey": "API Key",
+			"apiKeyEdit": "API Key (leave blank to keep unchanged)",
+			"apiKeyRequired": "Please fill in API Key",
+			"apiKeyPlaceholder": "sk-...",
+			"apiKeyEditPlaceholder": "Leave blank to keep unchanged",
+			"model": "Model",
+			"modelRequired": "Please fill in model name",
+			"modelPlaceholder": "e.g. claude-sonnet-4-6 / gpt-4o-mini",
+			"fallback": "Auto fallback to system default on failure",
+			"fallbackHint": "When enabled, if your provider fails (expired key, quota exceeded, network error), your holdings data will be sent to Richman's system default AI provider for analysis via encrypted transmission. When disabled, it falls back directly to the rules engine.",
+			"backLink": "Back",
+			"saveAndTest": "Save & Test",
+			"cancel": "Cancel",
+			"providerOptions": {
+				"claude": "Claude (Anthropic)",
+				"openai": "OpenAI",
+				"openai_compatible": "OpenAI Compatible (Ollama / self-hosted)"
+			},
+			"message": {
+				"savedHealthy": "Saved — connectivity test passed",
+				"savedFailing": "Saved — but connectivity test failed: {{error}}",
+				"saved": "Saved",
+				"saveError": "Save failed"
+			}
+		},
+		"probeButton": {
+			"default": "Test connectivity",
+			"retest": "Retest",
+			"success": "Test passed ({{latency}} ms)",
+			"failure": "Test failed: {{error}}",
+			"requestError": "Test request failed: {{msg}}"
+		}
 	}
 }

@@ -2,6 +2,232 @@
 	"title": "设置",
 	"tabs": {
 		"account": "账户",
-		"preferences": "偏好设置"
+		"ai": "AI 解读",
+		"channels": "推送渠道",
+		"preferences": "偏好",
+		"subscription": "订阅与额度"
+	},
+	"account": {
+		"email": "邮箱",
+		"changePassword": "发送修改链接到邮箱",
+		"changePasswordTooltip": "修改密码接口待后端补齐",
+		"totalCapital": "总资金",
+		"totalCapitalPlaceholder": "例如 100000",
+		"totalCapitalHint": "总资金仅本地保存用于金额换算，不会进入 LLM 分析上下文。",
+		"riskPreference": "风险偏好",
+		"riskPreferenceHint": "影响 LLM 在权重微调范围内的倾向。",
+		"riskOptions": {
+			"conservative": "稳健",
+			"neutral": "中性",
+			"aggressive": "激进"
+		},
+		"logout": "退出登录",
+		"resetOnboarding": "重新走一遍引导",
+		"resetOnboardingConfirm": {
+			"title": "重新走一遍引导？",
+			"description": "将清空本地引导草稿并让 Dashboard 的引导提示重新出现，当前持仓和决策卡不受影响。",
+			"ok": "开始引导",
+			"cancel": "取消"
+		},
+		"message": {
+			"capitalSaved": "总资金已保存",
+			"capitalSaveError": "保存总资金失败",
+			"riskUpdated": "风险偏好已更新",
+			"riskUpdateError": "更新风险偏好失败",
+			"resetError": "重置失败，请稍后重试"
+		}
+	},
+	"preferences": {
+		"language": "语言",
+		"timezone": "时区",
+		"timezoneHint": "MVP 默认 Asia/Shanghai，时区切换暂不影响推送窗口。",
+		"theme": "主题",
+		"themeHint": "MVP 暂不支持暗色。",
+		"themeLight": "亮色",
+		"numberFormat": "数字格式（高级选项）",
+		"numberFormatHint": "千分位分隔符 / 货币符号位置 / 小数位数等高级选项预留位，MVP 暂未启用。"
+	},
+	"subscription": {
+		"currentPlan": "当前订阅",
+		"inviteExclusive": "邀请用户专享额度",
+		"quota": {
+			"holdings": "持仓数",
+			"dailyAnalysis": "每日分析次数",
+			"unlimited": "无限制",
+			"channels": "可用推送渠道",
+			"model": "LLM 模型"
+		},
+		"upgradeButton": "申请升级",
+		"upgradeTooltip": "敬请期待"
+	},
+	"channels": {
+		"enabledCount": "当前已启用 {{count}} 个渠道",
+		"addButton": "添加渠道",
+		"loadError": "加载渠道列表失败",
+		"loadErrorDesc": "请刷新页面或稍后再试",
+		"pushSchedule": "推送时段：北京时间 08:30 / 15:30 / 次日 06:00，根据持仓自动筛选。",
+		"learnMore": "了解更多",
+		"drawer": {
+			"title": "添加推送渠道",
+			"channelType": "渠道类型",
+			"email": "邮件",
+			"feishu": "飞书机器人",
+			"wechat": "微信公众号",
+			"saveSuccess": "渠道已添加",
+			"saveError": "添加渠道失败"
+		},
+		"emailForm": {
+			"recipient": "收件邮箱",
+			"recipientPlaceholder": "user@example.com",
+			"defaultHint": "留空将默认发送到当前账户邮箱。",
+			"validation": {
+				"required": "请输入收件邮箱",
+				"invalid": "邮箱格式不正确"
+			}
+		},
+		"feishuForm": {
+			"webhookUrl": "Webhook URL",
+			"webhookPlaceholder": "https://open.feishu.cn/open-apis/bot/v2/hook/...",
+			"validation": {
+				"required": "请输入飞书 Webhook URL",
+				"invalid": "URL 格式不正确"
+			}
+		},
+		"wechatForm": {
+			"openId": "OpenID",
+			"openIdPlaceholder": "o6_bmjrPTlm6_2sgVt7hMZOPfL2M",
+			"templateId": "模板 ID",
+			"templateIdPlaceholder": "模板消息 template_id",
+			"validation": {
+				"openIdRequired": "请输入用户 OpenID",
+				"templateIdRequired": "请输入模板消息 ID"
+			}
+		},
+		"list": {
+			"empty": "尚未配置任何推送渠道",
+			"typeLabel": {
+				"email": "邮件",
+				"feishu": "飞书机器人",
+				"wechat": "微信公众号"
+			},
+			"defaultRecipient": "默认收件人",
+			"webhookNotConfigured": "未配置 webhook",
+			"openIdNotConfigured": "未配置 OpenID",
+			"disabled": "已停用",
+			"enableSuccess": "渠道已启用",
+			"disableSuccess": "渠道已停用",
+			"updateError": "更新渠道失败",
+			"deleteSuccess": "渠道已删除",
+			"deleteError": "删除渠道失败",
+			"deleteConfirm": {
+				"title": "删除渠道",
+				"description": "确认删除此推送渠道？",
+				"ok": "删除",
+				"cancel": "取消"
+			},
+			"testButton": "测试发送",
+			"testTooltip": "测试发送接口待后端补齐",
+			"deleteButton": "删除"
+		}
+	},
+	"llm": {
+		"title": "AI 解读 Provider",
+		"description": "配置你自己的 LLM Provider 以启用 AI 解读能力。未配置时可选择使用系统默认或规则引擎。",
+		"emptyState": {
+			"title": "尚未配置 AI Provider",
+			"callout": {
+				"systemConsentGiven": "当前分析将走 Richman 的系统默认 AI Provider。你可以配置自己的 Provider 以获得更好的额度和隐私控制。",
+				"systemNoConsent": "系统默认 AI Provider 可用，但你尚未同意使用。当前分析会降级到规则引擎。配置你自己的 Provider 或在 onboarding 中勾选同意可以启用 AI 解读。",
+				"noSystem": "当前分析走规则引擎。配置你自己的 LLM Provider 可以启用 AI 解读能力。"
+			},
+			"addButton": "添加 LLM Provider"
+		},
+		"healthyCard": {
+			"healthy": "健康",
+			"modelLabel": "模型",
+			"apiKeyLabel": "API Key",
+			"baseUrlLabel": "Base URL",
+			"lastProbed": "最后测试",
+			"notTested": "尚未测试",
+			"fallbackToggle": "调用失败时自动降级到系统默认",
+			"fallbackHint": "开启后，当你的 Provider 失败时，持仓数据将以加密传输方式发给 Richman 的系统默认 AI Provider 做分析。关闭则直接降级到规则引擎。",
+			"fallbackUpdated": "已更新降级偏好",
+			"fallbackUpdateError": "更新失败",
+			"probeButton": "测试连通性",
+			"editButton": "编辑",
+			"deleteButton": "删除",
+			"deleteSuccess": "已删除 Provider 配置",
+			"deleteError": "删除失败",
+			"deleteConfirm": {
+				"title": "确认删除 LLM Provider 配置？",
+				"description": "删除后分析将降级到系统默认或规则引擎。",
+				"ok": "删除",
+				"cancel": "取消"
+			}
+		},
+		"failingCard": {
+			"failing": "失效",
+			"connectivityFailed": "LLM Provider 连通性测试失败",
+			"modelLabel": "模型",
+			"apiKeyLabel": "API Key",
+			"baseUrlLabel": "Base URL",
+			"lastProbed": "最后测试",
+			"unknown": "未知",
+			"fallback": {
+				"systemAvailable": "你已开启失败降级：调用失败时分析会自动走 Richman 的系统默认 AI Provider。",
+				"systemUnavailable": "你已开启失败降级，但系统默认 Provider 当前不可用。分析将降级到规则引擎。",
+				"noFallback": "你未开启失败降级，分析会直接使用规则引擎。"
+			},
+			"retestButton": "重新测试",
+			"editButton": "编辑",
+			"deleteButton": "删除",
+			"deleteSuccess": "已删除 Provider 配置",
+			"deleteConfirm": {
+				"title": "确认删除 LLM Provider 配置？",
+				"description": "删除后分析将降级到系统默认或规则引擎。",
+				"ok": "删除",
+				"cancel": "取消"
+			}
+		},
+		"configForm": {
+			"addTitle": "添加 LLM Provider",
+			"editTitle": "编辑 LLM Provider",
+			"providerType": "Provider 类型",
+			"providerTypeRequired": "请选择 Provider 类型",
+			"baseUrl": "Base URL",
+			"baseUrlRequired": "请填写 Base URL",
+			"baseUrlHttpsRequired": "Base URL 必须以 https:// 开头",
+			"apiKey": "API Key",
+			"apiKeyEdit": "API Key (留空表示不修改)",
+			"apiKeyRequired": "请填写 API Key",
+			"apiKeyPlaceholder": "sk-...",
+			"apiKeyEditPlaceholder": "留空表示不修改",
+			"model": "模型",
+			"modelRequired": "请填写模型名",
+			"modelPlaceholder": "例如 claude-sonnet-4-6 / gpt-4o-mini",
+			"fallback": "调用失败时自动降级到系统默认",
+			"fallbackHint": "开启后，当你的 Provider 失败（密钥过期、配额超限、网络错误）时，你的持仓数据将以加密传输方式发给 Richman 的系统默认 AI Provider 做分析。关闭则直接降级为规则引擎。",
+			"backLink": "返回",
+			"saveAndTest": "保存并测试",
+			"cancel": "取消",
+			"providerOptions": {
+				"claude": "Claude (Anthropic)",
+				"openai": "OpenAI",
+				"openai_compatible": "OpenAI 兼容 (Ollama / 自建)"
+			},
+			"message": {
+				"savedHealthy": "已保存，连通性测试通过",
+				"savedFailing": "已保存，但连通性测试失败：{{error}}",
+				"saved": "已保存",
+				"saveError": "保存失败"
+			}
+		},
+		"probeButton": {
+			"default": "测试连通性",
+			"retest": "重新测试",
+			"success": "测试通过（{{latency}} ms）",
+			"failure": "测试失败：{{error}}",
+			"requestError": "测试请求失败：{{msg}}"
+		}
 	}
 }

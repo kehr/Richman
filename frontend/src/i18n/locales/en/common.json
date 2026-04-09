@@ -2,10 +2,36 @@
 	"nav": {
 		"dashboard": "Dashboard",
 		"portfolio": "Portfolio",
-		"settings": "Settings"
+		"settings": "Settings",
+		"help": "Help"
 	},
 	"action": {
 		"save": "Save",
-		"cancel": "Cancel"
-	}
+		"cancel": "Cancel",
+		"confirm": "Confirm",
+		"delete": "Delete",
+		"edit": "Edit",
+		"add": "Add",
+		"search": "Search",
+		"filter": "Filter",
+		"reset": "Reset",
+		"refresh": "Refresh",
+		"submit": "Submit",
+		"close": "Close",
+		"back": "Back",
+		"next": "Next",
+		"previous": "Previous",
+		"retry": "Retry"
+	},
+	"status": {
+		"loading": "Loading...",
+		"error": "Something went wrong",
+		"success": "Success",
+		"noData": "No data"
+	},
+	"pagination": {
+		"total": "Total",
+		"actions": "Actions"
+	},
+	"riskDisclaimer": "All analysis and recommendations provided by this platform are for reference only and do not constitute investment advice. Investing involves risk. Past performance does not guarantee future returns. Please make investment decisions based on your own risk tolerance."
 }

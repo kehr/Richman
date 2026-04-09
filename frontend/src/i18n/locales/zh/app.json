@@ -1,8 +1,278 @@
 {
 	"dashboard": {
-		"title": "仪表盘"
+		"title": "仪表盘",
+		"todayDecision": "今日决策",
+		"lastAnalyzed": "最后分析",
+		"nextAuto": "下次自动",
+		"rerunButton": "重新分析",
+		"stat": {
+			"holdingCount": "持仓数",
+			"totalCapital": "总资金",
+			"totalCapitalCta": "设置以查看 →",
+			"suggestedRebalance": "建议调仓",
+			"allocatedPosition": "已分配仓位"
+		},
+		"changeAnchor": {
+			"title": "今日变化"
+		},
+		"cardWall": {
+			"loadError": "加载决策卡失败",
+			"loadErrorDesc": "请检查网络连接后重试。",
+			"empty": "暂无决策卡，点击「重新分析」生成。",
+			"retry": "重试"
+		},
+		"emptyHero": {
+			"title": "先添加一个持仓",
+			"description": "Richman 基于你的真实持仓生成每日决策卡，添加第一笔持仓后分析会在几秒内返回。",
+			"addButton": "添加持仓 →",
+			"onboardingHint": "想先跟着引导走一遍？",
+			"restartOnboarding": "重新开始引导"
+		},
+		"skippedNudge": {
+			"message": "你跳过了引导，可以重新走一遍以熟悉决策卡和风险提示。",
+			"restart": "开始引导",
+			"dismiss": "不再提示"
+		},
+		"llmBanner": {
+			"title": "AI 解读已配置",
+			"description": "你有 {{count}} 个持仓的历史卡片仍基于规则引擎生成，点击右侧按钮可触发一次重新分析以升级到 AI 解读。",
+			"reanalyzeButton": "重新分析所有持仓",
+			"reanalyzeSuccess": "已触发重新分析，请稍后刷新查看。",
+			"reanalyzeError": "重新分析请求失败：{{msg}}"
+		},
+		"message": {
+			"rerunSuccess": "已触发重新分析，稍后刷新查看新卡。",
+			"rerunError": "重新分析请求失败，请稍后再试。"
+		}
+	},
+	"decisionCard": {
+		"title": "决策卡片",
+		"detailTitle": "决策卡详情",
+		"breadcrumb": {
+			"decisionCard": "决策卡"
+		},
+		"notFound": {
+			"title": "未找到决策卡",
+			"description": "链接无效或决策卡不存在。",
+			"deleted": "该决策卡可能不存在或已被删除。"
+		},
+		"loadError": {
+			"title": "加载失败",
+			"description": "无法加载该决策卡，请稍后重试。"
+		},
+		"hero": {
+			"cost": "成本",
+			"position": "仓位",
+			"targetGap": "目标偏离: {{gap}}%（建议调仓幅度，非盈亏）"
+		},
+		"conclusion": {
+			"todayAdvice": "今日建议",
+			"previousAdvice": "← 旧建议",
+			"confidence": "信心度"
+		},
+		"dimension": {
+			"title": "三维度推理",
+			"weight": "权重",
+			"noSummary": "（暂无说明）",
+			"flipNote": "提示：此维度发生翻转是本次建议升级的主要驱动因素",
+			"label": {
+				"trend": "趋势 Trend",
+				"position": "仓位 Position",
+				"catalyst": "催化 Catalyst"
+			}
+		},
+		"executionPlan": {
+			"title": "执行计划",
+			"stopLoss": "止损",
+			"takeProfit": "止盈",
+			"notSet": "未设置",
+			"validDays": "本计划适用未来 {{days}} 天，超过或触发止损条件会自动重新分析。",
+			"moreSteps": "+ 还有 {{count}} 步"
+		},
+		"mainRisks": {
+			"title": "主要风险",
+			"noRisks": "本次分析未识别到显著风险。",
+			"exitCondition": "终止本计划的条件: 触发上述任一风险，或执行计划止损线。"
+		},
+		"metaSidebar": {
+			"title": "分析元信息",
+			"analyzedAt": "分析时间",
+			"dataSource": "数据源状态",
+			"dataSourcePending": "数据源健康检查将在后续版本开放",
+			"nextAnalysis": "下一次自动分析",
+			"history": "历史分析",
+			"noHistory": "暂无更多历史",
+			"disclaimer": "本内容仅供参考，不构成投资建议。投资有风险，决策需谨慎。"
+		},
+		"badge": {
+			"data_degraded": "数据降级",
+			"first_analysis": "首次分析",
+			"action_upgrade": "建议升级",
+			"action_downgrade": "建议降级",
+			"signal_flip": "信号翻转",
+			"plan_adjust": "计划调整",
+			"confidence_shift": "信心度波动"
+		},
+		"source": {
+			"llm": "AI",
+			"llmTooltip": "由 AI 解读生成（{{provider}}）",
+			"mixed": "Mixed",
+			"mixedTooltip": "文案由 AI 解读生成，建议动作由规则引擎兜底（{{provider}}）",
+			"template": "Rules",
+			"templateTooltip": "由规则引擎生成 · 配置 LLM Provider 可启用 AI 解读"
+		},
+		"provider": {
+			"user": "你配置的 Provider",
+			"system_default": "Richman 系统默认 Provider",
+			"none": "未使用 LLM",
+			"unknown": "未知"
+		},
+		"recommendation": {
+			"aggressiveAdd": "积极加仓",
+			"smallAdd": "小幅加仓",
+			"hold": "持有观望",
+			"gradualReduce": "逐步减仓",
+			"controlPosition": "控制仓位"
+		},
+		"viewFullReasoning": "查看完整推理 →",
+		"confidenceLabel": "信心度",
+		"costLabel": "成本",
+		"positionLabel": "仓位",
+		"marketValueLabel": "市值"
 	},
 	"portfolio": {
-		"title": "投资组合"
+		"title": "我的持仓",
+		"holdingCounter": "{{count}}/{{limit}} 个 · MVP 每用户最多 {{limit}} 个标的",
+		"addHolding": "添加持仓",
+		"screenshotImport": "截图批量导入",
+		"limitReached": "MVP 最多 {{limit}} 个标的",
+		"holdingTable": {
+			"asset": "标的",
+			"type": "类型",
+			"cost": "成本",
+			"currentPrice": "现价",
+			"position": "仓位",
+			"pnl": "浮盈亏",
+			"actions": "操作",
+			"editButton": "编辑",
+			"transactionsButton": "交易记录",
+			"deleteButton": "删除",
+			"deleteConfirm": "删除该持仓?",
+			"deleteSuccess": "持仓已删除",
+			"deleteError": "删除持仓失败"
+		},
+		"totalCapital": {
+			"label": "总资金",
+			"notSet": "未设置总资金",
+			"setLink": "设置以查看金额 →",
+			"editLink": "(修改)"
+		},
+		"addHoldingDrawer": {
+			"title": "添加持仓",
+			"step1": "选标的",
+			"step2": "填写信息",
+			"changeAsset": "更换",
+			"tabQuick": "快速",
+			"tabDetail": "明细",
+			"tabScreenshot": "截图",
+			"comingSoon": "即将推出",
+			"saveSuccess": "持仓已添加",
+			"saveError": "添加持仓失败"
+		},
+		"quickHoldingForm": {
+			"hint": "适合已经买好一段时间，直接填综合成本。",
+			"costPrice": "均价成本",
+			"costPricePlaceholder": "如 1.234",
+			"positionRatio": "当前仓位比例",
+			"positionRatioPlaceholder": "如 20",
+			"validation": {
+				"costPriceRequired": "请输入均价成本",
+				"positionRatioRequired": "请输入仓位比例",
+				"positionRatioRange": "仓位比例应在 0-100 之间"
+			}
+		},
+		"assetTypeStep": {
+			"selectType": "选择标的类型",
+			"searchAsset": "搜索标的",
+			"searchPlaceholder": "输入代码或名称",
+			"notFound": "未找到标的"
+		},
+		"transactions": {
+			"title": "交易记录",
+			"back": "返回",
+			"holdings": "持仓",
+			"addTransaction": "添加交易",
+			"historyTitle": "交易历史",
+			"summaryTitle": "汇总",
+			"weightedCost": "综合成本",
+			"compositePosition": "综合仓位",
+			"totalBuy": "总买入金额",
+			"totalSell": "总卖出金额",
+			"notFound": "未找到对应持仓"
+		},
+		"transactionTable": {
+			"time": "时间",
+			"price": "价格",
+			"quantity": "数量",
+			"direction": "方向",
+			"actions": "操作",
+			"buy": "买入",
+			"sell": "卖出",
+			"editTooltip": "编辑接口待后端补齐",
+			"deleteTooltip": "删除接口待后端补齐",
+			"edit": "编辑",
+			"delete": "删除"
+		},
+		"addTransactionDrawer": {
+			"title": "记录交易",
+			"direction": "方向",
+			"time": "时间",
+			"price": "价格",
+			"quantity": "数量",
+			"buy": "买入",
+			"sell": "卖出",
+			"saveSuccess": "交易已记录",
+			"saveError": "记录交易失败",
+			"validation": {
+				"directionRequired": "请选择交易方向",
+				"timeRequired": "请选择交易时间",
+				"priceRequired": "请输入价格",
+				"quantityRequired": "请输入数量"
+			}
+		},
+		"screenshotModal": {
+			"title": "截图识别结果 — 校对",
+			"recognizedCount": "识别出 {{count}} 个标的 · 请检查高亮字段后确认导入",
+			"uploadHint": "点击或拖拽截图到此区域上传",
+			"uploadHintDesc": "支持单张 PNG / JPEG / WebP，最大 5 MB",
+			"recognizing": "正在识别截图...",
+			"failedDefault": "识别失败",
+			"retryUpload": "重新上传",
+			"confirmImport": "确认导入",
+			"importSuccess": "成功导入 {{count}} 个持仓",
+			"importPartial": "成功 {{success}} / 失败 {{failure}}",
+			"capWarning": "MVP 最多 {{limit}} 个标的，当前已有 {{current}} 个，已勾选 {{selected}} 个，已达上限",
+			"rowCount": "将新增 {{count}} 个持仓",
+			"rowLimitReached": "已达 {{limit}} 个标的上限",
+			"validation": {
+				"noRowSelected": "请至少选择一个识别结果",
+				"tooManyRows": "最多再添加 {{remaining}} 个标的",
+				"incompleteNameOrCode": "请补全名称和代码",
+				"incompleteCostOrRatio": "请补全成本和仓位"
+			},
+			"confidence": {
+				"medium": "识别置信度中等，请检查",
+				"low": "请手动填写"
+			},
+			"placeholder": "请手动填写",
+			"imagePreview": "点击查看大图"
+		},
+		"recognizedTable": {
+			"name": "名称",
+			"code": "代码",
+			"cost": "成本",
+			"position": "仓位",
+			"removeRow": "移除该行"
+		}
 	}
 }
