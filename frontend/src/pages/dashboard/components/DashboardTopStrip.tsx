@@ -63,7 +63,6 @@ export function DashboardTopStrip({
 				<Col>
 					<Button
 						type="primary"
-						size="large"
 						icon={<ReloadOutlined />}
 						loading={rerunLoading}
 						onClick={onRerun}
