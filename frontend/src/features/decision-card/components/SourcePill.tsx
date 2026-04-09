@@ -44,7 +44,6 @@ export function SourcePill({ source, provider }: SourcePillProps) {
 
 	if (source === "mixed") {
 		return (
-<<<<<<< HEAD
 			<Tooltip title={t("decisionCard.source.mixedTooltip", { provider: providerLabel(provider) })}>
 				<Tag color="blue" data-testid="source-pill-mixed" style={{ background: "transparent" }}>
 					{t("decisionCard.source.mixed")}
