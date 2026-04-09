@@ -151,23 +151,23 @@ func (r *UserRepo) GetRiskPreference(ctx context.Context, userID int64) (string,
 // does not exist or has not set a total capital, so callers can treat both
 // cases identically as "no capital configured".
 func (r *UserRepo) GetTotalCapitalCNY(ctx context.Context, userID int64) (*float64, error) {
-	var cap decimal.NullDecimal
+	var capDec decimal.NullDecimal
 	err := r.pool.QueryRow(ctx,
 		`SELECT total_capital_cny
 		 FROM users
 		 WHERE user_id = $1 AND is_deleted = 0`,
 		userID,
-	).Scan(&cap)
+	).Scan(&capDec)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil
 		}
 		return nil, fmt.Errorf("query user total capital: %w", err)
 	}
-	if !cap.Valid {
+	if !capDec.Valid {
 		return nil, nil
 	}
-	v, _ := cap.Decimal.Float64()
+	v, _ := capDec.Decimal.Float64()
 	return &v, nil
 }
 
@@ -313,4 +313,57 @@ func (r *UserRepo) ResetOnboarding(
 		return nil, fmt.Errorf("reset onboarding: %w", err)
 	}
 	return &u, nil
+}
+
+// GetUseSystemDefaultConsent reads the user's use_system_default_llm_consent
+// column. This is the only gate the Resolver consults when a user has no
+// personal llm_configs row: true means "fall through to the system default",
+// false means "return ErrConsentDenied so the caller uses template output".
+//
+// Returns (false, nil) when the user does not exist so the Resolver can
+// safely treat a missing user as an unconfigured, unconsented user without
+// a second null check. This matches the GetRiskPreference ergonomic where
+// an unknown user maps to the safe default.
+func (r *UserRepo) GetUseSystemDefaultConsent(
+	ctx context.Context, userID int64,
+) (bool, error) {
+	var consent bool
+	err := r.pool.QueryRow(ctx,
+		`SELECT use_system_default_llm_consent
+		 FROM users
+		 WHERE user_id = $1 AND is_deleted = 0`,
+		userID,
+	).Scan(&consent)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return false, nil
+		}
+		return false, fmt.Errorf("query use_system_default_llm_consent: %w", err)
+	}
+	return consent, nil
+}
+
+// SetUseSystemDefaultConsent writes the user's use_system_default_llm_consent
+// column and bumps updated_at so downstream caches see a fresh version. Used
+// by the onboarding consent step and by the settings LLM page when the user
+// toggles the "no personal key" fallback switch. Returns an error (not
+// silently no-op) if the user row does not exist so the caller can surface
+// the misconfiguration to the API layer.
+func (r *UserRepo) SetUseSystemDefaultConsent(
+	ctx context.Context, userID int64, consent bool,
+) error {
+	tag, err := r.pool.Exec(ctx,
+		`UPDATE users
+		 SET use_system_default_llm_consent = $2,
+		     updated_at = NOW()
+		 WHERE user_id = $1 AND is_deleted = 0`,
+		userID, consent,
+	)
+	if err != nil {
+		return fmt.Errorf("update use_system_default_llm_consent: %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		return fmt.Errorf("update use_system_default_llm_consent: user %d not found", userID)
+	}
+	return nil
 }

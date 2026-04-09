@@ -30,8 +30,11 @@ Rules:
   1. Output JSON only. No prose, no markdown fences, no comments.
   2. If a field cannot be read confidently, set its value to "" and confidence to 0.
   3. Confidence is your own calibrated certainty in the range [0.0, 1.0].
-  4. assetTypeGuess is a free-form guess such as "a_share", "us_stock", "hk_stock", "fund", "bond", "gold", "crypto", or "" when unknown; it carries no confidence.
-  5. costPrice and positionPct must be numeric strings as shown on screen (e.g. "12.34" or "35.5"); do not include units or % signs.
+  4. assetTypeGuess is a free-form guess such as "a_share", "us_stock",
+     "hk_stock", "fund", "bond", "gold", "crypto", or "" when unknown;
+     it carries no confidence.
+  5. costPrice and positionPct must be numeric strings as shown on screen
+     (e.g. "12.34" or "35.5"); do not include units or % signs.
   6. Return an empty "holdings" array when no holdings are visible.
   7. Never invent data that is not visible in the image.`
 

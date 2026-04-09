@@ -100,6 +100,17 @@ func (s *Service) GetTaskStore() *TaskStore {
 	return s.taskStore
 }
 
+// TriggerReanalyzeAll is the endpoint-facing alias for TriggerAnalysis.
+// The LLM degraded contract exposes POST /analysis/reanalyze-all so the
+// dashboard banner can upgrade template/mixed cards after a provider
+// becomes healthy; the behavior is identical to a full-portfolio rerun,
+// only the endpoint and the per-user rate limit differ. Keeping the
+// alias thin (no duplication of the goroutine body) means future tweaks
+// to the background pipeline flow through both surfaces.
+func (s *Service) TriggerReanalyzeAll(ctx context.Context, userID int64, taskID string) {
+	s.TriggerAnalysis(ctx, userID, taskID)
+}
+
 // TriggerAnalysis starts an async analysis for all holdings of a user.
 // It returns a task ID immediately and runs the analysis in the background.
 func (s *Service) TriggerAnalysis(ctx context.Context, userID int64, taskID string) {
@@ -280,7 +291,7 @@ func (s *Service) AnalyzeHolding(
 	costPrice, _ := holding.CostPrice.Float64()
 	posRatio, _ := holding.PositionRatio.Float64()
 
-	synthOutput, err := s.synthesizer.Synthesize(ctx, &synthesis.SynthesisInput{
+	synthOutput, synthMeta, err := s.synthesizer.Synthesize(ctx, &synthesis.SynthesisInput{
 		AssetCode:      holding.AssetCode,
 		AssetType:      holding.AssetType,
 		AssetName:      holding.AssetName,
@@ -292,7 +303,7 @@ func (s *Service) AnalyzeHolding(
 		Recommendation: rec,
 		CostPrice:      costPrice,
 		PositionRatio:  posRatio,
-	})
+	}, userID)
 	if err != nil {
 		return nil, fmt.Errorf("synthesize: %w", err)
 	}
@@ -310,34 +321,47 @@ func (s *Service) AnalyzeHolding(
 	// Build decision card (prev_card_id, badge_state, confidence_delta are
 	// filled inside the persistence transaction below).
 	card := &model.DecisionCard{
-		UserID:               userID,
-		HoldingID:            holding.HoldingID,
-		AssetCode:            holding.AssetCode,
-		AssetName:            holding.AssetName,
-		AssetType:            holding.AssetType,
-		CostPrice:            costPrice,
-		PositionRatio:        posRatio,
-		TrendDirection:       string(trendResult.Direction),
-		TrendSummary:         synthOutput.TrendSummary,
-		PositionDirection:    string(posResult.Assessment),
-		PositionSummary:      synthOutput.PositionSummary,
-		CatalystDirection:    string(catResult.Direction),
-		CatalystSummary:      synthOutput.CatalystSummary,
-		Confidence:           conf,
-		ActionAdvice:         synthOutput.ActionAdvice,
-		DetailedAdvice:       synthOutput.DetailedAdvice,
-		RiskWarnings:         synthOutput.RiskWarnings,
-		TodayHighlights:      synthOutput.TodayHighlights,
-		WeightTrend:          weights.Trend,
-		WeightPosition:       weights.Position,
-		WeightCatalyst:       weights.Catalyst,
-		AnalyzedAt:           now,
+		UserID:            userID,
+		HoldingID:         holding.HoldingID,
+		AssetCode:         holding.AssetCode,
+		AssetName:         holding.AssetName,
+		AssetType:         holding.AssetType,
+		CostPrice:         costPrice,
+		PositionRatio:     posRatio,
+		TrendDirection:    string(trendResult.Direction),
+		TrendSummary:      synthOutput.TrendSummary,
+		PositionDirection: string(posResult.Assessment),
+		PositionSummary:   synthOutput.PositionSummary,
+		CatalystDirection: string(catResult.Direction),
+		CatalystSummary:   synthOutput.CatalystSummary,
+		Confidence:        conf,
+		ActionAdvice:      synthOutput.ActionAdvice,
+		DetailedAdvice:    synthOutput.DetailedAdvice,
+		RiskWarnings:      synthOutput.RiskWarnings,
+		TodayHighlights:   synthOutput.TodayHighlights,
+		WeightTrend:       weights.Trend,
+		WeightPosition:    weights.Position,
+		WeightCatalyst:    weights.Catalyst,
+		AnalyzedAt:        now,
 		// Recommendation is the structured object; the legacy VARCHAR
 		// recommendation column was removed in migration 009.
 		Recommendation:       synthOutput.Recommendation,
 		ActionLevel:          synthOutput.Recommendation.ActionLevel,
 		TargetPositionRatio:  synthOutput.Recommendation.TargetPositionPct / 100,
 		ExecutionFingerprint: fingerprint,
+	}
+
+	// Stamp provenance metadata from the synthesis pipeline onto the card
+	// so the decision-card DTO and the dashboard llmStatus SELECT can
+	// classify it without re-running the synthesizer. The meta pointer is
+	// always non-nil (synthesizer guarantees it on every path) but we
+	// defensively check to keep the call site resilient against future
+	// refactors.
+	if synthMeta != nil {
+		source := synthMeta.Source
+		provider := synthMeta.ProviderUsed
+		card.SynthesisSource = &source
+		card.ProviderUsed = &provider
 	}
 
 	// Step 10: Persist raw analysis result (non-critical, runs outside tx).
@@ -395,7 +419,7 @@ func (s *Service) persistDecisionCardWithDiff(
 	if err != nil {
 		return nil, fmt.Errorf("begin tx: %w", err)
 	}
-	// Use a background context for rollback so a cancelled request context
+	// Use a background context for rollback so a canceled request context
 	// does not prevent pgx from releasing the tx on the server side.
 	defer func() {
 		_ = tx.Rollback(context.Background())
@@ -437,14 +461,14 @@ func (s *Service) persistDecisionCardWithDiff(
 // branch without a database.
 func computeCardDiff(
 	current *model.DecisionCard, previous *model.DecisionCard, degraded bool,
-) (diff.BadgeState, float64) {
+) (badge diff.BadgeState, confidenceDelta float64) {
 	cur := buildCardSnapshot(current)
 	input := diff.Input{Current: cur, DataSourceDegraded: degraded}
 	if previous != nil {
 		prev := buildCardSnapshot(previous)
 		input.Previous = &prev
 	}
-	return diff.Compute(input)
+	return diff.Compute(&input)
 }
 
 // buildCardSnapshot converts a model.DecisionCard into a diff.CardSnapshot.

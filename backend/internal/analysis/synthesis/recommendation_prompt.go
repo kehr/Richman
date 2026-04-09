@@ -179,4 +179,3 @@ func ensureRecommendation(rec *recommendation.Recommendation, input *SynthesisIn
 		rec.Execution.ValidDays = recommendation.ValidityDefaultDays
 	}
 }
-

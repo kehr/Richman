@@ -34,6 +34,18 @@ export type BadgeState =
 	| "plan_adjust"
 	| "confidence_shift";
 
+// SynthesisSource records whether the card text came from an LLM, a
+// deterministic rules engine fallback, or a mix of the two. Backend nullable
+// values are mapped to "unknown" at the API boundary so the UI can branch on
+// a closed union.
+export type SynthesisSource = "llm" | "template" | "mixed" | "unknown";
+
+// ProviderUsed records which layer of the fallback chain actually produced
+// the card. "user" means the user-configured provider answered, "system_default"
+// means Richman's shared provider answered, "none" means neither LLM layer
+// answered (pure template), and "unknown" is the null-at-rest sentinel.
+export type ProviderUsed = "user" | "system_default" | "none" | "unknown";
+
 // TriggerPayload is the optional structured representation of a trigger
 // condition. Only fields relevant to the TriggerType are populated.
 export interface TriggerPayload {
@@ -109,10 +121,25 @@ export interface DecisionCardDTO {
 	confidenceDelta: number;
 	prevCardId?: number | null;
 	executionFingerprint: string;
+
+	// Provenance fields added by the LLM degraded contract work. Backend may
+	// emit null for historical rows that have not yet been reanalyzed; the
+	// API client normalizes null to "unknown" so downstream components can
+	// rely on the closed union.
+	synthesisSource: SynthesisSource;
+	providerUsed: ProviderUsed;
 }
 
 // RerunAnalysisResponse is the accepted response for POST /analysis/trigger.
 export interface RerunAnalysisResponse {
+	taskId: string;
+	message?: string;
+}
+
+// ReanalyzeAllResponse is the accepted response for
+// POST /analysis/reanalyze-all. It mirrors RerunAnalysisResponse shape on
+// purpose so UI callers can reuse the same progress polling surface.
+export interface ReanalyzeAllResponse {
 	taskId: string;
 	message?: string;
 }

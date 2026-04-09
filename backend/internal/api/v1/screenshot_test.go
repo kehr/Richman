@@ -21,7 +21,7 @@ type stubVision struct {
 	err     error
 }
 
-func (s *stubVision) AnalyzeImage(_ context.Context, _ llm.VisionRequest) (*llm.VisionResponse, error) {
+func (s *stubVision) AnalyzeImage(_ context.Context, _ *llm.VisionRequest) (*llm.VisionResponse, error) {
 	if s.err != nil {
 		return nil, s.err
 	}
@@ -29,7 +29,12 @@ func (s *stubVision) AnalyzeImage(_ context.Context, _ llm.VisionRequest) (*llm.
 }
 func (s *stubVision) Name() string { return "stub" }
 
-const okPayload = `{"holdings":[{"assetName":{"value":"AAPL","confidence":0.95},"assetCode":{"value":"AAPL","confidence":0.95},"costPrice":{"value":"150","confidence":0.9},"positionPct":{"value":"25","confidence":0.9},"assetTypeGuess":"us_stock"}]}`
+const okPayload = `{"holdings":[{` +
+	`"assetName":{"value":"AAPL","confidence":0.95},` +
+	`"assetCode":{"value":"AAPL","confidence":0.95},` +
+	`"costPrice":{"value":"150","confidence":0.9},` +
+	`"positionPct":{"value":"25","confidence":0.9},` +
+	`"assetTypeGuess":"us_stock"}]}`
 
 func newTestRouter(svc *screenshot.Service, authedUserID int64) *gin.Engine {
 	gin.SetMode(gin.TestMode)
@@ -51,7 +56,9 @@ func newTestRouter(svc *screenshot.Service, authedUserID int64) *gin.Engine {
 	return r
 }
 
-func buildMultipart(t *testing.T, field, filename, mime string, body []byte) (*bytes.Buffer, string) {
+func buildMultipart(
+	t *testing.T, field, filename, mime string, body []byte,
+) (reqBody *bytes.Buffer, contentType string) {
 	t.Helper()
 	var buf bytes.Buffer
 	w := multipart.NewWriter(&buf)
@@ -149,7 +156,11 @@ func TestScreenshotHandler_WrongContentType(t *testing.T) {
 	svc := screenshot.NewService(&stubVision{content: okPayload}, zap.NewNop(), screenshot.Options{})
 	r := newTestRouter(svc, 42)
 
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/portfolio/import-screenshot", bytes.NewReader([]byte(`{"x":1}`)))
+	req := httptest.NewRequest(
+		http.MethodPost,
+		"/api/v1/portfolio/import-screenshot",
+		bytes.NewReader([]byte(`{"x":1}`)),
+	)
 	req.Header.Set("Content-Type", "application/json")
 
 	w := httptest.NewRecorder()

@@ -1,3 +1,5 @@
+version: "2"
+
 run:
   timeout: 5m
 
@@ -7,23 +9,24 @@ linters:
     - errcheck
     - staticcheck
     - unused
-    - gosimple
     - gocritic
-    - gofmt
-    - goimports
     - misspell
     - revive
+  settings:
+    revive:
+      rules:
+        - name: line-length-limit
+          arguments:
+            - 120
+    misspell:
+      locale: US
+    gocritic:
+      enabled-tags:
+        - diagnostic
+        - style
+        - performance
 
-linters-settings:
-  revive:
-    rules:
-      - name: line-length-limit
-        arguments:
-          - 120
-  misspell:
-    locale: US
-  gocritic:
-    enabled-tags:
-      - diagnostic
-      - style
-      - performance
+formatters:
+  enable:
+    - gofmt
+    - goimports

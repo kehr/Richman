@@ -43,6 +43,16 @@ type DecisionCard struct {
 	ConfidenceDelta      float64                       `json:"confidenceDelta"`
 	PrevCardID           *int64                        `json:"prevCardId,omitempty"`
 	ExecutionFingerprint string                        `json:"executionFingerprint"`
+
+	// Provenance metadata written by the synthesis pipeline (migration 012).
+	// SynthesisSource is one of "llm" | "template" | "mixed" and captures
+	// how the final content was produced. ProviderUsed is one of
+	// "user" | "system_default" | "none" and captures which fallback layer
+	// served the underlying LLM call (or none for pure template output).
+	// Both are nullable pointers because historical rows predate the
+	// migration; the backfill sets the default to ("llm", "user").
+	SynthesisSource *string `json:"synthesisSource,omitempty"`
+	ProviderUsed    *string `json:"providerUsed,omitempty"`
 }
 
 // RecommendationJSONBytes returns the structured recommendation as a JSON

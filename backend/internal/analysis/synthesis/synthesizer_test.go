@@ -13,21 +13,23 @@ import (
 	"github.com/richman/backend/internal/llm"
 )
 
-// stubProvider is an in-memory llm.Provider used to exercise the success /
-// failure / malformed-response code paths without touching the network.
-type stubProvider struct {
-	resp *llm.ChatResponse
+// stubResolver is an in-memory llm.Resolver used to exercise the success /
+// failure / malformed-response code paths without touching the network. The
+// fields are read once per call so each test can install its own canned
+// response or error.
+type stubResolver struct {
+	resp *llm.ResolvedResponse
 	err  error
 }
 
-func (s *stubProvider) ChatCompletion(_ context.Context, _ llm.ChatRequest) (*llm.ChatResponse, error) {
+func (s *stubResolver) ResolvedChatCompletion(
+	_ context.Context, _ int64, _ llm.ChatRequest,
+) (*llm.ResolvedResponse, error) {
 	if s.err != nil {
 		return nil, s.err
 	}
 	return s.resp, nil
 }
-
-func (s *stubProvider) Name() string { return "stub" }
 
 func sampleInput(rec analysis.Recommendation) *SynthesisInput {
 	return &SynthesisInput{
@@ -54,6 +56,15 @@ func sampleInput(rec analysis.Recommendation) *SynthesisInput {
 		Recommendation: rec,
 		CostPrice:      150.0,
 		PositionRatio:  0.2,
+	}
+}
+
+// resolvedUser wraps content in a ResolvedResponse that reports the user
+// layer as the serving provider. Used by the happy-path tests.
+func resolvedUser(content string) *llm.ResolvedResponse {
+	return &llm.ResolvedResponse{
+		Response: &llm.ChatResponse{Content: content, Latency: time.Millisecond},
+		Layer:    llm.LayerUser,
 	}
 }
 
@@ -87,10 +98,10 @@ func TestSynthesize_LLMSuccessWithRecommendation(t *testing.T) {
             }
         }
     }`
-	provider := &stubProvider{resp: &llm.ChatResponse{Content: body, Latency: time.Millisecond}}
-	s := NewSynthesizer(provider, zap.NewNop())
+	resolver := &stubResolver{resp: resolvedUser(body)}
+	s := NewSynthesizer(resolver, zap.NewNop())
 
-	out, err := s.Synthesize(context.Background(), sampleInput(analysis.RecommendSmallAdd))
+	out, meta, err := s.Synthesize(context.Background(), sampleInput(analysis.RecommendSmallAdd), 42)
 	if err != nil {
 		t.Fatalf("Synthesize returned error: %v", err)
 	}
@@ -109,19 +120,28 @@ func TestSynthesize_LLMSuccessWithRecommendation(t *testing.T) {
 	if len(out.Recommendation.Execution.Steps) != 1 {
 		t.Fatalf("expected 1 step, got %d", len(out.Recommendation.Execution.Steps))
 	}
+	if meta == nil {
+		t.Fatal("expected non-nil meta")
+	}
+	if meta.Source != "llm" {
+		t.Errorf("expected meta.Source=llm, got %q", meta.Source)
+	}
+	if meta.ProviderUsed != string(llm.LayerUser) {
+		t.Errorf("expected meta.ProviderUsed=user, got %q", meta.ProviderUsed)
+	}
 }
 
-func TestSynthesize_NilProvider_UsesTemplateFallback(t *testing.T) {
-	// When the LLM provider is unavailable at startup (no API key, dial
-	// failure, etc.) main.go constructs a Synthesizer with a nil provider
+func TestSynthesize_NilResolver_UsesTemplateFallback(t *testing.T) {
+	// When the Resolver is unavailable at startup (no master key, no system
+	// default, etc.) main.go constructs a Synthesizer with a nil Resolver
 	// and relies on Synthesize short-circuiting to the template fallback.
 	// Regression guard for the nil-pointer panic observed on dev start when
 	// this contract was silently broken.
 	s := NewSynthesizer(nil, zap.NewNop())
 
-	out, err := s.Synthesize(context.Background(), sampleInput(analysis.RecommendHold))
+	out, meta, err := s.Synthesize(context.Background(), sampleInput(analysis.RecommendHold), 1)
 	if err != nil {
-		t.Fatalf("expected nil error on nil-provider fallback, got %v", err)
+		t.Fatalf("expected nil error on nil-resolver fallback, got %v", err)
 	}
 	if out == nil {
 		t.Fatal("expected non-nil output from template fallback")
@@ -132,13 +152,22 @@ func TestSynthesize_NilProvider_UsesTemplateFallback(t *testing.T) {
 	if out.TrendSummary == "" || out.PositionSummary == "" {
 		t.Error("expected template fallback to populate summary fields")
 	}
+	if meta == nil {
+		t.Fatal("expected non-nil meta")
+	}
+	if meta.Source != "template" {
+		t.Errorf("expected meta.Source=template, got %q", meta.Source)
+	}
+	if meta.ProviderUsed != string(llm.LayerNone) {
+		t.Errorf("expected meta.ProviderUsed=none, got %q", meta.ProviderUsed)
+	}
 }
 
 func TestSynthesize_LLMFailure_UsesTemplateFallback(t *testing.T) {
-	provider := &stubProvider{err: errors.New("network down")}
-	s := NewSynthesizer(provider, zap.NewNop())
+	resolver := &stubResolver{err: errors.New("network down")}
+	s := NewSynthesizer(resolver, zap.NewNop())
 
-	out, err := s.Synthesize(context.Background(), sampleInput(analysis.RecommendAggressiveAdd))
+	out, meta, err := s.Synthesize(context.Background(), sampleInput(analysis.RecommendAggressiveAdd), 42)
 	if err != nil {
 		t.Fatalf("expected nil error on fallback, got %v", err)
 	}
@@ -155,13 +184,45 @@ func TestSynthesize_LLMFailure_UsesTemplateFallback(t *testing.T) {
 	if len(out.Recommendation.Execution.Steps) != 1 {
 		t.Fatalf("expected 1 fallback step")
 	}
+	if meta == nil {
+		t.Fatal("expected non-nil meta")
+	}
+	if meta.Source != "template" {
+		t.Errorf("expected meta.Source=template, got %q", meta.Source)
+	}
+	if meta.ProviderUsed != string(llm.LayerNone) {
+		t.Errorf("expected meta.ProviderUsed=none, got %q", meta.ProviderUsed)
+	}
+}
+
+func TestSynthesize_AllLayersFailed_UsesTemplateFallback(t *testing.T) {
+	// Resolver surfaces ErrAllLayersFailed when every fallback layer is
+	// unusable. The Synthesizer must treat this like any other failure and
+	// emit a template card, not bubble the error.
+	resolver := &stubResolver{err: llm.ErrAllLayersFailed}
+	s := NewSynthesizer(resolver, zap.NewNop())
+
+	out, meta, err := s.Synthesize(context.Background(), sampleInput(analysis.RecommendHold), 42)
+	if err != nil {
+		t.Fatalf("expected nil error, got %v", err)
+	}
+	if out == nil {
+		t.Fatal("expected non-nil output")
+	}
+	if meta.Source != "template" || meta.ProviderUsed != string(llm.LayerNone) {
+		t.Errorf("expected template/none meta, got source=%q provider=%q",
+			meta.Source, meta.ProviderUsed)
+	}
 }
 
 func TestSynthesize_LLMMalformedJSON_UsesTemplateFallback(t *testing.T) {
-	provider := &stubProvider{resp: &llm.ChatResponse{Content: "not json at all"}}
-	s := NewSynthesizer(provider, zap.NewNop())
+	// Layer is preserved on the meta because the LLM was reachable: the
+	// response just could not be parsed. Operators need to see "user layer
+	// answered with garbage", not "no layer answered".
+	resolver := &stubResolver{resp: resolvedUser("not json at all")}
+	s := NewSynthesizer(resolver, zap.NewNop())
 
-	out, err := s.Synthesize(context.Background(), sampleInput(analysis.RecommendHold))
+	out, meta, err := s.Synthesize(context.Background(), sampleInput(analysis.RecommendHold), 42)
 	if err != nil {
 		t.Fatalf("expected nil error, got %v", err)
 	}
@@ -174,10 +235,17 @@ func TestSynthesize_LLMMalformedJSON_UsesTemplateFallback(t *testing.T) {
 	if out.Recommendation.Execution.StopLoss == nil || out.Recommendation.Execution.TakeProfit == nil {
 		t.Errorf("expected stop/take guards on hold fallback")
 	}
+	if meta.Source != "template" {
+		t.Errorf("expected meta.Source=template, got %q", meta.Source)
+	}
+	if meta.ProviderUsed != string(llm.LayerUser) {
+		t.Errorf("expected meta.ProviderUsed=user (layer preserved), got %q", meta.ProviderUsed)
+	}
 }
 
 func TestSynthesize_LLMMissingRecommendation_UsesRecommendationFallback(t *testing.T) {
-	// Valid text fields but no recommendation sub-object.
+	// Valid text fields but no recommendation sub-object — the output meta
+	// should reflect the "mixed" ternary value.
 	body := `{
         "trendSummary": "ok",
         "positionSummary": "ok",
@@ -188,10 +256,10 @@ func TestSynthesize_LLMMissingRecommendation_UsesRecommendationFallback(t *testi
         "todayHighlights": "",
         "weightAdjustment": ""
     }`
-	provider := &stubProvider{resp: &llm.ChatResponse{Content: body}}
-	s := NewSynthesizer(provider, zap.NewNop())
+	resolver := &stubResolver{resp: resolvedUser(body)}
+	s := NewSynthesizer(resolver, zap.NewNop())
 
-	out, err := s.Synthesize(context.Background(), sampleInput(analysis.RecommendGradualReduce))
+	out, meta, err := s.Synthesize(context.Background(), sampleInput(analysis.RecommendGradualReduce), 42)
 	if err != nil {
 		t.Fatalf("unexpected err: %v", err)
 	}
@@ -203,6 +271,59 @@ func TestSynthesize_LLMMissingRecommendation_UsesRecommendationFallback(t *testi
 	}
 	if out.Recommendation.ActionLevel != -1 {
 		t.Errorf("expected level=-1, got %d", out.Recommendation.ActionLevel)
+	}
+	if meta.Source != "mixed" {
+		t.Errorf("expected meta.Source=mixed, got %q", meta.Source)
+	}
+	if meta.ProviderUsed != string(llm.LayerUser) {
+		t.Errorf("expected meta.ProviderUsed=user, got %q", meta.ProviderUsed)
+	}
+}
+
+func TestSynthesize_SystemDefaultFallback_RecordsLayer(t *testing.T) {
+	// When the Resolver walks past the user layer and the system default
+	// answers instead, the meta must report the system_default layer so the
+	// dashboard banner can surface "using shared provider".
+	body := `{
+        "trendSummary": "ok",
+        "positionSummary": "ok",
+        "catalystSummary": "ok",
+        "actionAdvice": "ok",
+        "detailedAdvice": "ok",
+        "riskWarnings": [],
+        "todayHighlights": "",
+        "weightAdjustment": "",
+        "recommendation": {
+            "action": "hold",
+            "label": "Hold",
+            "currentPositionPct": 20.0,
+            "targetPositionPct": 20.0,
+            "execution": {
+                "type": "monitor",
+                "steps": [],
+                "stopLoss": 140.0,
+                "takeProfit": 160.0,
+                "validDays": 7
+            }
+        }
+    }`
+	resolver := &stubResolver{
+		resp: &llm.ResolvedResponse{
+			Response: &llm.ChatResponse{Content: body, Latency: time.Millisecond},
+			Layer:    llm.LayerSystemDefault,
+		},
+	}
+	s := NewSynthesizer(resolver, zap.NewNop())
+
+	_, meta, err := s.Synthesize(context.Background(), sampleInput(analysis.RecommendHold), 42)
+	if err != nil {
+		t.Fatalf("unexpected err: %v", err)
+	}
+	if meta.Source != "llm" {
+		t.Errorf("expected meta.Source=llm, got %q", meta.Source)
+	}
+	if meta.ProviderUsed != string(llm.LayerSystemDefault) {
+		t.Errorf("expected meta.ProviderUsed=system_default, got %q", meta.ProviderUsed)
 	}
 }
 

@@ -81,6 +81,12 @@ type DecisionCardDTO struct {
 	ConfidenceDelta      float64                       `json:"confidenceDelta"`
 	PrevCardID           *int64                        `json:"prevCardId,omitempty"`
 	ExecutionFingerprint string                        `json:"executionFingerprint"`
+
+	// Provenance fields added by migration 012. Nullable at rest — rows
+	// predating the migration are normalized to "unknown" here so the
+	// frontend can branch on a closed union without a null check.
+	SynthesisSource string `json:"synthesisSource"`
+	ProviderUsed    string `json:"providerUsed"`
 }
 
 // toDecisionCardDTO projects a model.DecisionCard onto the API response DTO
@@ -119,6 +125,38 @@ func toDecisionCardDTO(c *model.DecisionCard) DecisionCardDTO {
 		ConfidenceDelta:      c.ConfidenceDelta,
 		PrevCardID:           c.PrevCardID,
 		ExecutionFingerprint: c.ExecutionFingerprint,
+		SynthesisSource:      normalizeSynthesisSource(c.SynthesisSource),
+		ProviderUsed:         normalizeProviderUsed(c.ProviderUsed),
+	}
+}
+
+// normalizeSynthesisSource maps a nullable DB string onto a closed union.
+// Rows written before migration 012's backfill (or any future rows that
+// somehow land as NULL) surface as "unknown" so the frontend can switch
+// on a single type without a null branch.
+func normalizeSynthesisSource(v *string) string {
+	if v == nil {
+		return "unknown"
+	}
+	switch *v {
+	case "llm", "template", "mixed":
+		return *v
+	default:
+		return "unknown"
+	}
+}
+
+// normalizeProviderUsed applies the same nullable → closed-union mapping
+// for the provider layer.
+func normalizeProviderUsed(v *string) string {
+	if v == nil {
+		return "unknown"
+	}
+	switch *v {
+	case "user", "system_default", "none":
+		return *v
+	default:
+		return "unknown"
 	}
 }
 

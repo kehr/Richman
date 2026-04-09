@@ -79,18 +79,18 @@ func (e *LLMEnhancer) Enhance(
 
 func buildCatalystPrompt(assetCode, assetType string, base analysis.CatalystResult) string {
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf(
+	fmt.Fprintf(&sb,
 		"Analyze recent events and news that could affect the asset %s (type: %s).\n",
 		assetCode, assetType,
-	))
+	)
 	sb.WriteString("The current quantitative catalyst analysis shows:\n")
-	sb.WriteString(fmt.Sprintf("- Direction: %s\n", base.Direction))
-	sb.WriteString(fmt.Sprintf("- Score: %.2f\n", base.Score))
+	fmt.Fprintf(&sb, "- Direction: %s\n", base.Direction)
+	fmt.Fprintf(&sb, "- Score: %.2f\n", base.Score)
 	if len(base.Events) > 0 {
 		sb.WriteString("- Known events:\n")
 		for _, ev := range base.Events {
-			sb.WriteString(fmt.Sprintf("  - %s (probability: %.2f, impact: %s)\n",
-				ev.Title, ev.Probability, ev.Impact))
+			fmt.Fprintf(&sb, "  - %s (probability: %.2f, impact: %s)\n",
+				ev.Title, ev.Probability, ev.Impact)
 		}
 	}
 	sb.WriteString("\nReturn a JSON object with:\n")

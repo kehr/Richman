@@ -10,7 +10,7 @@ import (
 // backends can evolve independently.
 type VisionProvider interface {
 	// AnalyzeImage sends an image plus prompts and returns the assistant reply.
-	AnalyzeImage(ctx context.Context, req VisionRequest) (*VisionResponse, error)
+	AnalyzeImage(ctx context.Context, req *VisionRequest) (*VisionResponse, error)
 	// Name returns the vision provider name.
 	Name() string
 }
@@ -34,8 +34,8 @@ type VisionResponse struct {
 
 // Typed errors so callers can classify failures and apply fallback strategies.
 var (
-	// ErrVisionTimeout indicates the request was cancelled or deadline exceeded.
-	ErrVisionTimeout = errors.New("vision: request timeout or cancelled")
+	// ErrVisionTimeout indicates the request was canceled or deadline exceeded.
+	ErrVisionTimeout = errors.New("vision: request timeout or canceled")
 	// ErrVisionRateLimited indicates the upstream returned HTTP 429.
 	ErrVisionRateLimited = errors.New("vision: rate limited by upstream")
 	// ErrVisionClient indicates a non-429 4xx error (caller/request issue).

@@ -9,18 +9,20 @@ import { StepIndicator } from "./StepIndicator";
 const { Title, Paragraph } = Typography;
 
 interface OnboardingLayoutProps {
-	// currentStep is narrowed to the four-step literal union so every caller
+	// currentStep is narrowed to the step literal union so every caller
 	// and every downstream consumer (StepIndicator, OnboardingBackground,
 	// OnboardingPageTransition) shares one domain. Pages pass numeric literals
-	// already; tsc narrows them automatically.
-	currentStep: 1 | 2 | 3 | 4;
+	// already; tsc narrows them automatically. Step 5 is the LLM consent step
+	// added by the degraded-contract feature.
+	currentStep: 1 | 2 | 3 | 4 | 5;
+	totalSteps?: number;
 	title: string;
 	description?: ReactNode;
 	children: ReactNode;
 	footer?: ReactNode;
 }
 
-const TOTAL_STEPS = 4;
+const TOTAL_STEPS = 5;
 
 // OnboardingLayout is the shared three-region shell used by every onboarding
 // page (PRD §3.3, TRD §5.1). It renders:
@@ -39,6 +41,7 @@ const TOTAL_STEPS = 4;
 // that retriggers a key-driven horizontal nudge on the footer slot.
 export function OnboardingLayout({
 	currentStep,
+	totalSteps = 5,
 	title,
 	description,
 	children,

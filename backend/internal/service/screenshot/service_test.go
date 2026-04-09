@@ -20,9 +20,11 @@ type fakeVision struct {
 	err      error
 }
 
-func (f *fakeVision) AnalyzeImage(_ context.Context, req llm.VisionRequest) (*llm.VisionResponse, error) {
+func (f *fakeVision) AnalyzeImage(_ context.Context, req *llm.VisionRequest) (*llm.VisionResponse, error) {
 	f.calls++
-	f.lastReq = req
+	if req != nil {
+		f.lastReq = *req
+	}
 	if f.err != nil {
 		return nil, f.err
 	}
@@ -84,7 +86,7 @@ func TestService_Recognize_RejectsOversizeImage(t *testing.T) {
 	fv := &fakeVision{}
 	svc := newTestService(t, fv, Options{})
 
-	big := bytes.Repeat([]byte{0x00}, MaxImageBytes+1)
+	big := make([]byte, MaxImageBytes+1)
 	_, err := svc.Recognize(context.Background(), 7, RecognizeRequest{
 		ImageData: big,
 		ImageMIME: "image/png",
@@ -241,7 +243,12 @@ func TestService_Recognize_InvalidJSONDegrades(t *testing.T) {
 }
 
 func TestService_Recognize_LowConfidenceStatus(t *testing.T) {
-	low := `{"holdings":[{"assetName":{"value":"?","confidence":0.2},"assetCode":{"value":"","confidence":0},"costPrice":{"value":"","confidence":0},"positionPct":{"value":"","confidence":0},"assetTypeGuess":""}]}`
+	low := `{"holdings":[{` +
+		`"assetName":{"value":"?","confidence":0.2},` +
+		`"assetCode":{"value":"","confidence":0},` +
+		`"costPrice":{"value":"","confidence":0},` +
+		`"positionPct":{"value":"","confidence":0},` +
+		`"assetTypeGuess":""}]}`
 	fv := &fakeVision{response: &llm.VisionResponse{Content: low}}
 	svc := newTestService(t, fv, Options{})
 

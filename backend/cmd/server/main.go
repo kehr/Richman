@@ -27,6 +27,8 @@ import (
 	polymarket "github.com/richman/backend/internal/datasource/polymarket"
 	yahoo "github.com/richman/backend/internal/datasource/yahoo"
 	"github.com/richman/backend/internal/llm"
+	claudeClient "github.com/richman/backend/internal/llm/claude"
+	openaiClient "github.com/richman/backend/internal/llm/openai"
 	"github.com/richman/backend/internal/logger"
 	"github.com/richman/backend/internal/migration"
 	"github.com/richman/backend/internal/notification"
@@ -38,9 +40,10 @@ import (
 	"github.com/richman/backend/internal/service/portfolio"
 	"go.uber.org/zap"
 
-	// Register LLM provider implementations via init().
-	_ "github.com/richman/backend/internal/llm/claude"
-	_ "github.com/richman/backend/internal/llm/openai"
+	// Note: claude and openai packages register provider factories via
+	// their init() functions when first imported. The aliased imports
+	// above (claudeClient / openaiClient) pull them in so llm.NewProvider
+	// can find them without needing a separate blank import.
 
 	analysisService "github.com/richman/backend/internal/service/analysis"
 	decisioncard "github.com/richman/backend/internal/service/decision_card"
@@ -105,12 +108,18 @@ func main() {
 	taskRepo := repo.NewAnalysisTaskRepo(dbPool)
 	notifChannelRepo := repo.NewNotificationChannelRepo(dbPool)
 	notifLogRepo := repo.NewNotificationLogRepo(dbPool)
+	llmConfigRepo := repo.NewLLMConfigRepo(dbPool)
 
 	// Initialize services
 	authService := auth.NewService(userRepo, planRepo, inviteRepo, cfg)
 	portfolioService := portfolio.NewService(holdingRepo, tradeRepo)
 
-	// Initialize LLM provider (optional; analysis works in degraded mode without it).
+	// Initialize LLM provider (optional; analysis works in degraded mode
+	// without it). systemDefault is the shared fallback LLM Richman
+	// operates for users who have not configured their own provider; it
+	// is always wired into the Resolver's second layer (gated behind
+	// user consent) so dashboards keep showing live LLM cards when the
+	// personal layer fails.
 	var llmProvider llm.Provider
 	var llmEnhancer *catalyst.LLMEnhancer
 	var llmSynthesizer *synthesis.Synthesizer
@@ -125,10 +134,63 @@ func main() {
 		llmEnhancer = catalyst.NewLLMEnhancer(llmProvider, zapLogger)
 		zapLogger.Info("llm provider initialized", zap.String("provider", llmProvider.Name()))
 	}
-	// Synthesizer is always constructed: when llmProvider is nil, Synthesize
-	// short-circuits to the template fallback so the analysis pipeline still
-	// produces decision cards in degraded mode.
-	llmSynthesizer = synthesis.NewSynthesizer(llmProvider, zapLogger)
+
+	// Initialize crypto from the env master key. In dev without a key
+	// we warn and continue with crypto=nil; every mutating user-config
+	// endpoint then short-circuits with 503 so plaintext keys cannot be
+	// silently persisted. Production envs MUST set LLM_CONFIG_MASTER_KEY
+	// and should fatal on missing-key to catch misconfiguration early.
+	var llmCrypto *llm.Crypto
+	if cfg.LLM.ConfigMasterKey == "" {
+		if cfg.IsDev() {
+			zapLogger.Warn("LLM_CONFIG_MASTER_KEY not set; user-level llm configs disabled")
+		} else {
+			zapLogger.Fatal("LLM_CONFIG_MASTER_KEY is required in non-dev environments")
+		}
+	} else {
+		llmCrypto, err = llm.NewCryptoFromHex(cfg.LLM.ConfigMasterKey)
+		if err != nil {
+			zapLogger.Fatal("llm crypto init failed", zap.Error(err))
+		}
+	}
+
+	// Provider builders: closures over the concrete factory packages so
+	// the llm package does not need to import claude / openai (which
+	// would create a cycle with the Provider interface). Builders honor
+	// the same signature the Resolver and LLMSettingsHandler consume.
+	claudeBuilder := func(apiKey, chatModel string) llm.Provider {
+		return claudeClient.NewClient(apiKey, zapLogger, claudeClient.WithModel(chatModel))
+	}
+	openaiBuilder := func(baseURL, apiKey, chatModel string) llm.Provider {
+		opts := []openaiClient.Option{openaiClient.WithModel(chatModel)}
+		if baseURL != "" {
+			opts = append(opts, openaiClient.WithBaseURL(baseURL))
+		}
+		return openaiClient.NewClient(apiKey, zapLogger, opts...)
+	}
+
+	// Resolver: nil when crypto is absent so the Synthesizer's nil-branch
+	// fallback takes over. When crypto is present, wire the full three-
+	// layer chain so per-user configs and the shared system default can
+	// both answer analysis requests.
+	var llmResolver llm.Resolver
+	if llmCrypto != nil {
+		llmResolver = llm.NewResolver(
+			llmConfigRepo,
+			userRepo,
+			llmCrypto,
+			llmProvider,
+			claudeBuilder,
+			openaiBuilder,
+			cfg.LLM.ProbeTimeout,
+			zapLogger,
+		)
+	}
+
+	// Synthesizer is always constructed: when the Resolver is nil,
+	// Synthesize short-circuits to the template fallback so the analysis
+	// pipeline still produces decision cards in degraded mode.
+	llmSynthesizer = synthesis.NewSynthesizer(llmResolver, zapLogger)
 
 	// Initialize vision provider (optional; screenshot recognition
 	// degrades to a "failed" response when the provider is unavailable).
@@ -222,6 +284,21 @@ func main() {
 	screenshotHandler := v1.NewScreenshotHandler(screenshotService)
 	onboardingHandler := v1.NewOnboardingHandler(onboardingService)
 	userSettingsHandler := v1.NewUserSettingsHandler(userSettingsService)
+	llmSettingsHandler := v1.NewLLMSettingsHandler(v1.LLMSettingsDeps{
+		ConfigRepo:    llmConfigRepo,
+		ConsentRepo:   userRepo,
+		Crypto:        llmCrypto,
+		ClaudeBuilder: claudeBuilder,
+		OpenAIBuilder: openaiBuilder,
+		ProbeTimeout:  cfg.LLM.ProbeTimeout,
+		Logger:        zapLogger,
+	})
+	dashboardHandler := v1.NewDashboardHandler(
+		llmConfigRepo,
+		cardRepo,
+		llmProvider != nil,
+		zapLogger,
+	)
 
 	// Setup Gin
 	if !cfg.IsDev() {
@@ -253,6 +330,8 @@ func main() {
 	screenshotHandler.RegisterRoutes(apiV1, authMiddleware)
 	onboardingHandler.RegisterRoutes(apiV1, authMiddleware)
 	userSettingsHandler.RegisterRoutes(apiV1, authMiddleware)
+	llmSettingsHandler.RegisterRoutes(apiV1, authMiddleware)
+	dashboardHandler.RegisterRoutes(apiV1, authMiddleware)
 
 	// Start scheduler
 	scheduler.Start()

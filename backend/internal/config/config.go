@@ -54,6 +54,17 @@ type LLMConfig struct {
 	VisionAPIEndpoint string
 	VisionModel       string
 	VisionTimeout     time.Duration
+	// ConfigMasterKey is the 64-character hex master key used by
+	// internal/llm.Crypto to AES-256-GCM encrypt per-user API keys before
+	// they are written to the llm_configs table. It MUST be exactly 32 raw
+	// bytes (64 hex chars). The server boot path calls NewCryptoFromHex and
+	// log.Fatals if validation fails, so a misconfigured value crashes fast
+	// instead of silently running with plaintext storage.
+	ConfigMasterKey string
+	// ProbeTimeout bounds every user-provider connectivity probe and every
+	// Resolver call to a user provider. Keeping it tight (default 5s) is
+	// deliberate: a degraded provider must not stall the synthesis pipeline.
+	ProbeTimeout time.Duration
 }
 
 // NotificationConfig holds notification channel settings.
@@ -126,6 +137,11 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("invalid LLM_VISION_TIMEOUT_SECONDS: %w", err)
 	}
 
+	probeTimeout, err := time.ParseDuration(getEnv("LLM_PROBE_TIMEOUT", "5s"))
+	if err != nil {
+		return nil, fmt.Errorf("invalid LLM_PROBE_TIMEOUT: %w", err)
+	}
+
 	cfg := &Config{
 		App: AppConfig{
 			Env:  getEnv("APP_ENV", "dev"),
@@ -149,6 +165,8 @@ func Load() (*Config, error) {
 			VisionAPIEndpoint: getEnv("VISION_API_ENDPOINT", ""),
 			VisionModel:       getEnv("VISION_MODEL", ""),
 			VisionTimeout:     time.Duration(visionTimeoutSeconds) * time.Second,
+			ConfigMasterKey:   getEnv("LLM_CONFIG_MASTER_KEY", ""),
+			ProbeTimeout:      probeTimeout,
 		},
 		Notification: NotificationConfig{
 			WeChatAppID:     getEnv("WECHAT_APP_ID", ""),

@@ -100,11 +100,12 @@ func (r *Runner) loadMigrations() ([]migrationFile, error) {
 		}
 		name := entry.Name()
 		var suffix string
-		if strings.HasSuffix(name, ".up.sql") {
+		switch {
+		case strings.HasSuffix(name, ".up.sql"):
 			suffix = ".up.sql"
-		} else if strings.HasSuffix(name, ".down.sql") {
+		case strings.HasSuffix(name, ".down.sql"):
 			suffix = ".down.sql"
-		} else {
+		default:
 			continue
 		}
 		version, slug, err := parseMigrationName(name, suffix)
@@ -136,13 +137,13 @@ func (r *Runner) loadMigrations() ([]migrationFile, error) {
 	return list, nil
 }
 
-func parseMigrationName(name, suffix string) (int, string, error) {
+func parseMigrationName(name, suffix string) (version int, slug string, err error) {
 	trimmed := strings.TrimSuffix(name, suffix)
 	parts := strings.SplitN(trimmed, "_", 2)
 	if len(parts) != 2 {
 		return 0, "", fmt.Errorf("invalid migration filename: %s", name)
 	}
-	version, err := strconv.Atoi(parts[0])
+	version, err = strconv.Atoi(parts[0])
 	if err != nil {
 		return 0, "", fmt.Errorf("invalid migration version in %s", name)
 	}
@@ -226,7 +227,9 @@ func (r *Runner) execFile(ctx context.Context, path string) error {
 	}
 	for _, stmt := range stmts {
 		if _, err := tx.Exec(ctx, stmt); err != nil {
-			tx.Rollback(ctx)
+			if rbErr := tx.Rollback(ctx); rbErr != nil {
+				return fmt.Errorf("exec failed: %w (rollback failed: %v)", err, rbErr)
+			}
 			return err
 		}
 	}

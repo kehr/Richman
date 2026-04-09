@@ -1,4 +1,11 @@
-import { type DecisionCardDTO, useDecisionCards, useRerunAnalysis } from "@/features/decision-card";
+import { LLMStatusBanner } from "@/features/dashboard-llm-status";
+import { useDashboardSummary } from "@/features/dashboard-summary";
+import {
+	type DecisionCardDTO,
+	useDecisionCards,
+	useReanalyzeAll,
+	useRerunAnalysis,
+} from "@/features/decision-card";
 import { useHoldings } from "@/features/portfolio";
 import { useUserSettings } from "@/features/user-settings";
 import { App, Flex, PageContainer, Space } from "@/ui-kit/eat";
@@ -20,7 +27,9 @@ export default function DashboardPage() {
 	const holdingsQuery = useHoldings();
 	const cardsQuery = useDecisionCards();
 	const settingsQuery = useUserSettings();
+	const summaryQuery = useDashboardSummary();
 	const rerun = useRerunAnalysis();
+	const reanalyzeAll = useReanalyzeAll();
 
 	// cardRefs is shared between DecisionCardWall (which populates it) and
 	// ChangeAnchorList (which reads from it to scroll + highlight). A ref
@@ -101,17 +110,36 @@ export default function DashboardPage() {
 		navigate("/portfolio");
 	};
 
-	// Restructured outer shell (step 16): a flex column wraps the nudge plus
+	// staleCardCount counts decision cards with synthesisSource in
+	// (template, mixed) for the LLM degraded-contract banner.
+	const staleCardCount = useMemo(
+		() =>
+			cards.filter((c) => c.synthesisSource === "template" || c.synthesisSource === "mixed").length,
+		[cards],
+	);
+
+	const llmStatus = summaryQuery.data?.llmStatus;
+	const needsReanalysis = llmStatus?.needsReanalysis ?? false;
+
+	const handleReanalyzeAll = async () => {
+		await reanalyzeAll.mutateAsync();
+	};
+
+	// Restructured outer shell: a flex column wraps the nudge plus
 	// whichever body branch applies, so the nudge can render above either the
-	// empty-holdings hero or the populated three-region layout. The nudge
-	// decides internally whether to render based on status.skipped and the
-	// localStorage dismissed flag.
+	// empty-holdings hero or the populated three-region layout.
 	const holdingsReady = !holdingsQuery.isLoading;
 	const showEmptyHero = holdingsReady && holdings.length === 0;
 
 	return (
 		<PageContainer title="Dashboard" data-testid="dashboard-page">
 			<Flex vertical gap={16}>
+				<LLMStatusBanner
+					needsReanalysis={needsReanalysis}
+					staleCardCount={staleCardCount}
+					onReanalyze={handleReanalyzeAll}
+					isReanalyzing={reanalyzeAll.isPending}
+				/>
 				<OnboardingSkippedNudge />
 				{showEmptyHero ? (
 					<EmptyHoldingsHero onAddHolding={handleAddHolding} />

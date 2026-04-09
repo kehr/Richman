@@ -103,7 +103,7 @@ func TestUserSettingsAPI_Get(t *testing.T) {
 	svc := usersettings.NewService(&fakeSettingsRepo{user: baseSettingsUser()})
 	r := newSettingsTestRouter(svc, 7)
 
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/user/settings", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/user/settings", http.NoBody)
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
@@ -182,7 +182,7 @@ func TestUserSettingsAPI_Unauthorized(t *testing.T) {
 	svc := usersettings.NewService(&fakeSettingsRepo{user: baseSettingsUser()})
 	r := newSettingsTestRouter(svc, 0)
 
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/user/settings", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/user/settings", http.NoBody)
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 	if w.Code != http.StatusUnauthorized {

@@ -34,7 +34,11 @@ export interface HoldingDraft {
 export interface OnboardingState {
 	categories: string[];
 	holdingDraft: HoldingDraft;
-	reachedStep: 1 | 2 | 3 | 4;
+	// reachedStep is the max onboarding step the user has unlocked. Step 4
+	// was added by the LLM degraded contract work (LLM consent) which
+	// pushed the final "first analysis" step to position 5. The literal
+	// union intentionally mirrors STEP_PATHS in use-onboarding-nav.
+	reachedStep: 1 | 2 | 3 | 4 | 5;
 	analysisFired: boolean;
 }
 

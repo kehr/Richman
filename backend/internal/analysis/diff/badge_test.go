@@ -19,7 +19,7 @@ func baseSnapshot() CardSnapshot {
 
 func TestCompute_DataDegraded(t *testing.T) {
 	prev := baseSnapshot()
-	state, delta := Compute(Input{
+	state, delta := Compute(&Input{
 		Current:            baseSnapshot(),
 		Previous:           &prev,
 		DataSourceDegraded: true,
@@ -33,7 +33,7 @@ func TestCompute_DataDegraded(t *testing.T) {
 }
 
 func TestCompute_FirstAnalysis(t *testing.T) {
-	state, delta := Compute(Input{Current: baseSnapshot(), Previous: nil})
+	state, delta := Compute(&Input{Current: baseSnapshot(), Previous: nil})
 	if state != BadgeFirstAnalysis {
 		t.Fatalf("state = %s, want %s", state, BadgeFirstAnalysis)
 	}
@@ -46,7 +46,7 @@ func TestCompute_ActionUpgrade(t *testing.T) {
 	prev := baseSnapshot()
 	cur := baseSnapshot()
 	cur.ActionLevel = 1
-	state, delta := Compute(Input{Current: cur, Previous: &prev})
+	state, delta := Compute(&Input{Current: cur, Previous: &prev})
 	if state != BadgeActionUpgrade {
 		t.Fatalf("state = %s, want %s", state, BadgeActionUpgrade)
 	}
@@ -59,7 +59,7 @@ func TestCompute_ActionDowngrade(t *testing.T) {
 	prev := baseSnapshot()
 	cur := baseSnapshot()
 	cur.ActionLevel = -1
-	state, _ := Compute(Input{Current: cur, Previous: &prev})
+	state, _ := Compute(&Input{Current: cur, Previous: &prev})
 	if state != BadgeActionDowngrade {
 		t.Fatalf("state = %s, want %s", state, BadgeActionDowngrade)
 	}
@@ -69,7 +69,7 @@ func TestCompute_SignalFlip_Trend(t *testing.T) {
 	prev := baseSnapshot()
 	cur := baseSnapshot()
 	cur.TrendDirection = "downward"
-	state, _ := Compute(Input{Current: cur, Previous: &prev})
+	state, _ := Compute(&Input{Current: cur, Previous: &prev})
 	if state != BadgeSignalFlip {
 		t.Fatalf("state = %s, want %s", state, BadgeSignalFlip)
 	}
@@ -79,7 +79,7 @@ func TestCompute_SignalFlip_Position(t *testing.T) {
 	prev := baseSnapshot()
 	cur := baseSnapshot()
 	cur.PositionDirection = "bearish"
-	state, _ := Compute(Input{Current: cur, Previous: &prev})
+	state, _ := Compute(&Input{Current: cur, Previous: &prev})
 	if state != BadgeSignalFlip {
 		t.Fatalf("state = %s, want %s", state, BadgeSignalFlip)
 	}
@@ -89,7 +89,7 @@ func TestCompute_SignalFlip_Catalyst(t *testing.T) {
 	prev := baseSnapshot()
 	cur := baseSnapshot()
 	cur.CatalystDirection = "bearish"
-	state, _ := Compute(Input{Current: cur, Previous: &prev})
+	state, _ := Compute(&Input{Current: cur, Previous: &prev})
 	if state != BadgeSignalFlip {
 		t.Fatalf("state = %s, want %s", state, BadgeSignalFlip)
 	}
@@ -99,7 +99,7 @@ func TestCompute_PlanAdjust_Fingerprint(t *testing.T) {
 	prev := baseSnapshot()
 	cur := baseSnapshot()
 	cur.ExecutionFingerprint = "deadbeef"
-	state, _ := Compute(Input{Current: cur, Previous: &prev})
+	state, _ := Compute(&Input{Current: cur, Previous: &prev})
 	if state != BadgePlanAdjust {
 		t.Fatalf("state = %s, want %s", state, BadgePlanAdjust)
 	}
@@ -109,7 +109,7 @@ func TestCompute_PlanAdjust_Target(t *testing.T) {
 	prev := baseSnapshot()
 	cur := baseSnapshot()
 	cur.TargetPositionPct = 60.0
-	state, _ := Compute(Input{Current: cur, Previous: &prev})
+	state, _ := Compute(&Input{Current: cur, Previous: &prev})
 	if state != BadgePlanAdjust {
 		t.Fatalf("state = %s, want %s", state, BadgePlanAdjust)
 	}
@@ -119,7 +119,7 @@ func TestCompute_ConfidenceShift_Positive(t *testing.T) {
 	prev := baseSnapshot()
 	cur := baseSnapshot()
 	cur.Confidence = 85.0 // delta = +15
-	state, delta := Compute(Input{Current: cur, Previous: &prev})
+	state, delta := Compute(&Input{Current: cur, Previous: &prev})
 	if state != BadgeConfidenceShift {
 		t.Fatalf("state = %s, want %s", state, BadgeConfidenceShift)
 	}
@@ -132,7 +132,7 @@ func TestCompute_ConfidenceShift_Negative(t *testing.T) {
 	prev := baseSnapshot()
 	cur := baseSnapshot()
 	cur.Confidence = 55.0 // delta = -15
-	state, delta := Compute(Input{Current: cur, Previous: &prev})
+	state, delta := Compute(&Input{Current: cur, Previous: &prev})
 	if state != BadgeConfidenceShift {
 		t.Fatalf("state = %s, want %s", state, BadgeConfidenceShift)
 	}
@@ -145,7 +145,7 @@ func TestCompute_ConfidenceShift_BoundaryInclusive(t *testing.T) {
 	prev := baseSnapshot()
 	cur := baseSnapshot()
 	cur.Confidence = 80.0 // exactly +10
-	state, _ := Compute(Input{Current: cur, Previous: &prev})
+	state, _ := Compute(&Input{Current: cur, Previous: &prev})
 	if state != BadgeConfidenceShift {
 		t.Fatalf("state = %s, want %s (boundary inclusive)", state, BadgeConfidenceShift)
 	}
@@ -155,7 +155,7 @@ func TestCompute_ConfidenceShift_JustBelowBoundary(t *testing.T) {
 	prev := baseSnapshot()
 	cur := baseSnapshot()
 	cur.Confidence = 79.9 // delta < 10
-	state, _ := Compute(Input{Current: cur, Previous: &prev})
+	state, _ := Compute(&Input{Current: cur, Previous: &prev})
 	if state != BadgeNone {
 		t.Fatalf("state = %s, want %s (sub-threshold)", state, BadgeNone)
 	}
@@ -165,7 +165,7 @@ func TestCompute_None(t *testing.T) {
 	prev := baseSnapshot()
 	cur := baseSnapshot()
 	cur.Confidence = 71.0
-	state, delta := Compute(Input{Current: cur, Previous: &prev})
+	state, delta := Compute(&Input{Current: cur, Previous: &prev})
 	if state != BadgeNone {
 		t.Fatalf("state = %s, want %s", state, BadgeNone)
 	}
@@ -184,7 +184,7 @@ func TestPriority_DegradedBeatsActionUpgrade(t *testing.T) {
 	cur.Confidence = 99.0
 	cur.TrendDirection = "downward"
 	cur.ExecutionFingerprint = "different"
-	state, _ := Compute(Input{
+	state, _ := Compute(&Input{
 		Current:            cur,
 		Previous:           &prev,
 		DataSourceDegraded: true,
@@ -199,7 +199,7 @@ func TestPriority_DegradedBeatsActionUpgrade(t *testing.T) {
 func TestPriority_FirstAnalysisBeatsConfidence(t *testing.T) {
 	cur := baseSnapshot()
 	cur.Confidence = 95.0
-	state, delta := Compute(Input{Current: cur, Previous: nil})
+	state, delta := Compute(&Input{Current: cur, Previous: nil})
 	if state != BadgeFirstAnalysis {
 		t.Fatalf("state = %s, want %s (rule 2 priority)", state, BadgeFirstAnalysis)
 	}
@@ -218,7 +218,7 @@ func TestPriority_ActionUpgradeBeatsFlipAndPlanAndConfidence(t *testing.T) {
 	cur.ExecutionFingerprint = "different"
 	cur.TargetPositionPct = 75.0
 	cur.Confidence = 90.0
-	state, _ := Compute(Input{Current: cur, Previous: &prev})
+	state, _ := Compute(&Input{Current: cur, Previous: &prev})
 	if state != BadgeActionUpgrade {
 		t.Fatalf("state = %s, want %s (rule 3 priority)", state, BadgeActionUpgrade)
 	}
@@ -232,7 +232,7 @@ func TestPriority_SignalFlipBeatsPlanAndConfidence(t *testing.T) {
 	cur.CatalystDirection = "bearish"
 	cur.ExecutionFingerprint = "different"
 	cur.Confidence = 90.0
-	state, _ := Compute(Input{Current: cur, Previous: &prev})
+	state, _ := Compute(&Input{Current: cur, Previous: &prev})
 	if state != BadgeSignalFlip {
 		t.Fatalf("state = %s, want %s (rule 4 priority)", state, BadgeSignalFlip)
 	}
@@ -245,7 +245,7 @@ func TestPriority_PlanAdjustBeatsConfidence(t *testing.T) {
 	cur := baseSnapshot()
 	cur.ExecutionFingerprint = "different"
 	cur.Confidence = 90.0
-	state, delta := Compute(Input{Current: cur, Previous: &prev})
+	state, delta := Compute(&Input{Current: cur, Previous: &prev})
 	if state != BadgePlanAdjust {
 		t.Fatalf("state = %s, want %s (rule 5 priority)", state, BadgePlanAdjust)
 	}

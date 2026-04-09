@@ -36,6 +36,9 @@ func (r *DecisionCardRepo) Pool() *pgxpool.Pool {
 
 // cardColumns enumerates every column selected when scanning a DecisionCard.
 // Keep the order in sync with scanCardRow / insertDecisionCardSQL below.
+// synthesis_source / provider_used were added by the LLM degraded-contract
+// migration (012); they are nullable in the schema so historical rows stay
+// readable without a backfill round trip.
 const cardColumns = `decision_card_id, user_id, holding_id,
 	asset_code, asset_name, asset_type,
 	cost_price, position_ratio,
@@ -48,7 +51,8 @@ const cardColumns = `decision_card_id, user_id, holding_id,
 	weight_trend, weight_position, weight_catalyst,
 	analyzed_at, created_at,
 	recommendation_json, action_level, target_position_ratio,
-	badge_state, confidence_delta, prev_card_id, execution_fingerprint`
+	badge_state, confidence_delta, prev_card_id, execution_fingerprint,
+	synthesis_source, provider_used`
 
 // rowScanner abstracts pgx.Row and pgx.Rows for shared scanning logic.
 type rowScanner interface {
@@ -78,6 +82,7 @@ func (r *DecisionCardRepo) scanCardRow(row rowScanner) (*model.DecisionCard, err
 		&card.AnalyzedAt, &card.CreatedAt,
 		&recData, &card.ActionLevel, &card.TargetPositionRatio,
 		&card.BadgeState, &card.ConfidenceDelta, &card.PrevCardID, &card.ExecutionFingerprint,
+		&card.SynthesisSource, &card.ProviderUsed,
 	)
 	if err != nil {
 		return nil, err
@@ -124,10 +129,11 @@ const insertDecisionCardSQL = `INSERT INTO decision_cards
 	  weight_trend, weight_position, weight_catalyst,
 	  analyzed_at,
 	  recommendation_json, action_level, target_position_ratio,
-	  badge_state, confidence_delta, prev_card_id, execution_fingerprint)
+	  badge_state, confidence_delta, prev_card_id, execution_fingerprint,
+	  synthesis_source, provider_used)
 	 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12,
 	         $13, $14, $15, $16, $17, $18, $19, $20, $21, $22,
-	         $23, $24, $25, $26, $27, $28, $29)
+	         $23, $24, $25, $26, $27, $28, $29, $30, $31)
 	 RETURNING ` + cardColumns
 
 func (r *DecisionCardRepo) insertDecisionCardOn(
@@ -155,6 +161,7 @@ func (r *DecisionCardRepo) insertDecisionCardOn(
 		card.AnalyzedAt,
 		recJSON, card.ActionLevel, card.TargetPositionRatio,
 		card.BadgeState, card.ConfidenceDelta, card.PrevCardID, card.ExecutionFingerprint,
+		card.SynthesisSource, card.ProviderUsed,
 	)
 	inserted, err := r.scanCardRow(row)
 	if err != nil {
@@ -270,6 +277,29 @@ func (r *DecisionCardRepo) ListLatestByUser(ctx context.Context, userID int64) (
 		cards = append(cards, *card)
 	}
 	return cards, nil
+}
+
+// NeedsReanalysis returns true when the user has at least one active
+// decision card whose synthesis_source is "template" or "mixed", meaning
+// the card was produced (partially or fully) by the deterministic
+// fallback and would benefit from a fresh LLM rerun once a provider is
+// healthy. The SQL uses EXISTS so the query short-circuits on the first
+// match and does not load every card into memory.
+func (r *DecisionCardRepo) NeedsReanalysis(ctx context.Context, userID int64) (bool, error) {
+	var needs bool
+	err := r.pool.QueryRow(ctx,
+		`SELECT EXISTS (
+		   SELECT 1 FROM decision_cards
+		   WHERE user_id = $1
+		     AND is_deleted = 0
+		     AND synthesis_source IN ('template', 'mixed')
+		 )`,
+		userID,
+	).Scan(&needs)
+	if err != nil {
+		return false, fmt.Errorf("query needs reanalysis: %w", err)
+	}
+	return needs, nil
 }
 
 // ListHistory returns the N most recent decision cards for a user across all holdings.

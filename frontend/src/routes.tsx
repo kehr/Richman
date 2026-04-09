@@ -11,6 +11,7 @@ const RegisterPage = lazy(() => import("@/pages/auth/RegisterPage"));
 const WelcomePage = lazy(() => import("@/pages/onboarding/WelcomePage"));
 const CategoriesPage = lazy(() => import("@/pages/onboarding/CategoriesPage"));
 const FirstHoldingPage = lazy(() => import("@/pages/onboarding/FirstHoldingPage"));
+const LLMConsentPage = lazy(() => import("@/pages/onboarding/LLMConsentPage"));
 const FirstAnalysisPage = lazy(() => import("@/pages/onboarding/FirstAnalysisPage"));
 const DashboardPage = lazy(() => import("@/pages/dashboard/DashboardPage"));
 const PortfolioListPage = lazy(() => import("@/pages/portfolio/PortfolioListPage"));
@@ -76,6 +77,7 @@ export function AppRoutes() {
 					<Route path="/onboarding/welcome" element={<WelcomePage />} />
 					<Route path="/onboarding/categories" element={<CategoriesPage />} />
 					<Route path="/onboarding/first-holding" element={<FirstHoldingPage />} />
+					<Route path="/onboarding/llm-consent" element={<LLMConsentPage />} />
 					<Route path="/onboarding/first-analysis" element={<FirstAnalysisPage />} />
 				</Route>
 
