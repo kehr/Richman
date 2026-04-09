@@ -12,10 +12,9 @@ import {
 	QuestionCircleOutlined,
 	SettingOutlined,
 	Space,
-	Tooltip,
 	UserOutlined,
 } from "@/ui-kit/eat";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { Outlet, useLocation, useNavigate } from "react-router";
 
@@ -26,11 +25,6 @@ export function MainLayout() {
 	const { t, i18n } = useTranslation();
 
 	const displayName = user?.email?.split("@")[0] || "User";
-
-	const handleLogout = () => {
-		clearAuth();
-		navigate("/login", { replace: true });
-	};
 
 	const menuRoutes = useMemo(
 		() => ({
@@ -44,18 +38,37 @@ export function MainLayout() {
 		[t],
 	);
 
-	const [langDropdownOpen, setLangDropdownOpen] = useState(false);
-
-	const languageMenu = useMemo(
+	const userMenu = useMemo(
 		() => ({
+			selectedKeys: [`lang-${i18n.language}`],
+			onClick: ({ key }: { key: string }) => {
+				if (key === "lang-en") i18n.changeLanguage("en");
+				else if (key === "lang-zh") i18n.changeLanguage("zh");
+				else if (key === "logout") {
+					clearAuth();
+					navigate("/login", { replace: true });
+				}
+			},
 			items: [
-				{ key: "en", label: "English" },
-				{ key: "zh", label: "中文" },
+				{
+					key: "language",
+					icon: <GlobalOutlined />,
+					label: t("nav.switchLanguage"),
+					children: [
+						{ key: "lang-en", label: "English" },
+						{ key: "lang-zh", label: "中文" },
+					],
+				},
+				{ type: "divider" as const },
+				{
+					key: "logout",
+					icon: <LogoutOutlined />,
+					label: t("nav.logout"),
+					danger: true,
+				},
 			],
-			selectedKeys: [i18n.language],
-			onClick: ({ key }: { key: string }) => i18n.changeLanguage(key),
 		}),
-		[i18n],
+		[t, i18n, navigate],
 	);
 
 	return (
@@ -81,12 +94,6 @@ export function MainLayout() {
 				</a>
 			)}
 			menuFooterRender={() => (
-				// Sidebar footer is a single horizontal row: avatar + user label
-				// pinned to the left, help icon pinned to the right. Clicking the
-				// avatar block opens the logout dropdown; clicking the help icon
-				// navigates to /help. Using a flex row with space-between avoids
-				// ProLayout's default stacked layout for actionsRender +
-				// menuFooterRender so the two pieces sit on the same line.
 				<div
 					style={{
 						display: "flex",
@@ -96,20 +103,7 @@ export function MainLayout() {
 						padding: "12px 16px",
 					}}
 				>
-					<Dropdown
-						menu={{
-							items: [
-								{
-									key: "logout",
-									icon: <LogoutOutlined />,
-									label: t("nav.logout"),
-									danger: true,
-									onClick: handleLogout,
-								},
-							],
-						}}
-						placement="topLeft"
-					>
+					<Dropdown menu={userMenu} placement="topLeft" arrow>
 						<Space style={{ cursor: "pointer", minWidth: 0 }}>
 							<Avatar size="small" icon={<UserOutlined />} />
 							<span
@@ -123,43 +117,21 @@ export function MainLayout() {
 							</span>
 						</Space>
 					</Dropdown>
-					<Tooltip title={t("nav.switchLanguage")} open={langDropdownOpen ? false : undefined}>
-						<Dropdown menu={languageMenu} placement="topLeft" onOpenChange={setLangDropdownOpen}>
-							<button
-								type="button"
-								style={{
-									cursor: "pointer",
-									background: "none",
-									border: "none",
-									padding: 0,
-									color: "inherit",
-									display: "inline-flex",
-									alignItems: "center",
-									gap: 8,
-								}}
-							>
-								<GlobalOutlined />
-								<span>{i18n.language === "zh" ? "中文" : "EN"}</span>
-							</button>
-						</Dropdown>
-					</Tooltip>
 					<a
 						href="/help"
 						onClick={(e) => {
 							e.preventDefault();
 							navigate("/help");
 						}}
-						aria-label="Help"
+						aria-label={t("nav.help")}
 						style={{
 							display: "inline-flex",
 							alignItems: "center",
-							gap: 4,
 							color: "inherit",
 							flexShrink: 0,
 						}}
 					>
 						<QuestionCircleOutlined />
-						<span>{t("nav.help")}</span>
 					</a>
 				</div>
 			)}
