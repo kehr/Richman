@@ -1,5 +1,3 @@
-"use client";
-
 import { Alert } from "@/ui-kit/eat";
 
 export function RiskDisclaimer() {
