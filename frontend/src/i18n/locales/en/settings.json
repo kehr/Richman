@@ -40,12 +40,12 @@
 	"preferences": {
 		"language": "Language",
 		"timezone": "Timezone",
-		"timezoneHint": "MVP defaults to Asia/Shanghai — timezone switching does not affect push windows yet.",
+		"timezoneHint": "Timezone selection does not affect push notification windows yet.",
 		"theme": "Theme",
-		"themeHint": "Dark mode not supported in MVP.",
+		"themeHint": "More themes coming soon.",
 		"themeLight": "Light",
 		"numberFormat": "Number Format (Advanced)",
-		"numberFormatHint": "Thousands separator / currency symbol position / decimal places and other advanced options — not enabled in MVP."
+		"numberFormatHint": "Advanced formatting options — coming soon."
 	},
 	"subscription": {
 		"currentPlan": "Current Plan",

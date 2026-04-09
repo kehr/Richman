@@ -142,10 +142,10 @@
 	},
 	"portfolio": {
 		"title": "My Holdings",
-		"holdingCounter": "{{count}}/{{limit}} · MVP max {{limit}} per user",
+		"holdingCounter": "{{count}}/{{limit}}",
 		"addHolding": "Add Holding",
 		"screenshotImport": "Screenshot Bulk Import",
-		"limitReached": "MVP max {{limit}} holdings",
+		"limitReached": "Max {{limit}} holdings reached",
 		"holdingTable": {
 			"asset": "Asset",
 			"type": "Type",
@@ -251,7 +251,7 @@
 			"confirmImport": "Confirm Import",
 			"importSuccess": "Successfully imported {{count}} holdings",
 			"importPartial": "Success {{success}} / Failed {{failure}}",
-			"capWarning": "MVP max {{limit}} holdings. You have {{current}}, {{selected}} selected — limit reached",
+			"capWarning": "You have {{current}} holdings and selected {{selected}} — max {{limit}} reached",
 			"rowCount": "Will add {{count}} holding(s)",
 			"rowLimitReached": "Max {{limit}} holdings reached",
 			"validation": {

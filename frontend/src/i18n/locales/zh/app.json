@@ -142,10 +142,10 @@
 	},
 	"portfolio": {
 		"title": "我的持仓",
-		"holdingCounter": "{{count}}/{{limit}} 个 · MVP 每用户最多 {{limit}} 个标的",
+		"holdingCounter": "{{count}}/{{limit}} 个标的",
 		"addHolding": "添加持仓",
 		"screenshotImport": "截图批量导入",
-		"limitReached": "MVP 最多 {{limit}} 个标的",
+		"limitReached": "最多 {{limit}} 个标的，已达上限",
 		"holdingTable": {
 			"asset": "标的",
 			"type": "类型",
@@ -251,7 +251,7 @@
 			"confirmImport": "确认导入",
 			"importSuccess": "成功导入 {{count}} 个持仓",
 			"importPartial": "成功 {{success}} / 失败 {{failure}}",
-			"capWarning": "MVP 最多 {{limit}} 个标的，当前已有 {{current}} 个，已勾选 {{selected}} 个，已达上限",
+			"capWarning": "当前已有 {{current}} 个，已勾选 {{selected}} 个，已达上限（最多 {{limit}} 个）",
 			"rowCount": "将新增 {{count}} 个持仓",
 			"rowLimitReached": "已达 {{limit}} 个标的上限",
 			"validation": {

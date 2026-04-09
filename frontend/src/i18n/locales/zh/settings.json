@@ -40,12 +40,12 @@
 	"preferences": {
 		"language": "语言",
 		"timezone": "时区",
-		"timezoneHint": "MVP 默认 Asia/Shanghai，时区切换暂不影响推送窗口。",
+		"timezoneHint": "时区选择暂不影响推送窗口。",
 		"theme": "主题",
-		"themeHint": "MVP 暂不支持暗色。",
+		"themeHint": "更多主题即将推出。",
 		"themeLight": "亮色",
 		"numberFormat": "数字格式（高级选项）",
-		"numberFormatHint": "千分位分隔符 / 货币符号位置 / 小数位数等高级选项预留位，MVP 暂未启用。"
+		"numberFormatHint": "高级格式选项即将推出。"
 	},
 	"subscription": {
 		"currentPlan": "当前订阅",
