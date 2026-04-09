@@ -37,6 +37,13 @@ docs/
 - Database: snake_case, soft delete (is_deleted), audit fields on every table
 - Config: .env files per environment (dev/prod), .env.example as template, secrets not in repo
 
+## Frontend Testing Policy (MVP)
+
+- UI tests (.test.tsx) are prohibited — do not write them, do not suggest them
+- Only pure logic/function tests (.test.ts) are allowed: e.g., format helpers, pure algorithms
+- Verification is done via `pnpm lint:all` (Biome + tsc + depcruiser) and human visual review
+- UI issues are fixed directly in code, not caught by tests
+
 ## Design Review Gate (Mandatory)
 
 Before presenting any non-trivial design, writing any design doc, or invoking
