@@ -15,7 +15,7 @@ import {
 	Tooltip,
 	UserOutlined,
 } from "@/ui-kit/eat";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Outlet, useLocation, useNavigate } from "react-router";
 
@@ -43,6 +43,8 @@ export function MainLayout() {
 		}),
 		[t],
 	);
+
+	const [langDropdownOpen, setLangDropdownOpen] = useState(false);
 
 	const languageMenu = useMemo(
 		() => ({
@@ -121,8 +123,8 @@ export function MainLayout() {
 							</span>
 						</Space>
 					</Dropdown>
-					<Tooltip title={t("nav.switchLanguage")}>
-						<Dropdown menu={languageMenu} placement="topLeft">
+					<Tooltip title={t("nav.switchLanguage")} open={langDropdownOpen ? false : undefined}>
+						<Dropdown menu={languageMenu} placement="topLeft" onOpenChange={setLangDropdownOpen}>
 							<button
 								type="button"
 								style={{
