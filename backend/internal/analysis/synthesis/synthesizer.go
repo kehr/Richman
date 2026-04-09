@@ -253,37 +253,19 @@ func parseSynthesisResponse(content string) (*SynthesisOutput, error) {
 	return &output, nil
 }
 
-// templateFallback generates a basic output without LLM.
+// templateFallback generates a minimal structured output without LLM.
+// Text fields are intentionally empty — the frontend renders i18n placeholders
+// when summaries are absent. Only structured data fields are populated so that
+// the recommendation, direction, and weight signals remain usable.
 func templateFallback(input *SynthesisInput) *SynthesisOutput {
-	trendDesc := "sideways"
-	switch input.Trend.Direction {
-	case analysis.DirectionUpward:
-		trendDesc = "upward"
-	case analysis.DirectionDownward:
-		trendDesc = "downward"
-	}
-
-	posDesc := "fairly valued"
-	switch input.Position.Assessment {
-	case analysis.DirectionBullish:
-		posDesc = "undervalued"
-	case analysis.DirectionBearish:
-		posDesc = "overvalued"
-	}
-
-	recDesc := recommendationText(input.Recommendation)
-
 	return &SynthesisOutput{
-		TrendSummary: fmt.Sprintf("The trend is %s with strength %.0f%%.", trendDesc, input.Trend.Strength*100),
-		PositionSummary: fmt.Sprintf(
-			"Valuation appears %s (percentile: %.0f%%).",
-			posDesc, input.Position.Percentile*100,
-		),
+		TrendSummary:    "",
+		PositionSummary: "",
 		CatalystSummary: input.Catalyst.Summary,
-		ActionAdvice:    fmt.Sprintf("Recommendation: %s. Confidence: %.0f%%.", recDesc, input.Confidence),
-		DetailedAdvice:  "Detailed analysis unavailable. Please review manually.",
-		RiskWarnings:    []string{"Analysis generated without LLM enhancement; confidence may be lower."},
-		TodayHighlights: fmt.Sprintf("Analysis generated at %s.", time.Now().Format("2006-01-02 15:04")),
+		ActionAdvice:    "",
+		DetailedAdvice:  "",
+		RiskWarnings:    []string{},
+		TodayHighlights: "",
 		Recommendation:  fallbackRecommendation(input),
 	}
 }

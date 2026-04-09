@@ -149,8 +149,10 @@ func TestSynthesize_NilResolver_UsesTemplateFallback(t *testing.T) {
 	if out.Recommendation.Action != recommendation.ActionHold {
 		t.Errorf("expected hold fallback, got %q", out.Recommendation.Action)
 	}
-	if out.TrendSummary == "" || out.PositionSummary == "" {
-		t.Error("expected template fallback to populate summary fields")
+	// Template fallback intentionally leaves text summary fields empty;
+	// the frontend renders i18n placeholders when summaries are absent.
+	if out.TrendSummary != "" || out.PositionSummary != "" {
+		t.Error("expected template fallback to leave summary fields empty")
 	}
 	if meta == nil {
 		t.Fatal("expected non-nil meta")
