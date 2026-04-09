@@ -84,8 +84,8 @@ describe("PortfolioTransactionsPage", () => {
 		renderPage(7);
 		expect(screen.getByTestId("portfolio-transactions-page")).toBeInTheDocument();
 		expect(screen.getByTestId("transaction-table")).toBeInTheDocument();
-		expect(screen.getByText("买入")).toBeInTheDocument();
-		expect(screen.getByText("卖出")).toBeInTheDocument();
+		expect(screen.getByText("Buy")).toBeInTheDocument();
+		expect(screen.getByText("Sell")).toBeInTheDocument();
 	});
 
 	it("disables the trade delete buttons with the placeholder tooltip", () => {
@@ -107,6 +107,6 @@ describe("PortfolioTransactionsPage", () => {
 	it("shows a not-found card when the holding does not exist", () => {
 		holdingsState = { data: [], isLoading: false };
 		renderPage(999);
-		expect(screen.getByText("未找到对应持仓")).toBeInTheDocument();
+		expect(screen.getByText("Holding not found")).toBeInTheDocument();
 	});
 });

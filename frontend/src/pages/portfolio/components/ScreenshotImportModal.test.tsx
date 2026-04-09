@@ -87,7 +87,7 @@ describe("ScreenshotImportModal", () => {
 		expect(screen.getByTestId("screenshot-confirm-button")).toBeInTheDocument();
 		// Both rows pre-checked since the user has zero holdings.
 		const summary = screen.getByTestId("recognized-summary");
-		expect(summary).toHaveTextContent("将新增 2 个持仓");
+		expect(summary).toHaveTextContent("Will add 2 holding(s)");
 	});
 
 	it("caps the number of selectable rows by the remaining slots", async () => {
@@ -100,7 +100,7 @@ describe("ScreenshotImportModal", () => {
 			expect(screen.getByTestId("recognized-holding-table")).toBeInTheDocument();
 		});
 		// Only one slot remains, so the second row should not be pre-checked.
-		expect(screen.getByTestId("recognized-summary")).toHaveTextContent("将新增 1 个持仓");
+		expect(screen.getByTestId("recognized-summary")).toHaveTextContent("Will add 1 holding(s)");
 		expect(screen.getByTestId("recognized-cap-warning")).toBeInTheDocument();
 	});
 

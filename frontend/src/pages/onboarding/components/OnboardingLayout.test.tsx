@@ -118,21 +118,21 @@ describe("OnboardingLayout", () => {
 		// confirm Modal renders the title in both an ant-modal-title container
 		// and an ant-modal-confirm-title span, so we use findAllByText and
 		// assert at least one match exists.
-		const titles = await screen.findAllByText("跳过引导？", {}, { timeout: 2000 });
+		const titles = await screen.findAllByText("Skip onboarding?", {}, { timeout: 2000 });
 		expect(titles.length).toBeGreaterThan(0);
 		// Assert the body copy renders through the confirm content slot.
 		expect(
 			screen.getByText(
-				"你可以稍后在 Settings 重新发起引导，或在 Dashboard 顶部的提示条点击「开始引导」回到这里。",
+				'You can restart the onboarding from Settings later, or click "Start onboarding" in the Dashboard banner to return here.',
 			),
 		).toBeInTheDocument();
 		// Dismiss the confirm Modal by clicking the cancel button so antd's
 		// portal cleanup runs in an orderly fashion before the test unmounts.
 		// Leaving it open causes NotFoundError during React unmount when the
 		// portal node is detached twice.
-		await user.click(screen.getByRole("button", { name: "继续引导" }));
+		await user.click(screen.getByRole("button", { name: "Continue onboarding" }));
 		await waitFor(() => {
-			expect(screen.queryByText("跳过引导？")).not.toBeInTheDocument();
+			expect(screen.queryByText("Skip onboarding?")).not.toBeInTheDocument();
 		});
 		expect(mockNav.skip).not.toHaveBeenCalled();
 	});
@@ -140,7 +140,7 @@ describe("OnboardingLayout", () => {
 	it("renders the step indicator with the current step label", () => {
 		renderLayout();
 		expect(screen.getByTestId("onboarding-step-indicator")).toBeInTheDocument();
-		expect(screen.getByText("第 2 / 4 步")).toBeInTheDocument();
+		expect(screen.getByText("Step 2 / 5")).toBeInTheDocument();
 	});
 
 	it("invokes nav.prev when ArrowLeft is dispatched on window outside form fields", () => {

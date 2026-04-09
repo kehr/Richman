@@ -94,7 +94,7 @@ describe("AccountTab", () => {
 			.getByTestId("account-risk-preference")
 			.querySelector(".ant-select-selector") as HTMLElement;
 		fireEvent.mouseDown(select);
-		const option = await screen.findByText("激进");
+		const option = await screen.findByText("Aggressive");
 		fireEvent.click(option);
 		await waitFor(() => {
 			expect(patchMutate).toHaveBeenCalledWith({ riskPreference: "aggressive" });
@@ -112,7 +112,7 @@ describe("AccountTab", () => {
 		fireEvent.click(screen.getByTestId("account-reset-onboarding"));
 		// antd Popconfirm renders its ok button inside a portal; find it by
 		// the Chinese label we set in AccountTab.
-		const okButton = await screen.findByRole("button", { name: "开始引导" });
+		const okButton = await screen.findByRole("button", { name: "Start onboarding" });
 		fireEvent.click(okButton);
 		await waitFor(() => {
 			expect(resetMutate).toHaveBeenCalledTimes(1);

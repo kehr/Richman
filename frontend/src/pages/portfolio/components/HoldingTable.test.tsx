@@ -51,13 +51,13 @@ describe("HoldingTable", () => {
 		expect(screen.getByTestId("holding-row-1")).toBeInTheDocument();
 		expect(screen.getByTestId("holding-row-2")).toBeInTheDocument();
 		// Headers from PRD §4.1.
-		expect(screen.getByRole("columnheader", { name: "标的" })).toBeInTheDocument();
-		expect(screen.getByRole("columnheader", { name: "类型" })).toBeInTheDocument();
-		expect(screen.getByRole("columnheader", { name: "成本" })).toBeInTheDocument();
-		expect(screen.getByRole("columnheader", { name: "现价" })).toBeInTheDocument();
-		expect(screen.getByRole("columnheader", { name: "仓位" })).toBeInTheDocument();
-		expect(screen.getByRole("columnheader", { name: "浮盈亏" })).toBeInTheDocument();
-		expect(screen.getByRole("columnheader", { name: "操作" })).toBeInTheDocument();
+		expect(screen.getByRole("columnheader", { name: "Asset" })).toBeInTheDocument();
+		expect(screen.getByRole("columnheader", { name: "Type" })).toBeInTheDocument();
+		expect(screen.getByRole("columnheader", { name: "Cost" })).toBeInTheDocument();
+		expect(screen.getByRole("columnheader", { name: "Current Price" })).toBeInTheDocument();
+		expect(screen.getByRole("columnheader", { name: "Position" })).toBeInTheDocument();
+		expect(screen.getByRole("columnheader", { name: "P&L" })).toBeInTheDocument();
+		expect(screen.getByRole("columnheader", { name: "Actions" })).toBeInTheDocument();
 	});
 
 	it("invokes onRowClick when a body row is clicked", () => {

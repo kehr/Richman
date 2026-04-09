@@ -30,9 +30,9 @@ describe("DashboardTopStrip", () => {
 
 	it("renders title, time labels and four stats", () => {
 		renderWithProviders(<DashboardTopStrip {...baseProps} />);
-		expect(screen.getByText("今日决策")).toBeInTheDocument();
+		expect(screen.getByText("Today's Decisions")).toBeInTheDocument();
 		expect(screen.getByTestId("dashboard-top-strip-times")).toHaveTextContent(
-			"最后分析 08:30 · 下次自动 15:30",
+			"Last analyzed 08:30 · Next auto 15:30",
 		);
 		expect(screen.getByTestId("stat-holding-count")).toHaveTextContent("5");
 		expect(screen.getByTestId("stat-total-capital")).toHaveTextContent("¥100,000");

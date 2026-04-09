@@ -57,7 +57,7 @@ describe("WelcomePage", () => {
 				</OnboardingStateProvider>
 			</MemoryRouter>,
 		);
-		expect(screen.getByText("欢迎，让我们开始")).toBeInTheDocument();
+		expect(screen.getByText("Welcome, let's get started")).toBeInTheDocument();
 		expect(screen.getByTestId("dimension-card-trend")).toBeInTheDocument();
 		expect(screen.getByTestId("dimension-card-position")).toBeInTheDocument();
 		expect(screen.getByTestId("dimension-card-catalyst")).toBeInTheDocument();

@@ -1,4 +1,5 @@
-import { render, screen } from "@testing-library/react";
+import { renderWithProviders } from "@/test/utils";
+import { screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { Execution, Step } from "../types";
 import { ExecutionPlanStrip } from "./ExecutionPlanStrip";
@@ -20,7 +21,7 @@ describe("ExecutionPlanStrip", () => {
 			steps: [makeStep(1, 20)],
 			validDays: 7,
 		};
-		render(<ExecutionPlanStrip execution={execution} />);
+		renderWithProviders(<ExecutionPlanStrip execution={execution} />);
 		expect(screen.getByTestId("plan-step-1")).toHaveTextContent("触发 1");
 		expect(screen.getByTestId("plan-step-1")).toHaveTextContent("+20%");
 		expect(screen.queryByTestId("plan-more-link")).toBeNull();
@@ -33,12 +34,12 @@ describe("ExecutionPlanStrip", () => {
 			validDays: 7,
 		};
 		const onShowAll = vi.fn();
-		render(<ExecutionPlanStrip execution={execution} onShowAll={onShowAll} />);
+		renderWithProviders(<ExecutionPlanStrip execution={execution} onShowAll={onShowAll} />);
 		expect(screen.getByTestId("plan-step-1")).toBeInTheDocument();
 		expect(screen.getByTestId("plan-step-2")).toBeInTheDocument();
 		expect(screen.getByTestId("plan-step-3")).toBeInTheDocument();
 		expect(screen.queryByTestId("plan-step-4")).toBeNull();
-		expect(screen.getByTestId("plan-more-link")).toHaveTextContent("还有 2 步");
+		expect(screen.getByTestId("plan-more-link")).toHaveTextContent("+ 2 more");
 	});
 
 	it("renders stop-loss and take-profit rows for monitor plans", () => {
@@ -48,7 +49,7 @@ describe("ExecutionPlanStrip", () => {
 			takeProfit: 120,
 			validDays: 30,
 		};
-		render(<ExecutionPlanStrip execution={execution} />);
+		renderWithProviders(<ExecutionPlanStrip execution={execution} />);
 		expect(screen.getByTestId("plan-monitor-stop-loss")).toHaveTextContent("95.5");
 		expect(screen.getByTestId("plan-monitor-take-profit")).toHaveTextContent("120");
 	});
@@ -60,8 +61,8 @@ describe("ExecutionPlanStrip", () => {
 			takeProfit: null,
 			validDays: 30,
 		};
-		render(<ExecutionPlanStrip execution={execution} />);
-		expect(screen.getByTestId("plan-monitor-stop-loss")).toHaveTextContent("未设置");
-		expect(screen.getByTestId("plan-monitor-take-profit")).toHaveTextContent("未设置");
+		renderWithProviders(<ExecutionPlanStrip execution={execution} />);
+		expect(screen.getByTestId("plan-monitor-stop-loss")).toHaveTextContent("Not set");
+		expect(screen.getByTestId("plan-monitor-take-profit")).toHaveTextContent("Not set");
 	});
 });

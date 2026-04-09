@@ -81,7 +81,7 @@ describe("LoginPage", () => {
 	it("renders the sample decision card inside the left pane", () => {
 		renderAt("/login");
 		expect(screen.getByTestId("sample-decision-card")).toBeInTheDocument();
-		expect(screen.getByTestId("sample-decision-card")).toHaveTextContent("贵州茅台");
+		expect(screen.getByTestId("sample-decision-card")).toHaveTextContent("Kweichow Moutai");
 	});
 
 	it("forwards a valid relative ?returnTo= to the login form", async () => {

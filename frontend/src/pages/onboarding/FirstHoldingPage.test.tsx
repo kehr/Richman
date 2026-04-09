@@ -193,7 +193,7 @@ describe("FirstHoldingPage", () => {
 		renderPage();
 
 		const fastForward = screen.getByTestId("onboarding-skip-to-analysis");
-		expect(fastForward).toHaveTextContent("用已有持仓直接分析");
+		expect(fastForward).toHaveTextContent("Proceed with existing holdings →");
 
 		await user.click(fastForward);
 		await waitFor(() => {

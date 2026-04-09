@@ -14,7 +14,8 @@
 		"lint:all": "biome check src/ && tsc --noEmit && depcruise src/ --config .dependency-cruiser.cjs",
 		"test": "vitest run",
 		"test:watch": "vitest",
-		"test:coverage": "vitest run --coverage"
+		"test:coverage": "vitest run --coverage",
+		"i18n:check": "echo 'TODO: integrate i18next-cli --ci for missing/orphan key detection'"
 	},
 	"dependencies": {
 		"@ant-design/icons": "^5.6.1",

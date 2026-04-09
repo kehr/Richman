@@ -62,7 +62,7 @@ describe("MetaSidebar", () => {
 		// Data source health is intentionally a placeholder until the backend
 		// exposes per-source freshness; the block must not claim "正常".
 		expect(screen.getByTestId("meta-data-source")).toHaveTextContent(
-			"数据源健康检查将在后续版本开放",
+			"Data source health check will be available in a future version",
 		);
 		expect(screen.getByTestId("meta-disclaimer")).toBeInTheDocument();
 	});
