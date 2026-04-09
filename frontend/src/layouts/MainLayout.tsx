@@ -5,29 +5,25 @@ import {
 	Avatar,
 	DashboardOutlined,
 	Dropdown,
+	GlobalOutlined,
 	LogoutOutlined,
 	PieChartOutlined,
 	ProLayout,
 	QuestionCircleOutlined,
 	SettingOutlined,
 	Space,
+	Tooltip,
 	UserOutlined,
 } from "@/ui-kit/eat";
+import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { Outlet, useLocation, useNavigate } from "react-router";
-
-const menuRoutes = {
-	path: "/",
-	routes: [
-		{ path: "/dashboard", name: "Dashboard", icon: <DashboardOutlined /> },
-		{ path: "/portfolio", name: "Portfolio", icon: <PieChartOutlined /> },
-		{ path: "/settings", name: "Settings", icon: <SettingOutlined /> },
-	],
-};
 
 export function MainLayout() {
 	const navigate = useNavigate();
 	const location = useLocation();
 	const { data: user } = useCurrentUser();
+	const { t, i18n } = useTranslation();
 
 	const displayName = user?.email?.split("@")[0] || "User";
 
@@ -35,6 +31,30 @@ export function MainLayout() {
 		clearAuth();
 		navigate("/login", { replace: true });
 	};
+
+	const menuRoutes = useMemo(
+		() => ({
+			path: "/",
+			routes: [
+				{ path: "/dashboard", name: t("nav.dashboard"), icon: <DashboardOutlined /> },
+				{ path: "/portfolio", name: t("nav.portfolio"), icon: <PieChartOutlined /> },
+				{ path: "/settings", name: t("nav.settings"), icon: <SettingOutlined /> },
+			],
+		}),
+		[t],
+	);
+
+	const languageMenu = useMemo(
+		() => ({
+			items: [
+				{ key: "en", label: "English" },
+				{ key: "zh", label: "中文" },
+			],
+			selectedKeys: [i18n.language],
+			onClick: ({ key }: { key: string }) => i18n.changeLanguage(key),
+		}),
+		[i18n],
+	);
 
 	return (
 		<ProLayout
@@ -80,7 +100,7 @@ export function MainLayout() {
 								{
 									key: "logout",
 									icon: <LogoutOutlined />,
-									label: "Logout",
+									label: t("nav.logout"),
 									danger: true,
 									onClick: handleLogout,
 								},
@@ -101,6 +121,26 @@ export function MainLayout() {
 							</span>
 						</Space>
 					</Dropdown>
+					<Tooltip title={t("nav.switchLanguage")}>
+						<Dropdown menu={languageMenu} placement="topLeft">
+							<button
+								type="button"
+								style={{
+									cursor: "pointer",
+									background: "none",
+									border: "none",
+									padding: 0,
+									color: "inherit",
+									display: "inline-flex",
+									alignItems: "center",
+									gap: 8,
+								}}
+							>
+								<GlobalOutlined />
+								<span>{i18n.language === "zh" ? "中文" : "EN"}</span>
+							</button>
+						</Dropdown>
+					</Tooltip>
 					<a
 						href="/help"
 						onClick={(e) => {
@@ -117,7 +157,7 @@ export function MainLayout() {
 						}}
 					>
 						<QuestionCircleOutlined />
-						<span>Help</span>
+						<span>{t("nav.help")}</span>
 					</a>
 				</div>
 			)}

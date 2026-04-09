@@ -3,7 +3,9 @@
 		"dashboard": "Dashboard",
 		"portfolio": "Portfolio",
 		"settings": "Settings",
-		"help": "Help"
+		"help": "Help",
+		"logout": "Logout",
+		"switchLanguage": "Switch language"
 	},
 	"action": {
 		"save": "Save",

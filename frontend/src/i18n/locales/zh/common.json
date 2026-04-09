@@ -3,7 +3,9 @@
 		"dashboard": "仪表盘",
 		"portfolio": "投资组合",
 		"settings": "设置",
-		"help": "帮助"
+		"help": "帮助",
+		"logout": "退出登录",
+		"switchLanguage": "切换语言"
 	},
 	"action": {
 		"save": "保存",
