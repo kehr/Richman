@@ -1,5 +1,8 @@
-export function formatCurrency(value: number, currency = "CNY"): string {
-	return new Intl.NumberFormat("zh-CN", {
+import { getNumberFormat } from "../money/intl-cache";
+
+export function formatCurrency(value: number, locale = "en", currency = "CNY"): string {
+	const intlLocale = locale === "zh" ? "zh-CN" : "en-US";
+	return getNumberFormat(intlLocale, {
 		style: "currency",
 		currency,
 		minimumFractionDigits: 2,
@@ -11,15 +14,11 @@ export function formatPercent(value: number, decimals = 2): string {
 	return `${(value * 100).toFixed(decimals)}%`;
 }
 
-export function formatDate(date: string | Date, format?: string): string {
+export function formatDate(date: string | Date, locale = "en", format?: string): string {
+	const intlLocale = locale === "zh" ? "zh-CN" : "en-US";
 	const d = typeof date === "string" ? new Date(date) : date;
-	if (format === "date") {
-		return d.toLocaleDateString("zh-CN");
-	}
-	if (format === "datetime") {
-		return d.toLocaleString("zh-CN");
-	}
-	return d.toLocaleDateString("zh-CN");
+	if (format === "datetime") return d.toLocaleString(intlLocale);
+	return d.toLocaleDateString(intlLocale);
 }
 
 export function formatConfidence(value: number): string {

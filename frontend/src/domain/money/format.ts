@@ -1,15 +1,7 @@
 // Pure formatting utilities for percentage + optional CNY amount pairs used
 // across decision cards, portfolio, and dashboard views. Kept free of React
 // hooks so they can be unit tested in isolation.
-//
-// MVP locale policy: the CNY formatter is hardcoded to zh-CN with a literal
-// "¥" symbol to match the product copy currently used everywhere. Post-MVP
-// i18n work (PRD §6.4) should switch to a user-preference-driven locale and
-// use Intl currency formatting instead of the manual symbol prefix.
-
-const cnyFormatter = new Intl.NumberFormat("zh-CN", {
-	maximumFractionDigits: 0,
-});
+import { getNumberFormat } from "./intl-cache";
 
 // formatPercent renders a percentage value with a single decimal when the
 // value is non-integer, otherwise as an integer. toFixed rounds to the
@@ -33,7 +25,7 @@ export function formatPercent(pct: number): string {
 // minus sign before the symbol so the output looks like "-¥1,234". Negative
 // zero is normalized to "¥0" — Intl.NumberFormat preserves the sign on -0,
 // but the UI should always display a zero balance without a minus sign.
-export function formatAmount(amount: number): string {
+export function formatAmount(amount: number, locale = "en"): string {
 	if (Number.isNaN(amount)) {
 		return "¥0";
 	}
@@ -41,10 +33,12 @@ export function formatAmount(amount: number): string {
 	if (amount === 0) {
 		return "¥0";
 	}
+	const intlLocale = locale === "zh" ? "zh-CN" : "en-US";
+	const fmt = getNumberFormat(intlLocale, { maximumFractionDigits: 0 });
 	if (amount < 0) {
-		return `-¥${cnyFormatter.format(Math.abs(amount))}`;
+		return `-¥${fmt.format(Math.abs(amount))}`;
 	}
-	return `¥${cnyFormatter.format(amount)}`;
+	return `¥${fmt.format(amount)}`;
 }
 
 // formatPercentWithAmount composes "X% · ¥Y" when a capital is configured and
@@ -54,11 +48,12 @@ export function formatPercentWithAmount(
 	pct: number,
 	amount: number | null | undefined,
 	hasCapital: boolean,
+	locale = "en",
 ): string {
 	if (!hasCapital || amount == null) {
 		return formatPercent(pct);
 	}
-	return `${formatPercent(pct)} · ${formatAmount(amount)}`;
+	return `${formatPercent(pct)} · ${formatAmount(amount, locale)}`;
 }
 
 // formatAmountOrNull returns the formatted amount when a capital is configured
@@ -67,9 +62,10 @@ export function formatPercentWithAmount(
 export function formatAmountOrNull(
 	amount: number | null | undefined,
 	hasCapital: boolean,
+	locale = "en",
 ): string | null {
 	if (!hasCapital || amount == null) {
 		return null;
 	}
-	return formatAmount(amount);
+	return formatAmount(amount, locale);
 }

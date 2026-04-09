@@ -1,6 +1,7 @@
 import { formatAmount } from "@/domain/money/format";
 import { useUserSettings } from "@/features/user-settings";
 import { Flex, Typography } from "@/ui-kit/eat";
+import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 
 // TotalCapitalRow renders the secondary header row beneath the portfolio
@@ -9,6 +10,7 @@ import { Link } from "react-router";
 // capital so amount columns can be displayed (PRD §4.1).
 export function TotalCapitalRow() {
 	const { data: settings, isLoading } = useUserSettings();
+	const { i18n } = useTranslation();
 
 	if (isLoading) {
 		return null;
@@ -23,7 +25,7 @@ export function TotalCapitalRow() {
 				<>
 					<Typography.Text type="secondary">总资金</Typography.Text>
 					<Typography.Text strong data-testid="total-capital-amount">
-						{formatAmount(totalCapital)}
+						{formatAmount(totalCapital, i18n.language)}
 					</Typography.Text>
 					<Link to="/settings" data-testid="total-capital-edit">
 						(修改)

@@ -14,6 +14,7 @@ import {
 } from "@/ui-kit/eat";
 import { PlusOutlined } from "@/ui-kit/eat";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { Trade, TradeDirection } from "./trade-types";
 import { useCreateTrade, useTrades } from "./usePortfolio";
 
@@ -26,6 +27,7 @@ export function TradeRecordList({ holdingId }: TradeRecordListProps) {
 	const createTrade = useCreateTrade(holdingId);
 	const [modalOpen, setModalOpen] = useState(false);
 	const [form] = Form.useForm();
+	const { i18n } = useTranslation();
 
 	const handleCreateTrade = async (values: Record<string, unknown>) => {
 		try {
@@ -62,7 +64,7 @@ export function TradeRecordList({ holdingId }: TradeRecordListProps) {
 			title: "Price",
 			dataIndex: "price",
 			key: "price",
-			render: (_: unknown, record: Trade) => formatCurrency(record.price),
+			render: (_: unknown, record: Trade) => formatCurrency(record.price, i18n.language),
 		},
 		{
 			title: "Quantity",
@@ -73,7 +75,7 @@ export function TradeRecordList({ holdingId }: TradeRecordListProps) {
 			title: "Traded At",
 			dataIndex: "tradedAt",
 			key: "tradedAt",
-			render: (_: unknown, record: Trade) => formatDate(record.tradedAt, "datetime"),
+			render: (_: unknown, record: Trade) => formatDate(record.tradedAt, i18n.language, "datetime"),
 		},
 	];
 
