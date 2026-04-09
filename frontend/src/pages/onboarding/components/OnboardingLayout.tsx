@@ -142,7 +142,7 @@ export function OnboardingLayout({
 
 	return (
 		<div style={rootStyle}>
-			<OnboardingBackground currentStep={currentStep} />
+			<OnboardingBackground />
 			<div style={contentStyle}>
 				<div style={containerStyle}>
 					<header style={headerStyle}>
