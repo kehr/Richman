@@ -36,7 +36,7 @@ export function SampleDecisionCard() {
 			>
 				<div>
 					<Title level={5} style={{ margin: 0 }}>
-						贵州茅台
+						{t("sampleCard.stockName")}
 					</Title>
 					<Text type="secondary" style={{ fontSize: 12 }}>
 						600519

@@ -1,4 +1,3 @@
-import { useLocale } from "@/domain/i18n/provider";
 import { Collapse, Divider, Flex, Radio, Select, Typography } from "@/ui-kit/eat";
 import { useTranslation } from "react-i18next";
 
@@ -6,18 +5,17 @@ import { useTranslation } from "react-i18next";
 // Asia/Shanghai for MVP), theme placeholder, and a collapsible "advanced
 // number formatting" panel. None of these settings round-trip to the backend
 // today; language is the only one that takes effect immediately, via the
-// existing i18n provider.
+// react-i18next i18n instance.
 export function PreferencesTab() {
-	const { locale, setLocale } = useLocale();
-	const { t } = useTranslation("settings");
+	const { t, i18n } = useTranslation("settings");
 
 	return (
 		<Flex vertical gap={24} data-testid="preferences-tab">
 			<Flex vertical gap={8}>
 				<Typography.Text type="secondary">{t("preferences.language")}</Typography.Text>
 				<Radio.Group
-					value={locale}
-					onChange={(e) => setLocale(e.target.value)}
+					value={i18n.language}
+					onChange={(e) => i18n.changeLanguage(e.target.value)}
 					data-testid="preferences-language"
 				>
 					<Radio value="zh">中文</Radio>
