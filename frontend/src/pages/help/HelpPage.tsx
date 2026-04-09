@@ -46,26 +46,33 @@ export default function HelpPage() {
 		}
 	}, [location.hash]);
 
-	// IntersectionObserver highlights whichever section is closest to the top
-	// of the viewport. rootMargin pushes the observation band up so a section
-	// counts as "active" as soon as its heading crosses the top third of the
-	// window, which matches the user's expectation that scrolling past a
-	// heading switches the sidebar immediately.
+	// IntersectionObserver highlights whichever section heading is nearest the
+	// top of the viewport. A persistent Set tracks all currently-visible
+	// sections so the callback is not limited to the transient batch of changed
+	// entries. On each update the topmost section in document order wins.
+	// A single threshold (0) avoids repeated firing as a section partially
+	// enters/leaves, which was the cause of the previous anchor flickering.
 	useEffect(() => {
 		if (typeof IntersectionObserver === "undefined") return;
+		const visibleSet = new Set<string>();
 		const observer = new IntersectionObserver(
 			(entries) => {
-				const visible = entries
-					.filter((entry) => entry.isIntersecting)
-					.sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
-				if (visible[0]) {
-					const id = visible[0].target.getAttribute("id");
-					if (id) setActiveId(id);
+				for (const entry of entries) {
+					const id = entry.target.getAttribute("id");
+					if (!id) continue;
+					if (entry.isIntersecting) visibleSet.add(id);
+					else visibleSet.delete(id);
+				}
+				for (const section of content.sections) {
+					if (visibleSet.has(section.id)) {
+						setActiveId(section.id);
+						return;
+					}
 				}
 			},
 			{
 				rootMargin: "-10% 0px -60% 0px",
-				threshold: [0, 0.1, 0.5, 1],
+				threshold: 0,
 			},
 		);
 
