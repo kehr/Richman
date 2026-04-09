@@ -59,7 +59,7 @@ export function MainLayout() {
 					key: "language",
 					icon: <GlobalOutlined />,
 					label: t("nav.language"),
-					// popupClassName: "lang-submenu-popup",
+					popupOffset: [4, 0],
 					children: [
 						{ key: "lang-en", label: "English" },
 						{ key: "lang-zh", label: "中文" },
@@ -81,7 +81,7 @@ export function MainLayout() {
 		<ProLayout
 			title="Richman"
 			logo="/logo.svg"
-			layout="side"
+			layout="top"
 			fixSiderbar
 			token={layoutToken}
 			collapsed={false}
