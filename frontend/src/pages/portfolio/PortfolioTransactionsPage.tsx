@@ -16,22 +16,14 @@ import {
 	Typography,
 } from "@/ui-kit/eat";
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router";
 import { AddTransactionDrawer } from "./components/AddTransactionDrawer";
 import { TransactionTable } from "./components/TransactionTable";
 
 // PortfolioTransactionsPage renders the per-holding transaction history
 // (PRD §4.4). It is mounted at /portfolio/:id/transactions and replaces the
-// previous PortfolioEditPage alias on this route. The page composes:
-//
-//   - a breadcrumb that links back to the portfolio list and the holding name
-//   - the TransactionTable showing every recorded trade
-//   - a footer summary card aggregating buy/sell totals and a derived
-//     综合成本 / 综合仓位 display via the shared useMoney hook
-//
-// Trade aggregations are computed locally from the trade list. The composite
-// position ratio is read from the holding row because trades alone do not
-// know the user's total capital — useMoney handles the capital-aware format.
+// previous PortfolioEditPage alias on this route.
 
 interface TradeAggregates {
 	totalBuyAmount: number;
@@ -59,6 +51,7 @@ function aggregateTrades(trades: Trade[]): TradeAggregates {
 export default function PortfolioTransactionsPage() {
 	const { id } = useParams<{ id: string }>();
 	const navigate = useNavigate();
+	const { t } = useTranslation("app");
 	const holdingId = Number(id);
 	const { data: holdings, isLoading: holdingsLoading } = useHoldings();
 	const { data: trades, isLoading: tradesLoading } = useTrades(holdingId);
@@ -82,7 +75,7 @@ export default function PortfolioTransactionsPage() {
 		return (
 			<PageContainer title={null} header={{ title: null, breadcrumb: {} }}>
 				<Card>
-					<Typography.Text>未找到对应持仓</Typography.Text>
+					<Typography.Text>{t("portfolio.transactions.notFound")}</Typography.Text>
 				</Card>
 			</PageContainer>
 		);
@@ -103,7 +96,7 @@ export default function PortfolioTransactionsPage() {
 							onClick={() => navigate("/portfolio")}
 							data-testid="transactions-back-button"
 						>
-							返回
+							{t("portfolio.transactions.back")}
 						</Button>
 						<Breadcrumb
 							items={[
@@ -111,12 +104,12 @@ export default function PortfolioTransactionsPage() {
 									title: (
 										// biome-ignore lint/a11y/useKeyWithClickEvents: breadcrumb crumb stays a span; the back button beside it provides the keyboard-accessible action
 										<span style={{ cursor: "pointer" }} onClick={() => navigate("/portfolio")}>
-											持仓
+											{t("portfolio.transactions.holdings")}
 										</span>
 									),
 								},
 								{ title: holding.assetName },
-								{ title: "交易记录" },
+								{ title: t("portfolio.transactions.title") },
 							]}
 						/>
 					</Space>
@@ -129,7 +122,7 @@ export default function PortfolioTransactionsPage() {
 					</Space>
 
 					<Card
-						title="交易历史"
+						title={t("portfolio.transactions.historyTitle")}
 						extra={
 							<Button
 								type="primary"
@@ -137,36 +130,36 @@ export default function PortfolioTransactionsPage() {
 								onClick={() => setDrawerOpen(true)}
 								data-testid="add-transaction-button"
 							>
-								添加交易
+								{t("portfolio.transactions.addTransaction")}
 							</Button>
 						}
 					>
 						<TransactionTable trades={trades ?? []} loading={tradesLoading} />
 					</Card>
 
-					<Card title="汇总" data-testid="transactions-summary">
+					<Card title={t("portfolio.transactions.summaryTitle")} data-testid="transactions-summary">
 						<Row gutter={16}>
 							<Col span={6}>
 								<Statistic
-									title="综合成本"
+									title={t("portfolio.transactions.weightedCost")}
 									value={money.formatAmountOnly(aggregates.weightedCostPrice) ?? "--"}
 								/>
 							</Col>
 							<Col span={6}>
 								<Statistic
-									title="综合仓位"
+									title={t("portfolio.transactions.compositePosition")}
 									value={money.format(holding.positionRatio, positionAmount)}
 								/>
 							</Col>
 							<Col span={6}>
 								<Statistic
-									title="总买入金额"
+									title={t("portfolio.transactions.totalBuy")}
 									value={money.formatAmountOnly(aggregates.totalBuyAmount) ?? "--"}
 								/>
 							</Col>
 							<Col span={6}>
 								<Statistic
-									title="总卖出金额"
+									title={t("portfolio.transactions.totalSell")}
 									value={money.formatAmountOnly(aggregates.totalSellAmount) ?? "--"}
 								/>
 							</Col>

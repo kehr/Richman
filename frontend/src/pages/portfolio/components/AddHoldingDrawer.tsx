@@ -13,14 +13,15 @@ import {
 	message,
 } from "@/ui-kit/eat";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { AssetTypeStep, type SelectedAssetValue } from "./AssetTypeStep";
 import { QuickHoldingForm, type QuickHoldingFormValues } from "./QuickHoldingForm";
 
 // AddHoldingDrawer implements the two-step add-holding flow from PRD §4.2:
 //   step 1 — pick asset type + search the catalog
-//   step 2 — three tabs (快速 / 明细 / 截图); only 快速 is functional in this
-//            step. The other tabs are disabled with tooltips because the
-//            detail editor and screenshot import ship in later steps.
+//   step 2 — three tabs (quick / detail / screenshot); only quick is functional
+//            in this step. The other tabs are disabled with tooltips because
+//            the detail editor and screenshot import ship in later steps.
 
 interface AddHoldingDrawerProps {
 	open: boolean;
@@ -31,6 +32,7 @@ interface AddHoldingDrawerProps {
 type TabKey = "quick" | "detail" | "screenshot";
 
 export function AddHoldingDrawer({ open, onClose, onCreated }: AddHoldingDrawerProps) {
+	const { t } = useTranslation("app");
 	const [selectedAsset, setSelectedAsset] = useState<SelectedAssetValue | null>(null);
 	const [activeTab, setActiveTab] = useState<TabKey>("quick");
 	const [form] = Form.useForm<QuickHoldingFormValues>();
@@ -70,11 +72,11 @@ export function AddHoldingDrawer({ open, onClose, onCreated }: AddHoldingDrawerP
 				// recorded separately on the transactions sub-page.
 				quantity: 0,
 			});
-			message.success("持仓已添加");
+			message.success(t("portfolio.addHoldingDrawer.saveSuccess"));
 			onCreated?.();
 			onClose();
 		} catch {
-			message.error("添加持仓失败");
+			message.error(t("portfolio.addHoldingDrawer.saveError"));
 		}
 	};
 
@@ -83,7 +85,7 @@ export function AddHoldingDrawer({ open, onClose, onCreated }: AddHoldingDrawerP
 	const tabItems = [
 		{
 			key: "quick",
-			label: "快速",
+			label: t("portfolio.addHoldingDrawer.tabQuick"),
 			children: <QuickHoldingForm form={form} onFinish={handleSubmit} />,
 		},
 		{
@@ -92,12 +94,12 @@ export function AddHoldingDrawer({ open, onClose, onCreated }: AddHoldingDrawerP
 				// antd disables pointer events on disabled tab labels, so the
 				// Tooltip will not actually open on hover. Wrap the label span
 				// in pointerEvents:auto so the hint is still reachable.
-				<Tooltip title="即将推出">
+				<Tooltip title={t("portfolio.addHoldingDrawer.comingSoon")}>
 					<span
 						data-testid="tab-detail-disabled"
 						style={{ display: "inline-block", pointerEvents: "auto" }}
 					>
-						明细
+						{t("portfolio.addHoldingDrawer.tabDetail")}
 					</span>
 				</Tooltip>
 			),
@@ -107,12 +109,12 @@ export function AddHoldingDrawer({ open, onClose, onCreated }: AddHoldingDrawerP
 		{
 			key: "screenshot",
 			label: (
-				<Tooltip title="即将推出">
+				<Tooltip title={t("portfolio.addHoldingDrawer.comingSoon")}>
 					<span
 						data-testid="tab-screenshot-disabled"
 						style={{ display: "inline-block", pointerEvents: "auto" }}
 					>
-						截图
+						{t("portfolio.addHoldingDrawer.tabScreenshot")}
 					</span>
 				</Tooltip>
 			),
@@ -123,7 +125,7 @@ export function AddHoldingDrawer({ open, onClose, onCreated }: AddHoldingDrawerP
 
 	return (
 		<Drawer
-			title="添加持仓"
+			title={t("portfolio.addHoldingDrawer.title")}
 			placement="right"
 			width={720}
 			open={open}
@@ -131,7 +133,7 @@ export function AddHoldingDrawer({ open, onClose, onCreated }: AddHoldingDrawerP
 			data-testid="add-holding-drawer"
 			footer={
 				<Flex justify="flex-end" gap={8}>
-					<Button onClick={onClose}>取消</Button>
+					<Button onClick={onClose}>{t("action.cancel", { ns: "common" })}</Button>
 					<Button
 						type="primary"
 						disabled={!selectedAsset}
@@ -139,7 +141,7 @@ export function AddHoldingDrawer({ open, onClose, onCreated }: AddHoldingDrawerP
 						onClick={() => form.submit()}
 						data-testid="add-holding-save"
 					>
-						保存
+						{t("action.save", { ns: "common" })}
 					</Button>
 				</Flex>
 			}
@@ -147,7 +149,10 @@ export function AddHoldingDrawer({ open, onClose, onCreated }: AddHoldingDrawerP
 			<Steps
 				current={currentStep}
 				size="small"
-				items={[{ title: "选标的" }, { title: "填写信息" }]}
+				items={[
+					{ title: t("portfolio.addHoldingDrawer.step1") },
+					{ title: t("portfolio.addHoldingDrawer.step2") },
+				]}
 				style={{ marginBottom: 24 }}
 				data-testid="add-holding-steps"
 			/>
@@ -158,7 +163,7 @@ export function AddHoldingDrawer({ open, onClose, onCreated }: AddHoldingDrawerP
 						<Tag color="blue">{selectedAsset.code}</Tag>
 						<Typography.Text strong>{selectedAsset.name}</Typography.Text>
 						<Button type="link" size="small" onClick={handleChangeAsset}>
-							更换
+							{t("portfolio.addHoldingDrawer.changeAsset")}
 						</Button>
 					</Flex>
 					<Tabs

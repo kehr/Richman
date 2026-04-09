@@ -20,6 +20,7 @@ import {
 	message,
 } from "@/ui-kit/eat";
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { ImagePreview } from "./ImagePreview";
 import { RecognizedHoldingTable } from "./RecognizedHoldingTable";
 
@@ -34,10 +35,10 @@ import { RecognizedHoldingTable } from "./RecognizedHoldingTable";
 //
 // On confirm we walk the selected rows sequentially (for/await) and call
 // the existing POST /holdings endpoint per row. We deliberately stop on the
-// first failure and surface a "成功 X / 失败 Y" message; rows that already
-// succeeded are removed from the table state so a retry will not re-create
-// them, while the failed and untouched rows remain available for the user
-// to fix and re-submit.
+// first failure and surface a "success X / failure Y" message; rows that
+// already succeeded are removed from the table state so a retry will not
+// re-create them, while the failed and untouched rows remain available for
+// the user to fix and re-submit.
 
 interface ScreenshotImportModalProps {
 	open: boolean;
@@ -58,7 +59,7 @@ function parseNumber(raw: string): number | null {
 	if (!raw) return null;
 	// Strip spaces, ¥/$ and trailing % so the LLM's free-form value lands as
 	// a parseable number. We keep the value null if parsing fails so the row
-	// renders the "请手动填写" placeholder.
+	// renders the manual-fill placeholder.
 	const cleaned = raw.replace(/[¥$,\s%]/g, "");
 	const n = Number(cleaned);
 	return Number.isFinite(n) ? n : null;
@@ -72,7 +73,7 @@ function toEditableRows(
 	const remaining = Math.max(0, holdingLimit - currentHoldingCount);
 	// Fields that the LLM is not confident about (< CONFIDENCE_LOW) are seeded
 	// blank so the user is forced to type instead of editing dubious values.
-	// The red border + "请手动填写" placeholder on the row signal this clearly.
+	// The red border + placeholder on the row signal this clearly.
 	return holdings.map((h, idx) => ({
 		rowId: nextRowId(),
 		assetName: h.assetName.confidence < CONFIDENCE_LOW ? "" : h.assetName.value,
@@ -96,6 +97,7 @@ export function ScreenshotImportModal({
 	currentHoldingCount,
 	holdingLimit,
 }: ScreenshotImportModalProps) {
+	const { t } = useTranslation("app");
 	const [phase, setPhase] = useState<Phase>("initial-upload");
 	const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 	const [rows, setRows] = useState<EditableRecognizedHolding[]>([]);
@@ -130,7 +132,7 @@ export function ScreenshotImportModal({
 		try {
 			const result = await screenshotImport.mutateAsync(file);
 			if (result.overallStatus === "failed" || result.holdings.length === 0) {
-				setWarning(result.warning || "识别失败，请换一张截图重试");
+				setWarning(result.warning || t("portfolio.screenshotModal.failedDefault"));
 				setPhase("failed");
 				return;
 			}
@@ -138,7 +140,7 @@ export function ScreenshotImportModal({
 			setWarning(result.warning || null);
 			setPhase("recognized");
 		} catch (err) {
-			const msg = err instanceof Error ? err.message : "识别失败";
+			const msg = err instanceof Error ? err.message : t("portfolio.screenshotModal.failedDefault");
 			setWarning(msg);
 			setPhase("failed");
 		}
@@ -165,16 +167,16 @@ export function ScreenshotImportModal({
 	};
 
 	const validateBeforeConfirm = (): string | null => {
-		if (selectedRows.length === 0) return "请至少选择一个识别结果";
+		if (selectedRows.length === 0) return t("portfolio.screenshotModal.validation.noRowSelected");
 		if (selectedRows.length > remainingSlots) {
-			return `最多再添加 ${remainingSlots} 个标的`;
+			return t("portfolio.screenshotModal.validation.tooManyRows", { remaining: remainingSlots });
 		}
 		for (const row of selectedRows) {
 			if (!row.assetName.trim() || !row.assetCode.trim()) {
-				return "请补全名称和代码";
+				return t("portfolio.screenshotModal.validation.incompleteNameOrCode");
 			}
 			if (row.costPrice == null || row.positionRatio == null) {
-				return "请补全成本和仓位";
+				return t("portfolio.screenshotModal.validation.incompleteCostOrRatio");
 			}
 		}
 		return null;
@@ -224,9 +226,9 @@ export function ScreenshotImportModal({
 		}
 		setSubmitting(false);
 		if (failure > 0) {
-			message.error(`成功 ${success} / 失败 ${failure}`);
+			message.error(t("portfolio.screenshotModal.importPartial", { success, failure }));
 		} else {
-			message.success(`成功导入 ${success} 个持仓`);
+			message.success(t("portfolio.screenshotModal.importSuccess", { count: success }));
 			onClose();
 		}
 	};
@@ -238,8 +240,8 @@ export function ScreenshotImportModal({
 					<p className="ant-upload-drag-icon">
 						<InboxOutlined />
 					</p>
-					<p className="ant-upload-text">点击或拖拽截图到此区域上传</p>
-					<p className="ant-upload-hint">支持单张 PNG / JPEG / WebP，最大 5 MB</p>
+					<p className="ant-upload-text">{t("portfolio.screenshotModal.uploadHint")}</p>
+					<p className="ant-upload-hint">{t("portfolio.screenshotModal.uploadHintDesc")}</p>
 				</Upload.Dragger>
 			);
 		}
@@ -249,7 +251,7 @@ export function ScreenshotImportModal({
 					data-testid="screenshot-recognizing"
 					style={{ display: "flex", justifyContent: "center", padding: 80 }}
 				>
-					<Spin tip="正在识别截图..." size="large" />
+					<Spin tip={t("portfolio.screenshotModal.recognizing")} size="large" />
 				</div>
 			);
 		}
@@ -259,7 +261,7 @@ export function ScreenshotImportModal({
 					<Alert
 						type="error"
 						showIcon
-						message={warning || "识别失败"}
+						message={warning || t("portfolio.screenshotModal.failedDefault")}
 						data-testid="screenshot-failed-alert"
 					/>
 					<Button
@@ -269,7 +271,7 @@ export function ScreenshotImportModal({
 							setWarning(null);
 						}}
 					>
-						重新上传
+						{t("portfolio.screenshotModal.retryUpload")}
 					</Button>
 				</Space>
 			);
@@ -312,11 +314,11 @@ export function ScreenshotImportModal({
 					}}
 				>
 					<Typography.Text strong style={{ color: "#fff", fontSize: 16 }}>
-						截图识别结果 — 校对
+						{t("portfolio.screenshotModal.title")}
 					</Typography.Text>
 					{phase === "recognized" && (
 						<Typography.Text style={{ color: "#fff", marginLeft: 12 }}>
-							识别出 {rows.length} 个标的 · 请检查高亮字段后确认导入
+							{t("portfolio.screenshotModal.recognizedCount", { count: rows.length })}
 						</Typography.Text>
 					)}
 				</div>
@@ -324,18 +326,18 @@ export function ScreenshotImportModal({
 			footer={
 				phase === "recognized" ? (
 					<Space>
-						<Button onClick={onClose}>取消</Button>
+						<Button onClick={onClose}>{t("action.cancel", { ns: "common" })}</Button>
 						<Button
 							type="primary"
 							loading={submitting}
 							onClick={handleConfirm}
 							data-testid="screenshot-confirm-button"
 						>
-							确认导入
+							{t("portfolio.screenshotModal.confirmImport")}
 						</Button>
 					</Space>
 				) : (
-					<Button onClick={onClose}>取消</Button>
+					<Button onClick={onClose}>{t("action.cancel", { ns: "common" })}</Button>
 				)
 			}
 			destroyOnHidden

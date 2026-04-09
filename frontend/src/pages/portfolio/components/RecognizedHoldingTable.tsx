@@ -16,6 +16,7 @@ import {
 	Typography,
 } from "@/ui-kit/eat";
 import type { CSSProperties } from "react";
+import { useTranslation } from "react-i18next";
 
 // RecognizedHoldingTable renders the right pane of ScreenshotImportModal
 // (PRD §4.3). It owns no state itself; all row mutations bubble up to the
@@ -49,12 +50,6 @@ function fieldStyle(confidence: number): CSSProperties {
 	};
 }
 
-function confidenceTooltip(confidence: number): string | null {
-	if (confidence >= CONFIDENCE_HIGH) return null;
-	if (confidence >= CONFIDENCE_LOW) return "识别置信度中等，请检查";
-	return "请手动填写";
-}
-
 export function RecognizedHoldingTable({
 	rows,
 	currentHoldingCount,
@@ -62,6 +57,7 @@ export function RecognizedHoldingTable({
 	onChange,
 	onDelete,
 }: RecognizedHoldingTableProps) {
+	const { t } = useTranslation("app");
 	const remainingSlots = Math.max(0, holdingLimit - currentHoldingCount);
 	const selectedCount = rows.filter((r) => r.selected).length;
 	const capReached = selectedCount >= remainingSlots;
@@ -75,7 +71,12 @@ export function RecognizedHoldingTable({
 	};
 
 	const renderConfidenceWrapper = (confidence: number, node: React.ReactNode) => {
-		const tip = confidenceTooltip(confidence);
+		const tip =
+			confidence >= CONFIDENCE_HIGH
+				? null
+				: confidence >= CONFIDENCE_LOW
+					? t("portfolio.screenshotModal.confidence.medium")
+					: t("portfolio.screenshotModal.confidence.low");
 		if (!tip) return node;
 		return <Tooltip title={tip}>{node}</Tooltip>;
 	};
@@ -95,18 +96,24 @@ export function RecognizedHoldingTable({
 						data-testid={`recognized-row-checkbox-${row.rowId}`}
 					/>
 				);
-				return disabled ? <Tooltip title="已达 5 个标的上限">{node}</Tooltip> : node;
+				return disabled ? (
+					<Tooltip title={t("portfolio.screenshotModal.rowLimitReached", { limit: holdingLimit })}>
+						{node}
+					</Tooltip>
+				) : (
+					node
+				);
 			},
 		},
 		{
-			title: "名称",
+			title: t("portfolio.recognizedTable.name"),
 			key: "assetName",
 			render: (_: unknown, row: EditableRecognizedHolding) =>
 				renderConfidenceWrapper(
 					row.assetNameConfidence,
 					<Input
 						value={row.assetName}
-						placeholder="请手动填写"
+						placeholder={t("portfolio.screenshotModal.placeholder")}
 						style={fieldStyle(row.assetNameConfidence)}
 						onChange={(e) => onChange(row.rowId, { assetName: e.target.value })}
 						data-testid={`recognized-row-name-${row.rowId}`}
@@ -114,7 +121,7 @@ export function RecognizedHoldingTable({
 				),
 		},
 		{
-			title: "代码",
+			title: t("portfolio.recognizedTable.code"),
 			key: "assetCode",
 			width: 140,
 			render: (_: unknown, row: EditableRecognizedHolding) =>
@@ -122,7 +129,7 @@ export function RecognizedHoldingTable({
 					row.assetCodeConfidence,
 					<Input
 						value={row.assetCode}
-						placeholder="请手动填写"
+						placeholder={t("portfolio.screenshotModal.placeholder")}
 						style={fieldStyle(row.assetCodeConfidence)}
 						onChange={(e) => onChange(row.rowId, { assetCode: e.target.value })}
 						data-testid={`recognized-row-code-${row.rowId}`}
@@ -130,7 +137,7 @@ export function RecognizedHoldingTable({
 				),
 		},
 		{
-			title: "成本",
+			title: t("portfolio.recognizedTable.cost"),
 			key: "costPrice",
 			width: 140,
 			render: (_: unknown, row: EditableRecognizedHolding) => {
@@ -141,7 +148,11 @@ export function RecognizedHoldingTable({
 						min={0}
 						step={0.01}
 						style={{ width: "100%", ...fieldStyle(row.costPriceConfidence) }}
-						placeholder={row.costPriceConfidence < CONFIDENCE_LOW ? "请手动填写" : undefined}
+						placeholder={
+							row.costPriceConfidence < CONFIDENCE_LOW
+								? t("portfolio.screenshotModal.placeholder")
+								: undefined
+						}
 						onChange={(value) =>
 							onChange(row.rowId, { costPrice: typeof value === "number" ? value : null })
 						}
@@ -151,7 +162,7 @@ export function RecognizedHoldingTable({
 			},
 		},
 		{
-			title: "仓位",
+			title: t("portfolio.recognizedTable.position"),
 			key: "positionRatio",
 			width: 140,
 			render: (_: unknown, row: EditableRecognizedHolding) => {
@@ -164,7 +175,11 @@ export function RecognizedHoldingTable({
 						step={1}
 						addonAfter="%"
 						style={{ width: "100%", ...fieldStyle(row.positionRatioConfidence) }}
-						placeholder={row.positionRatioConfidence < CONFIDENCE_LOW ? "请手动填写" : undefined}
+						placeholder={
+							row.positionRatioConfidence < CONFIDENCE_LOW
+								? t("portfolio.screenshotModal.placeholder")
+								: undefined
+						}
 						onChange={(value) =>
 							onChange(row.rowId, {
 								positionRatio: typeof value === "number" ? value : null,
@@ -187,7 +202,7 @@ export function RecognizedHoldingTable({
 					icon={<DeleteOutlined />}
 					onClick={() => onDelete(row.rowId)}
 					data-testid={`recognized-row-delete-${row.rowId}`}
-					aria-label="移除该行"
+					aria-label={t("portfolio.recognizedTable.removeRow")}
 				/>
 			),
 		},
@@ -199,7 +214,11 @@ export function RecognizedHoldingTable({
 				<Alert
 					type="warning"
 					showIcon
-					message={`MVP 最多 ${holdingLimit} 个标的，当前已有 ${currentHoldingCount} 个，已勾选 ${selectedCount} 个，已达上限`}
+					message={t("portfolio.screenshotModal.capWarning", {
+						limit: holdingLimit,
+						current: currentHoldingCount,
+						selected: selectedCount,
+					})}
 					data-testid="recognized-cap-warning"
 				/>
 			)}
@@ -212,7 +231,7 @@ export function RecognizedHoldingTable({
 				data-testid="recognized-holding-table"
 			/>
 			<Typography.Text type="secondary" data-testid="recognized-summary">
-				将新增 {selectedCount} 个持仓
+				{t("portfolio.screenshotModal.rowCount", { count: selectedCount })}
 			</Typography.Text>
 		</Space>
 	);

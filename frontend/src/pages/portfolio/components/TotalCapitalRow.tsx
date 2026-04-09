@@ -10,7 +10,7 @@ import { Link } from "react-router";
 // capital so amount columns can be displayed (PRD §4.1).
 export function TotalCapitalRow() {
 	const { data: settings, isLoading } = useUserSettings();
-	const { i18n } = useTranslation();
+	const { t, i18n } = useTranslation("app");
 
 	if (isLoading) {
 		return null;
@@ -23,19 +23,19 @@ export function TotalCapitalRow() {
 		<Flex align="center" gap={8} data-testid="total-capital-row" style={{ marginBottom: 16 }}>
 			{hasCapital ? (
 				<>
-					<Typography.Text type="secondary">总资金</Typography.Text>
+					<Typography.Text type="secondary">{t("portfolio.totalCapital.label")}</Typography.Text>
 					<Typography.Text strong data-testid="total-capital-amount">
 						{formatAmount(totalCapital, i18n.language)}
 					</Typography.Text>
 					<Link to="/settings" data-testid="total-capital-edit">
-						(修改)
+						{t("portfolio.totalCapital.editLink")}
 					</Link>
 				</>
 			) : (
 				<>
-					<Typography.Text type="secondary">未设置总资金</Typography.Text>
+					<Typography.Text type="secondary">{t("portfolio.totalCapital.notSet")}</Typography.Text>
 					<Link to="/settings" data-testid="total-capital-set">
-						设置以查看金额 →
+						{t("portfolio.totalCapital.setLink")}
 					</Link>
 				</>
 			)}

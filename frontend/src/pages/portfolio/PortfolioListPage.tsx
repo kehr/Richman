@@ -13,6 +13,7 @@ import {
 	message,
 } from "@/ui-kit/eat";
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router";
 import { AddHoldingDrawer } from "./components/AddHoldingDrawer";
 import { HoldingTable } from "./components/HoldingTable";
@@ -32,6 +33,7 @@ const HOLDING_LIMIT = 5;
 
 export default function PortfolioListPage() {
 	const navigate = useNavigate();
+	const { t } = useTranslation("app");
 	const { data: holdings, isLoading } = useHoldings();
 	const { data: decisionCards } = useDecisionCards();
 	const deleteMutation = useDeleteHolding();
@@ -76,9 +78,9 @@ export default function PortfolioListPage() {
 	const handleDelete = async (holding: HoldingDto) => {
 		try {
 			await deleteMutation.mutateAsync(holding.holdingId);
-			message.success("持仓已删除");
+			message.success(t("portfolio.holdingTable.deleteSuccess"));
 		} catch {
-			message.error("删除持仓失败");
+			message.error(t("portfolio.holdingTable.deleteError"));
 		}
 	};
 
@@ -91,7 +93,7 @@ export default function PortfolioListPage() {
 			onClick={() => setDrawerOpen(true)}
 			data-testid="add-holding-button"
 		>
-			添加持仓
+			{t("portfolio.addHolding")}
 		</Button>
 	);
 
@@ -109,15 +111,17 @@ export default function PortfolioListPage() {
 			>
 				<Space align="baseline" size="middle">
 					<Typography.Title level={3} style={{ margin: 0 }}>
-						我的持仓
+						{t("portfolio.title")}
 					</Typography.Title>
 					<Typography.Text type="secondary" data-testid="holding-counter">
-						{count}/{HOLDING_LIMIT} 个 · MVP 每用户最多 {HOLDING_LIMIT} 个标的
+						{t("portfolio.holdingCounter", { count, limit: HOLDING_LIMIT })}
 					</Typography.Text>
 				</Space>
 				<Space>
 					{atLimit ? (
-						<Tooltip title={`MVP 最多 ${HOLDING_LIMIT} 个标的`}>{addButton}</Tooltip>
+						<Tooltip title={t("portfolio.limitReached", { limit: HOLDING_LIMIT })}>
+							{addButton}
+						</Tooltip>
 					) : (
 						addButton
 					)}
@@ -127,7 +131,7 @@ export default function PortfolioListPage() {
 						onClick={() => setScreenshotOpen(true)}
 						data-testid="screenshot-import-button"
 					>
-						截图批量导入
+						{t("portfolio.screenshotImport")}
 					</Button>
 				</Space>
 			</Flex>

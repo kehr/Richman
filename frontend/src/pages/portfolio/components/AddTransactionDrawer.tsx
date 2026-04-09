@@ -1,6 +1,8 @@
 import type { DayjsLike } from "@/domain/datetime/dayjs-like";
 import { type CreateTradeInput, useCreateTrade } from "@/features/portfolio";
 import { Button, DatePicker, Drawer, Flex, Form, InputNumber, Radio, message } from "@/ui-kit/eat";
+import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 
 // AddTransactionDrawer is the right-side drawer used to record a new trade
 // for a single holding (PRD §4.4). The form mirrors the backend
@@ -21,6 +23,7 @@ interface FormValues {
 }
 
 export function AddTransactionDrawer({ open, holdingId, onClose }: AddTransactionDrawerProps) {
+	const { t } = useTranslation("app");
 	const [form] = Form.useForm<FormValues>();
 	const createTrade = useCreateTrade(holdingId);
 
@@ -41,16 +44,41 @@ export function AddTransactionDrawer({ open, holdingId, onClose }: AddTransactio
 		};
 		try {
 			await createTrade.mutateAsync(payload);
-			message.success("交易已记录");
+			message.success(t("portfolio.addTransactionDrawer.saveSuccess"));
 			handleClose();
 		} catch {
-			message.error("记录交易失败");
+			message.error(t("portfolio.addTransactionDrawer.saveError"));
 		}
 	};
 
+	// Memoize rules so they stay reactive when the locale changes.
+	const rules = useMemo(
+		() => ({
+			direction: [
+				{
+					required: true,
+					message: t("portfolio.addTransactionDrawer.validation.directionRequired"),
+				},
+			],
+			tradedAt: [
+				{ required: true, message: t("portfolio.addTransactionDrawer.validation.timeRequired") },
+			],
+			price: [
+				{ required: true, message: t("portfolio.addTransactionDrawer.validation.priceRequired") },
+			],
+			quantity: [
+				{
+					required: true,
+					message: t("portfolio.addTransactionDrawer.validation.quantityRequired"),
+				},
+			],
+		}),
+		[t],
+	);
+
 	return (
 		<Drawer
-			title="记录交易"
+			title={t("portfolio.addTransactionDrawer.title")}
 			open={open}
 			onClose={handleClose}
 			placement="right"
@@ -58,14 +86,14 @@ export function AddTransactionDrawer({ open, holdingId, onClose }: AddTransactio
 			data-testid="add-transaction-drawer"
 			footer={
 				<Flex justify="flex-end" gap={8}>
-					<Button onClick={handleClose}>取消</Button>
+					<Button onClick={handleClose}>{t("action.cancel", { ns: "common" })}</Button>
 					<Button
 						type="primary"
 						loading={createTrade.isPending}
 						onClick={() => form.submit()}
 						data-testid="add-transaction-save"
 					>
-						保存
+						{t("action.save", { ns: "common" })}
 					</Button>
 				</Flex>
 			}
@@ -78,26 +106,34 @@ export function AddTransactionDrawer({ open, holdingId, onClose }: AddTransactio
 				data-testid="add-transaction-form"
 			>
 				<Form.Item
-					label="方向"
+					label={t("portfolio.addTransactionDrawer.direction")}
 					name="direction"
-					rules={[{ required: true, message: "请选择交易方向" }]}
+					rules={rules.direction}
 				>
 					<Radio.Group>
-						<Radio.Button value="buy">买入</Radio.Button>
-						<Radio.Button value="sell">卖出</Radio.Button>
+						<Radio.Button value="buy">{t("portfolio.addTransactionDrawer.buy")}</Radio.Button>
+						<Radio.Button value="sell">{t("portfolio.addTransactionDrawer.sell")}</Radio.Button>
 					</Radio.Group>
 				</Form.Item>
 				<Form.Item
-					label="时间"
+					label={t("portfolio.addTransactionDrawer.time")}
 					name="tradedAt"
-					rules={[{ required: true, message: "请选择交易时间" }]}
+					rules={rules.tradedAt}
 				>
 					<DatePicker showTime style={{ width: "100%" }} />
 				</Form.Item>
-				<Form.Item label="价格" name="price" rules={[{ required: true, message: "请输入价格" }]}>
+				<Form.Item
+					label={t("portfolio.addTransactionDrawer.price")}
+					name="price"
+					rules={rules.price}
+				>
 					<InputNumber min={0} step={0.01} style={{ width: "100%" }} addonBefore="¥" />
 				</Form.Item>
-				<Form.Item label="数量" name="quantity" rules={[{ required: true, message: "请输入数量" }]}>
+				<Form.Item
+					label={t("portfolio.addTransactionDrawer.quantity")}
+					name="quantity"
+					rules={rules.quantity}
+				>
 					<InputNumber min={0} step={1} style={{ width: "100%" }} />
 				</Form.Item>
 			</Form>

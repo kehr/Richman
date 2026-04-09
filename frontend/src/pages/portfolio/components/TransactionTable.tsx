@@ -9,6 +9,8 @@ import {
 	Tooltip,
 	Typography,
 } from "@/ui-kit/eat";
+import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 
 // TransactionTable renders the per-holding trade history for the
 // transactions sub-page (PRD §4.4). The edit and delete columns are present
@@ -34,63 +36,72 @@ function formatDateTime(iso: string): string {
 }
 
 export function TransactionTable({ trades, loading }: TransactionTableProps) {
-	const columns = [
-		{
-			title: "时间",
-			dataIndex: "tradedAt",
-			key: "tradedAt",
-			width: 180,
-			render: (value: string) => <Typography.Text>{formatDateTime(value)}</Typography.Text>,
-		},
-		{
-			title: "价格",
-			dataIndex: "price",
-			key: "price",
-			width: 140,
-			render: (value: number) => `¥${value.toFixed(2)}`,
-		},
-		{
-			title: "数量",
-			dataIndex: "quantity",
-			key: "quantity",
-			width: 140,
-			render: (value: number) => value.toString(),
-		},
-		{
-			title: "方向",
-			dataIndex: "direction",
-			key: "direction",
-			width: 100,
-			render: (value: Trade["direction"]) =>
-				value === "buy" ? <Tag color="red">买入</Tag> : <Tag color="green">卖出</Tag>,
-		},
-		{
-			title: "操作",
-			key: "actions",
-			width: 200,
-			render: (_: unknown, record: Trade) => (
-				<Space size="small" data-testid={`trade-actions-${record.tradeId}`}>
-					<Tooltip title="编辑接口待后端补齐">
-						<Button type="link" size="small" icon={<EditOutlined />} disabled>
-							编辑
-						</Button>
-					</Tooltip>
-					<Tooltip title="删除接口待后端补齐">
-						<Button
-							type="link"
-							size="small"
-							danger
-							icon={<DeleteOutlined />}
-							disabled
-							data-testid={`trade-delete-${record.tradeId}`}
-						>
-							删除
-						</Button>
-					</Tooltip>
-				</Space>
-			),
-		},
-	];
+	const { t } = useTranslation("app");
+
+	const columns = useMemo(
+		() => [
+			{
+				title: t("portfolio.transactionTable.time"),
+				dataIndex: "tradedAt",
+				key: "tradedAt",
+				width: 180,
+				render: (value: string) => <Typography.Text>{formatDateTime(value)}</Typography.Text>,
+			},
+			{
+				title: t("portfolio.transactionTable.price"),
+				dataIndex: "price",
+				key: "price",
+				width: 140,
+				render: (value: number) => `¥${value.toFixed(2)}`,
+			},
+			{
+				title: t("portfolio.transactionTable.quantity"),
+				dataIndex: "quantity",
+				key: "quantity",
+				width: 140,
+				render: (value: number) => value.toString(),
+			},
+			{
+				title: t("portfolio.transactionTable.direction"),
+				dataIndex: "direction",
+				key: "direction",
+				width: 100,
+				render: (value: Trade["direction"]) =>
+					value === "buy" ? (
+						<Tag color="red">{t("portfolio.transactionTable.buy")}</Tag>
+					) : (
+						<Tag color="green">{t("portfolio.transactionTable.sell")}</Tag>
+					),
+			},
+			{
+				title: t("portfolio.transactionTable.actions"),
+				key: "actions",
+				width: 200,
+				render: (_: unknown, record: Trade) => (
+					<Space size="small" data-testid={`trade-actions-${record.tradeId}`}>
+						<Tooltip title={t("portfolio.transactionTable.editTooltip")}>
+							<Button type="link" size="small" icon={<EditOutlined />} disabled>
+								{t("portfolio.transactionTable.edit")}
+							</Button>
+						</Tooltip>
+						<Tooltip title={t("portfolio.transactionTable.deleteTooltip")}>
+							<Button
+								type="link"
+								size="small"
+								danger
+								icon={<DeleteOutlined />}
+								disabled
+								data-testid={`trade-delete-${record.tradeId}`}
+							>
+								{t("portfolio.transactionTable.delete")}
+							</Button>
+						</Tooltip>
+					</Space>
+				),
+			},
+		],
+		[t],
+	);
 
 	return (
 		<Table<Trade>

@@ -1,4 +1,5 @@
 import { Image } from "@/ui-kit/eat";
+import { useTranslation } from "react-i18next";
 
 interface ImagePreviewProps {
 	src: string;
@@ -8,6 +9,8 @@ interface ImagePreviewProps {
 // container. The wrapped antd Image component handles click-to-zoom via its
 // built-in preview overlay (PRD §4.3 — left pane).
 export function ImagePreview({ src }: ImagePreviewProps) {
+	const { t } = useTranslation("app");
+
 	return (
 		<div
 			data-testid="screenshot-image-preview"
@@ -26,7 +29,7 @@ export function ImagePreview({ src }: ImagePreviewProps) {
 			<Image
 				src={src}
 				alt="portfolio screenshot"
-				preview={{ mask: "点击查看大图" }}
+				preview={{ mask: t("portfolio.screenshotModal.imagePreview") }}
 				style={{ maxWidth: "100%", height: "auto" }}
 			/>
 		</div>

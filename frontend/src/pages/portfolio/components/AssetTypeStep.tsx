@@ -7,6 +7,7 @@ import {
 } from "@/features/asset-catalog";
 import { Empty, Radio, Select, Space, Spin, Typography } from "@/ui-kit/eat";
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 // SEARCH_DEBOUNCE_MS is the keystroke-to-fetch delay for the asset search
 // box. The backend endpoint is cheap but back-to-back keystrokes still race
@@ -31,6 +32,7 @@ interface AssetTypeStepProps {
 }
 
 export function AssetTypeStep({ onSelect }: AssetTypeStepProps) {
+	const { t } = useTranslation("app");
 	const [category, setCategory] = useState<AssetCategory>(ASSET_CATEGORIES[0]);
 	const [keyword, setKeyword] = useState("");
 	const [debouncedKeyword, setDebouncedKeyword] = useState(keyword);
@@ -74,7 +76,7 @@ export function AssetTypeStep({ onSelect }: AssetTypeStepProps) {
 	return (
 		<Space direction="vertical" size="middle" style={{ width: "100%" }}>
 			<div>
-				<Typography.Text strong>选择标的类型</Typography.Text>
+				<Typography.Text strong>{t("portfolio.assetTypeStep.selectType")}</Typography.Text>
 			</div>
 			<Radio.Group
 				value={category}
@@ -91,15 +93,21 @@ export function AssetTypeStep({ onSelect }: AssetTypeStepProps) {
 			</Radio.Group>
 
 			<div>
-				<Typography.Text strong>搜索标的</Typography.Text>
+				<Typography.Text strong>{t("portfolio.assetTypeStep.searchAsset")}</Typography.Text>
 			</div>
 			<Select
 				showSearch
-				placeholder="输入代码或名称"
+				placeholder={t("portfolio.assetTypeStep.searchPlaceholder")}
 				value={undefined}
 				style={{ width: "100%" }}
 				filterOption={false}
-				notFoundContent={isLoading ? <Spin size="small" /> : <Empty description="未找到标的" />}
+				notFoundContent={
+					isLoading ? (
+						<Spin size="small" />
+					) : (
+						<Empty description={t("portfolio.assetTypeStep.notFound")} />
+					)
+				}
 				onSearch={setKeyword}
 				onChange={handleChange}
 				options={options}
