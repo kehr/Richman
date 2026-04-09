@@ -1,6 +1,6 @@
 // DEFAULT_AFTER_AUTH is where the user lands when no valid `?returnTo=` is
 // present on the URL after a login or register success.
-export const DEFAULT_AFTER_AUTH = "/dashboard";
+export const DEFAULT_AFTER_AUTH = "/briefing";
 
 // resolveReturnTo validates a raw `?returnTo=` query string value and either
 // returns the safe relative path or falls back to /dashboard. Rejection

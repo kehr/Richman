@@ -1,4 +1,11 @@
-import { PageContainer } from "@/ui-kit/eat";
+import {
+	BellOutlined,
+	PageContainer,
+	PieChartOutlined,
+	RobotOutlined,
+	SettingOutlined,
+	UserOutlined,
+} from "@/ui-kit/eat";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router";
@@ -28,11 +35,26 @@ export default function SettingsPage() {
 
 	const items = useMemo<SettingsTabItem[]>(
 		() => [
-			{ key: "account", label: t("tabs.account"), content: <AccountTab /> },
-			{ key: "ai", label: t("tabs.ai"), content: <AITab /> },
-			{ key: "channels", label: t("tabs.channels"), content: <ChannelsTab /> },
-			{ key: "preferences", label: t("tabs.preferences"), content: <PreferencesTab /> },
-			{ key: "subscription", label: t("tabs.subscription"), content: <SubscriptionTab /> },
+			{ key: "account", label: t("tabs.account"), icon: <UserOutlined />, content: <AccountTab /> },
+			{ key: "ai", label: t("tabs.ai"), icon: <RobotOutlined />, content: <AITab /> },
+			{
+				key: "channels",
+				label: t("tabs.channels"),
+				icon: <BellOutlined />,
+				content: <ChannelsTab />,
+			},
+			{
+				key: "preferences",
+				label: t("tabs.preferences"),
+				icon: <SettingOutlined />,
+				content: <PreferencesTab />,
+			},
+			{
+				key: "subscription",
+				label: t("tabs.subscription"),
+				icon: <PieChartOutlined />,
+				content: <SubscriptionTab />,
+			},
 		],
 		[t],
 	);

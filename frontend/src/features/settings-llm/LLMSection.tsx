@@ -7,7 +7,7 @@ import { LLMFailingCard } from "./LLMFailingCard";
 import { LLMHealthyCard } from "./LLMHealthyCard";
 import { useLLMSettings } from "./hooks";
 
-const { Title, Paragraph } = Typography;
+const { Paragraph } = Typography;
 
 interface LLMSectionProps {
 	// systemDefaultAvailable is supplied by the composing page from the
@@ -33,9 +33,6 @@ export function LLMSection({ systemDefaultAvailable }: LLMSectionProps) {
 	if (query.isLoading) {
 		return (
 			<Space direction="vertical" size={16} style={{ width: "100%" }} data-testid="llm-section">
-				<Title level={4} style={{ margin: 0 }}>
-					{t("llm.title")}
-				</Title>
 				<Skeleton active paragraph={{ rows: 3 }} />
 			</Space>
 		);
@@ -48,14 +45,9 @@ export function LLMSection({ systemDefaultAvailable }: LLMSectionProps) {
 
 	return (
 		<Space direction="vertical" size={16} style={{ width: "100%" }} data-testid="llm-section">
-			<div>
-				<Title level={4} style={{ margin: 0 }}>
-					{t("llm.title")}
-				</Title>
-				<Paragraph type="secondary" style={{ marginBottom: 0, marginTop: 4 }}>
-					{t("llm.description")}
-				</Paragraph>
-			</div>
+			<Paragraph type="secondary" style={{ marginBottom: 0 }}>
+				{t("llm.description")}
+			</Paragraph>
 
 			{!configured && data && (
 				<LLMEmptyState

@@ -184,8 +184,6 @@ function QuickModeForm({ itemsVariant }: QuickModeFormProps) {
 						<Radio.Group
 							value={category}
 							onChange={(e) => handleCategoryChange(e.target.value as AssetCategory)}
-							optionType="button"
-							buttonStyle="solid"
 							options={ASSET_CATEGORIES.map((key) => ({
 								label: ASSET_CATEGORY_META[key].label,
 								value: key,

@@ -131,7 +131,7 @@
 		}
 	},
 	"llm": {
-		"title": "AI Interpretation Provider",
+		"title": "Configure Provider",
 		"description": "Configure your own LLM provider to enable AI interpretation. When not configured, you can choose to use the system default or the rules engine.",
 		"emptyState": {
 			"title": "No AI Provider configured",

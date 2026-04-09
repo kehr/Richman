@@ -81,16 +81,13 @@ export function AssetTypeStep({ onSelect }: AssetTypeStepProps) {
 			<Radio.Group
 				value={category}
 				onChange={(e) => setCategory(e.target.value as AssetCategory)}
-				optionType="button"
-				buttonStyle="solid"
+				options={ASSET_CATEGORIES.map((key) => ({
+					label: ASSET_CATEGORY_META[key].label,
+					value: key,
+					"data-testid": `asset-type-${key}`,
+				}))}
 				data-testid="asset-type-tabs"
-			>
-				{ASSET_CATEGORIES.map((key) => (
-					<Radio.Button key={key} value={key} data-testid={`asset-type-${key}`}>
-						{ASSET_CATEGORY_META[key].label}
-					</Radio.Button>
-				))}
-			</Radio.Group>
+			/>
 
 			<div>
 				<Typography.Text strong>{t("portfolio.assetTypeStep.searchAsset")}</Typography.Text>

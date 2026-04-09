@@ -109,7 +109,7 @@ export default function FirstAnalysisPage() {
 				// where the user reaches /dashboard before the status refetch
 				// has landed.
 				clear();
-				navigate("/dashboard", { replace: true });
+				navigate("/briefing", { replace: true });
 			})
 			.catch(() => {
 				// Even if the mark-complete call fails, free the user from the
@@ -119,7 +119,7 @@ export default function FirstAnalysisPage() {
 				// do NOT show an error toast here — a failed markCompleted at
 				// the tail of the wizard should not ruin the "final step"
 				// moment.
-				navigate("/dashboard", { replace: true });
+				navigate("/briefing", { replace: true });
 			});
 	}, [currentStep, error]);
 
@@ -144,7 +144,7 @@ export default function FirstAnalysisPage() {
 		completedRef.current = true;
 		markCompleted.mutateAsync().finally(() => {
 			clear();
-			navigate("/dashboard", { replace: true });
+			navigate("/briefing", { replace: true });
 		});
 	};
 

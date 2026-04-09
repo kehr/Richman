@@ -9,7 +9,7 @@ interface OnboardingGuardProps {
 
 const ONBOARDING_PREFIX = "/onboarding";
 const ONBOARDING_ENTRY = "/onboarding/welcome";
-const POST_ONBOARDING_HOME = "/dashboard";
+const POST_ONBOARDING_HOME = "/briefing";
 
 // OnboardingGuard sits between AuthGuard and the protected route tree and
 // gates access based on two mutually-exclusive server flags:

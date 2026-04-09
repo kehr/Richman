@@ -131,7 +131,7 @@
 		}
 	},
 	"llm": {
-		"title": "AI 解读 Provider",
+		"title": "配置 Provider",
 		"description": "配置你自己的 LLM Provider 以启用 AI 解读能力。未配置时可选择使用系统默认或规则引擎。",
 		"emptyState": {
 			"title": "尚未配置 AI Provider",

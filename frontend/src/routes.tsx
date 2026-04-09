@@ -83,8 +83,8 @@ export function AppRoutes() {
 
 				{/* Main app routes. */}
 				<Route element={<AppShell />}>
-					<Route path="/" element={<Navigate to="/dashboard" replace />} />
-					<Route path="/dashboard" element={<DashboardPage />} />
+					<Route path="/" element={<Navigate to="/briefing" replace />} />
+					<Route path="/briefing" element={<DashboardPage />} />
 					<Route path="/portfolio" element={<PortfolioListPage />} />
 					<Route path="/portfolio/:id" element={<PortfolioEditPage />} />
 					<Route path="/portfolio/:id/transactions" element={<PortfolioTransactionsPage />} />
@@ -94,7 +94,7 @@ export function AppRoutes() {
 				</Route>
 
 				{/* Catch-all */}
-				<Route path="*" element={<Navigate to="/dashboard" replace />} />
+				<Route path="*" element={<Navigate to="/briefing" replace />} />
 			</Routes>
 		</Suspense>
 	);

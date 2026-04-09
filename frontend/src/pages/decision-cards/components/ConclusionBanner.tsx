@@ -62,12 +62,13 @@ export function ConclusionBanner({ card, prevCard }: ConclusionBannerProps) {
 			<Space direction="vertical" size={4} style={{ flex: 1 }}>
 				<Text type="secondary">{t("decisionCard.conclusion.todayAdvice")}</Text>
 				<Title level={3} style={{ margin: 0 }}>
-					{card.recommendation.label}
+					{t(`decisionCard.recommendation.${card.recommendation.action}`)}
 				</Title>
 				<Text>{narrative}</Text>
 				{prevCard && (
 					<Text type="secondary" data-testid="conclusion-prev">
-						{t("decisionCard.conclusion.previousAdvice")} {prevCard.recommendation.label}
+						{t("decisionCard.conclusion.previousAdvice")}{" "}
+						{t(`decisionCard.recommendation.${prevCard.recommendation.action}`)}
 					</Text>
 				)}
 			</Space>

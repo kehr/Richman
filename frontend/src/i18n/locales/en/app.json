@@ -79,6 +79,18 @@
 				"trend": "Trend",
 				"position": "Position",
 				"catalyst": "Catalyst"
+			},
+			"badgeLabel": {
+				"trend": "Trend",
+				"position": "Position",
+				"catalyst": "Catalyst"
+			},
+			"direction": {
+				"upward": "Upward",
+				"downward": "Downward",
+				"bullish": "Bullish",
+				"bearish": "Bearish",
+				"neutral": "Neutral"
 			}
 		},
 		"executionPlan": {
@@ -128,11 +140,11 @@
 			"unknown": "Unknown"
 		},
 		"recommendation": {
-			"aggressiveAdd": "Aggressive Add",
-			"smallAdd": "Small Add",
+			"aggressive_add": "Aggressive Add",
+			"small_add": "Small Add",
 			"hold": "Hold",
-			"gradualReduce": "Gradual Reduce",
-			"controlPosition": "Control Position"
+			"gradual_reduce": "Gradual Reduce",
+			"control_position": "Control Position"
 		},
 		"viewFullReasoning": "View full reasoning →",
 		"confidenceLabel": "Confidence",
@@ -196,6 +208,35 @@
 			"searchAsset": "Search Asset",
 			"searchPlaceholder": "Enter code or name",
 			"notFound": "Asset not found"
+		},
+		"holdingForm": {
+			"asset": "Asset",
+			"selectAsset": "Select Asset",
+			"costPrice": "Cost Price",
+			"positionRatio": "Position Ratio (%)",
+			"quantity": "Quantity",
+			"createSuccess": "Holding created",
+			"updateSuccess": "Holding updated",
+			"saveError": "Operation failed",
+			"createButton": "Create",
+			"updateButton": "Update",
+			"validation": {
+				"assetRequired": "Please select an asset",
+				"costPriceRequired": "Please enter cost price",
+				"positionRatioRequired": "Please enter position ratio"
+			}
+		},
+		"editPage": {
+			"title": "Edit Holding",
+			"notFound": "Holding not found",
+			"editTitle": "Edit: {{name}}",
+			"holdingDetails": "Holding Details"
+		},
+		"tradeRecordList": {
+			"headerTitle": "Trade Records",
+			"addButton": "Add Trade",
+			"saveSuccess": "Trade recorded",
+			"saveError": "Failed to record trade"
 		},
 		"transactions": {
 			"title": "Transactions",

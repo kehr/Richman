@@ -1,5 +1,6 @@
 import { Button, Form, InputNumber, message } from "@/ui-kit/eat";
 import { type ReactNode, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { HoldingDto } from "./api";
 import { useCreateHolding, useUpdateHolding } from "./usePortfolio";
 
@@ -20,6 +21,7 @@ interface HoldingFormProps {
 }
 
 export function HoldingForm({ initialValues, onSuccess, renderAssetPicker }: HoldingFormProps) {
+	const { t } = useTranslation("app");
 	const [form] = Form.useForm();
 	const [pickerOpen, setPickerOpen] = useState(false);
 	const [selectedAsset, setSelectedAsset] = useState<SelectedAsset | null>(null);
@@ -48,7 +50,7 @@ export function HoldingForm({ initialValues, onSuccess, renderAssetPicker }: Hol
 						quantity: values.quantity != null ? (values.quantity as number) : undefined,
 					},
 				});
-				message.success("Holding updated");
+				message.success(t("portfolio.holdingForm.updateSuccess"));
 			} else {
 				await createMutation.mutateAsync({
 					assetCode: values.assetCode as string,
@@ -58,11 +60,11 @@ export function HoldingForm({ initialValues, onSuccess, renderAssetPicker }: Hol
 					positionRatio: values.positionRatio as number,
 					quantity: (values.quantity as number) ?? 0,
 				});
-				message.success("Holding created");
+				message.success(t("portfolio.holdingForm.createSuccess"));
 			}
 			onSuccess?.();
 		} catch {
-			message.error("Operation failed");
+			message.error(t("portfolio.holdingForm.saveError"));
 		}
 	};
 
@@ -86,11 +88,22 @@ export function HoldingForm({ initialValues, onSuccess, renderAssetPicker }: Hol
 				onFinish={handleSubmit}
 			>
 				{!isEdit && (
-					<Form.Item label="Asset" required>
+					<Form.Item label={t("portfolio.holdingForm.asset")} required>
 						<Button onClick={() => setPickerOpen(true)}>
-							{selectedAsset ? `${selectedAsset.code} - ${selectedAsset.name}` : "Select Asset"}
+							{selectedAsset
+								? `${selectedAsset.code} - ${selectedAsset.name}`
+								: t("portfolio.holdingForm.selectAsset")}
 						</Button>
-						<Form.Item name="assetCode" noStyle rules={[{ required: true }]}>
+						<Form.Item
+							name="assetCode"
+							noStyle
+							rules={[
+								{
+									required: true,
+									message: t("portfolio.holdingForm.validation.assetRequired"),
+								},
+							]}
+						>
 							<input type="hidden" />
 						</Form.Item>
 						<Form.Item name="assetName" noStyle>
@@ -103,24 +116,34 @@ export function HoldingForm({ initialValues, onSuccess, renderAssetPicker }: Hol
 				)}
 
 				<Form.Item
-					label="Cost Price"
+					label={t("portfolio.holdingForm.costPrice")}
 					name="costPrice"
-					rules={[{ required: true, message: "Please enter cost price" }]}
+					rules={[
+						{
+							required: true,
+							message: t("portfolio.holdingForm.validation.costPriceRequired"),
+						},
+					]}
 				>
 					<InputNumber min={0} step={0.01} style={{ width: "100%" }} />
 				</Form.Item>
 
 				<Form.Item
-					label="Position Ratio (%)"
+					label={t("portfolio.holdingForm.positionRatio")}
 					name="positionRatio"
-					rules={[{ required: true, message: "Please enter position ratio" }]}
+					rules={[
+						{
+							required: true,
+							message: t("portfolio.holdingForm.validation.positionRatioRequired"),
+						},
+					]}
 					tooltip="0-100 percent. Must agree with HoldingTable / DashboardPage / decision card consumers (Step 16 unified to percent)."
 				>
 					<InputNumber min={0} max={100} step={1} style={{ width: "100%" }} />
 				</Form.Item>
 
 				<Form.Item
-					label="Quantity"
+					label={t("portfolio.holdingForm.quantity")}
 					name="quantity"
 					tooltip="Share count tracked for the transactions sub-page. Optional — defaults to 0 when unknown."
 				>
@@ -133,7 +156,9 @@ export function HoldingForm({ initialValues, onSuccess, renderAssetPicker }: Hol
 						htmlType="submit"
 						loading={createMutation.isPending || updateMutation.isPending}
 					>
-						{isEdit ? "Update" : "Create"}
+						{isEdit
+							? t("portfolio.holdingForm.updateButton")
+							: t("portfolio.holdingForm.createButton")}
 					</Button>
 				</Form.Item>
 			</Form>

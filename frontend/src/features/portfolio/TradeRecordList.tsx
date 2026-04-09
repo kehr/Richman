@@ -7,13 +7,13 @@ import {
 	InputNumber,
 	Modal,
 	ProTable,
-	Select,
+	Radio,
 	Space,
 	Tag,
 	message,
 } from "@/ui-kit/eat";
 import { PlusOutlined } from "@/ui-kit/eat";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { Trade, TradeDirection } from "./trade-types";
 import { useCreateTrade, useTrades } from "./usePortfolio";
@@ -27,7 +27,7 @@ export function TradeRecordList({ holdingId }: TradeRecordListProps) {
 	const createTrade = useCreateTrade(holdingId);
 	const [modalOpen, setModalOpen] = useState(false);
 	const [form] = Form.useForm();
-	const { i18n } = useTranslation();
+	const { t, i18n } = useTranslation("app");
 
 	const handleCreateTrade = async (values: Record<string, unknown>) => {
 		try {
@@ -41,38 +41,48 @@ export function TradeRecordList({ holdingId }: TradeRecordListProps) {
 				quantity: values.quantity as number,
 				tradedAt,
 			});
-			message.success("Trade recorded");
+			message.success(t("portfolio.tradeRecordList.saveSuccess"));
 			setModalOpen(false);
 			form.resetFields();
 		} catch {
-			message.error("Failed to record trade");
+			message.error(t("portfolio.tradeRecordList.saveError"));
 		}
 	};
 
+	const directionOptions = useMemo(
+		() => [
+			{ value: "buy", label: t("portfolio.addTransactionDrawer.buy") },
+			{ value: "sell", label: t("portfolio.addTransactionDrawer.sell") },
+		],
+		[t],
+	);
+
 	const columns = [
 		{
-			title: "Direction",
+			title: t("portfolio.transactionTable.direction"),
 			dataIndex: "direction",
 			key: "direction",
 			render: (_: unknown, record: Trade) => (
 				<Tag color={record.direction === "buy" ? "green" : "red"}>
-					{record.direction.toUpperCase()}
+					{record.direction === "buy"
+						? t("portfolio.addTransactionDrawer.buy")
+						: t("portfolio.addTransactionDrawer.sell")}
 				</Tag>
 			),
 		},
 		{
-			title: "Price",
+			title: t("portfolio.transactionTable.price"),
 			dataIndex: "price",
 			key: "price",
 			render: (_: unknown, record: Trade) => formatCurrency(record.price, i18n.language),
 		},
 		{
-			title: "Quantity",
+			title: t("portfolio.transactionTable.quantity"),
 			dataIndex: "quantity",
 			key: "quantity",
 		},
 		{
-			title: "Traded At",
+			title: t("portfolio.transactionTable.time"),
 			dataIndex: "tradedAt",
 			key: "tradedAt",
 			render: (_: unknown, record: Trade) => formatDate(record.tradedAt, i18n.language, "datetime"),
@@ -82,7 +92,7 @@ export function TradeRecordList({ holdingId }: TradeRecordListProps) {
 	return (
 		<>
 			<ProTable<Trade>
-				headerTitle="Trade Records"
+				headerTitle={t("portfolio.tradeRecordList.headerTitle")}
 				columns={columns}
 				dataSource={trades}
 				rowKey="tradeId"
@@ -95,57 +105,74 @@ export function TradeRecordList({ holdingId }: TradeRecordListProps) {
 						icon={<PlusOutlined />}
 						onClick={() => setModalOpen(true)}
 					>
-						Add Trade
+						{t("portfolio.tradeRecordList.addButton")}
 					</Button>,
 				]}
 				pagination={{ pageSize: 10 }}
 			/>
 
 			<Modal
-				title="Record Trade"
+				title={t("portfolio.addTransactionDrawer.title")}
 				open={modalOpen}
 				onCancel={() => setModalOpen(false)}
 				footer={null}
 			>
 				<Form form={form} layout="vertical" onFinish={handleCreateTrade}>
 					<Form.Item
-						label="Direction"
+						label={t("portfolio.addTransactionDrawer.direction")}
 						name="direction"
-						rules={[{ required: true, message: "Please select direction" }]}
+						rules={[
+							{
+								required: true,
+								message: t("portfolio.addTransactionDrawer.validation.directionRequired"),
+							},
+						]}
 					>
-						<Select
-							options={[
-								{ value: "buy", label: "Buy" },
-								{ value: "sell", label: "Sell" },
-							]}
-						/>
+						<Radio.Group options={directionOptions} />
 					</Form.Item>
 					<Form.Item
-						label="Price"
+						label={t("portfolio.addTransactionDrawer.price")}
 						name="price"
-						rules={[{ required: true, message: "Please enter price" }]}
+						rules={[
+							{
+								required: true,
+								message: t("portfolio.addTransactionDrawer.validation.priceRequired"),
+							},
+						]}
 					>
 						<InputNumber min={0} step={0.01} style={{ width: "100%" }} />
 					</Form.Item>
 					<Form.Item
-						label="Quantity"
+						label={t("portfolio.addTransactionDrawer.quantity")}
 						name="quantity"
-						rules={[{ required: true, message: "Please enter quantity" }]}
+						rules={[
+							{
+								required: true,
+								message: t("portfolio.addTransactionDrawer.validation.quantityRequired"),
+							},
+						]}
 					>
 						<InputNumber min={1} step={1} style={{ width: "100%" }} />
 					</Form.Item>
 					<Form.Item
-						label="Traded At"
+						label={t("portfolio.addTransactionDrawer.time")}
 						name="tradedAt"
-						rules={[{ required: true, message: "Please select trade time" }]}
+						rules={[
+							{
+								required: true,
+								message: t("portfolio.addTransactionDrawer.validation.timeRequired"),
+							},
+						]}
 					>
 						<DatePicker showTime style={{ width: "100%" }} />
 					</Form.Item>
 					<Space>
 						<Button type="primary" htmlType="submit" loading={createTrade.isPending}>
-							Submit
+							{t("action.submit", { ns: "common" })}
 						</Button>
-						<Button onClick={() => setModalOpen(false)}>Cancel</Button>
+						<Button onClick={() => setModalOpen(false)}>
+							{t("action.cancel", { ns: "common" })}
+						</Button>
 					</Space>
 				</Form>
 			</Modal>

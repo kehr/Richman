@@ -168,6 +168,28 @@ import { UserOutlined } from "@ant-design/icons";
 ui-kit/eat/index.ts 是唯一允许直接导入 antd 包的文件。
 
 
+## 表单组件选型规则
+
+| 场景 | 使用 | 禁止 |
+|------|-----|------|
+| 枚举型单选（选项 <= 5） | `Radio.Group`（默认圆形样式） | `Select`、`Radio.Group optionType="button"` |
+| 枚举型单选（选项 > 5） | `Select` | - |
+| 多选 | `Checkbox.Group` | - |
+| 数值输入 | `InputNumber` | `Input` |
+
+**Radio.Group 默认原则：**
+- 枚举型单选（风险偏好、状态切换等固定选项）统一用 plain `Radio.Group`，不加 `optionType="button"` 和 `buttonStyle="solid"`
+- 只在用户明确要求按钮样式时才使用 button 变体
+- 选项不超过 5 个且语义清晰时优先 Radio 而非 Select（减少交互层级）
+
+
+**Badge 状态点原则：**
+- 可枚举的状态值（方向、健康状态、连接状态等）统一用 `<Badge status={...} text={label} />`，不用带颜色的 `Tag`
+- Tag 只用于非状态语义的标记（分类、过滤标签、用户自定义标签等）
+- status 映射示例（方向类）：bullish/upward → "success"，bearish/downward → "error"，neutral → "default"
+- status 映射示例（健康类）：healthy → "success"，degraded → "warning"，failed → "error"，unknown → "default"
+
+
 ## Pro 组件优先规则
 
 | 场景 | 使用 | 备选 |

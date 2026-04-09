@@ -3,9 +3,9 @@ import { clearAuth } from "@/domain/auth/storage";
 import { useCurrentUser } from "@/domain/auth/use-current-user";
 import {
 	Avatar,
-	DashboardOutlined,
 	Dropdown,
 	GlobalOutlined,
+	LineChartOutlined,
 	LogoutOutlined,
 	PieChartOutlined,
 	ProLayout,
@@ -30,20 +30,29 @@ export function MainLayout() {
 		() => ({
 			path: "/",
 			routes: [
-				{ path: "/dashboard", name: t("nav.dashboard"), icon: <DashboardOutlined /> },
+				{ path: "/briefing", name: t("nav.briefing"), icon: <LineChartOutlined /> },
 				{ path: "/portfolio", name: t("nav.portfolio"), icon: <PieChartOutlined /> },
 			],
 		}),
 		[t],
 	);
 
+	const langMenu = useMemo(
+		() => ({
+			selectedKeys: [i18n.language],
+			onClick: ({ key }: { key: string }) => i18n.changeLanguage(key),
+			items: [
+				{ key: "en", label: "English" },
+				{ key: "zh", label: "中文" },
+			],
+		}),
+		[i18n],
+	);
+
 	const userMenu = useMemo(
 		() => ({
-			selectedKeys: [`lang-${i18n.language}`],
 			onClick: ({ key }: { key: string }) => {
 				if (key === "settings") navigate("/settings");
-				else if (key === "lang-en") i18n.changeLanguage("en");
-				else if (key === "lang-zh") i18n.changeLanguage("zh");
 				else if (key === "logout") {
 					clearAuth();
 					navigate("/login", { replace: true });
@@ -55,16 +64,6 @@ export function MainLayout() {
 					icon: <SettingOutlined />,
 					label: t("nav.settings"),
 				},
-				{
-					key: "language",
-					icon: <GlobalOutlined />,
-					label: t("nav.language"),
-					popupOffset: [4, 0],
-					children: [
-						{ key: "lang-en", label: "English" },
-						{ key: "lang-zh", label: "中文" },
-					],
-				},
 				{ type: "divider" as const },
 				{
 					key: "logout",
@@ -74,63 +73,43 @@ export function MainLayout() {
 				},
 			],
 		}),
-		[t, i18n, navigate],
+		[t, navigate],
 	);
 
 	return (
 		<ProLayout
 			title="Richman"
 			logo="/logo.svg"
-			layout="side"
-			fixSiderbar
+			layout="top"
+			contentWidth="Fixed"
 			token={layoutToken}
-			collapsed={false}
-			collapsedButtonRender={false}
 			location={{ pathname: location.pathname }}
 			route={menuRoutes}
 			menuItemRender={(item, dom) => <Link to={item.path || "#"}>{dom}</Link>}
-			menuFooterRender={() => (
-				<div
-					style={{
-						display: "flex",
-						alignItems: "center",
-						justifyContent: "space-between",
-						gap: 8,
-						padding: "12px 16px",
-					}}
+			actionsRender={() => [
+				<Link
+					key="help"
+					to="/help"
+					aria-label={t("nav.help")}
+					style={{ display: "inline-flex", alignItems: "center", color: "inherit" }}
 				>
-					<Dropdown menu={userMenu} placement="topLeft" arrow>
-						<Space style={{ cursor: "pointer", minWidth: 0 }}>
-							<Avatar size="small" icon={<UserOutlined />} />
-							<span
-								style={{
-									overflow: "hidden",
-									textOverflow: "ellipsis",
-									whiteSpace: "nowrap",
-								}}
-							>
-								{displayName}
-							</span>
-						</Space>
-					</Dropdown>
-					<a
-						href="/help"
-						onClick={(e) => {
-							e.preventDefault();
-							navigate("/help");
-						}}
-						aria-label={t("nav.help")}
+					<QuestionCircleOutlined style={{ fontSize: 14 }} />
+				</Link>,
+				<Dropdown key="lang" menu={langMenu} placement="bottom">
+					<GlobalOutlined aria-label={t("nav.language")} style={{ fontSize: 14 }} />
+				</Dropdown>,
+
+				<Dropdown key="user" menu={userMenu} placement="bottom">
+					<Space
 						style={{
-							display: "inline-flex",
-							alignItems: "center",
-							color: "inherit",
-							flexShrink: 0,
+							paddingBlock: 0,
 						}}
 					>
-						<QuestionCircleOutlined />
-					</a>
-				</div>
-			)}
+						<Avatar icon={<UserOutlined />} />
+						<span>{displayName}</span>
+					</Space>
+				</Dropdown>,
+			]}
 		>
 			<Outlet />
 		</ProLayout>

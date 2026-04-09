@@ -7,11 +7,11 @@ import type { LoginInput, RegisterInput } from "./api";
 // useLogin runs the login mutation and, on success, persists the token and
 // navigates to a target path. Callers may pass a `redirectTo` override (e.g.
 // LoginPage parses ?returnTo= and forwards a validated relative path here);
-// when omitted the user lands on /dashboard.
+// when omitted the user lands on /briefing.
 export function useLogin(options?: { redirectTo?: string }) {
 	const navigate = useNavigate();
 	const queryClient = useQueryClient();
-	const target = options?.redirectTo ?? "/dashboard";
+	const target = options?.redirectTo ?? "/briefing";
 
 	return useMutation({
 		mutationFn: (input: LoginInput) => login(input),
@@ -30,7 +30,7 @@ export function useLogin(options?: { redirectTo?: string }) {
 export function useRegister(options?: { redirectTo?: string }) {
 	const navigate = useNavigate();
 	const queryClient = useQueryClient();
-	const target = options?.redirectTo ?? "/dashboard";
+	const target = options?.redirectTo ?? "/briefing";
 
 	return useMutation({
 		mutationFn: (input: RegisterInput) => register(input),

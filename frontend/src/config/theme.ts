@@ -115,12 +115,24 @@ export function getThemeConfig(mode: "light" | "dark"): ThemeConfig {
 				defaultShadow: "none",
 				dangerShadow: "none",
 			},
+			// Horizontal top-nav menu: selection is indicated by the ink bar
+			// (colorPrimary = black) + text color only. Background fills create
+			// a boxy look in horizontal mode; side nav bg is handled separately
+			// via layoutToken.sider which is not affected by this component token.
+			// Horizontal top-nav menu: selection is indicated by the ink bar
+			// (colorPrimary = black) + text color only. Background fills create
+			// a boxy look in horizontal mode; side nav bg is handled separately
+			// via layoutToken.sider which is not affected by this component token.
+			// itemPaddingInline widens each item internally; itemMarginInline adds
+			// breathing room between adjacent items.
 			Menu: {
-				itemSelectedBg: palette.bgSelected,
+				itemSelectedBg: "transparent",
 				itemSelectedColor: palette.black,
-				itemHoverBg: palette.bgHover,
+				itemHoverBg: "transparent",
 				itemHoverColor: palette.black,
-				itemActiveBg: palette.bgSelected,
+				itemActiveBg: "transparent",
+				itemPaddingInline: 14,
+				itemMarginInline: 4,
 			},
 			Tabs: {
 				itemSelectedColor: palette.black,
@@ -159,6 +171,7 @@ export function getThemeConfig(mode: "light" | "dark"): ThemeConfig {
 // See https://procomponents.ant.design/components/layout#token
 export const layoutToken = {
 	bgLayout: palette.bgLayout,
+	contentWidth: "fixed",
 	sider: {
 		colorMenuBackground: palette.bgContainer,
 		colorMenuItemDivider: palette.borderSecondary,
@@ -189,7 +202,7 @@ export const layoutToken = {
 	},
 	pageContainer: {
 		colorBgPageContainer: palette.bgLayout,
-		paddingInlinePageContainerContent: 24,
+		paddingInlinePageContainerContent: 16,
 		paddingBlockPageContainerContent: 16,
 	},
 } as const;

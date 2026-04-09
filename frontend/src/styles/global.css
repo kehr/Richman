@@ -1,0 +1,37 @@
+body {
+	margin: 0;
+}
+
+/* ProLayout top-nav: add gap between logo section and the nav menu.
+   The menu has flex:1 so it fills remaining space; adding margin-inline-start
+   pushes the menu items away from the logo. No token controls this spacing. */
+.ant-pro-top-nav-header-menu {
+	margin-inline-start: 32px;
+}
+
+/* ProLayout top-nav: horizontal menu item spacing.
+   TopNavHeader wraps Menu in its own inner ConfigProvider which shadows our
+   outer itemPaddingInline / itemMarginInline tokens. Override via CSS.
+   Three-class specificity beats antd's hashed single-class generated styles. */
+.ant-pro-top-nav-header-base-menu.ant-menu-horizontal .ant-menu-item {
+	/* padding-inline: 20px; */
+	margin-inline: 6px;
+}
+
+/* Top-nav selected/hover state: bold weight only, no background changes. */
+.ant-pro-top-nav-header-base-menu.ant-menu-horizontal .ant-menu-item-selected,
+.ant-pro-top-nav-header-base-menu.ant-menu-horizontal .ant-menu-item:hover,
+.ant-pro-top-nav-header-base-menu.ant-menu-horizontal .ant-menu-item-active {
+	background-color: transparent !important;
+}
+
+.ant-pro-top-nav-header-base-menu.ant-menu-horizontal .ant-menu-item-selected {
+	font-weight: 600;
+}
+
+/* ProLayout page container: normalize inner padding so page content starts
+   flush with the layout canvas without extra whitespace from ProLayout's
+   default container wrapper. */
+.ant-pro-layout .ant-pro-layout-content-has-page-container {
+	padding: 16px;
+}

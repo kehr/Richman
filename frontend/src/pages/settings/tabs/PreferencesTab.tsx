@@ -1,4 +1,4 @@
-import { Collapse, Divider, Flex, Radio, Select, Typography } from "@/ui-kit/eat";
+import { Collapse, Divider, Flex, Radio, Typography } from "@/ui-kit/eat";
 import { useTranslation } from "react-i18next";
 
 // PreferencesTab covers PRD §6.4: language radio, timezone select (frozen at
@@ -27,9 +27,8 @@ export function PreferencesTab() {
 
 			<Flex vertical gap={8}>
 				<Typography.Text type="secondary">{t("preferences.timezone")}</Typography.Text>
-				<Select
+				<Radio.Group
 					defaultValue="Asia/Shanghai"
-					style={{ width: 240 }}
 					options={[
 						{ label: "Asia/Shanghai (UTC+8)", value: "Asia/Shanghai" },
 						{ label: "Asia/Hong_Kong (UTC+8)", value: "Asia/Hong_Kong" },

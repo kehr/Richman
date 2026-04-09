@@ -134,7 +134,7 @@ export default function DashboardPage() {
 	const showEmptyHero = holdingsReady && holdings.length === 0;
 
 	return (
-		<PageContainer title={t("dashboard.title")} data-testid="dashboard-page">
+		<PageContainer title={false} data-testid="dashboard-page">
 			<Flex vertical gap={16}>
 				<LLMStatusBanner
 					needsReanalysis={needsReanalysis}

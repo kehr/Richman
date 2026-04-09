@@ -1,5 +1,5 @@
 import { useDecisionCardDetail, useDecisionCards } from "@/features/decision-card";
-import { Alert, Col, PageContainer, Row, Skeleton, Space, Typography } from "@/ui-kit/eat";
+import { Alert, Col, PageContainer, Row, Skeleton, Space } from "@/ui-kit/eat";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate, useParams } from "react-router";
 import { CardHero } from "./components/CardHero";
@@ -9,12 +9,9 @@ import { ExecutionPlanFull } from "./components/ExecutionPlanFull";
 import { MainRisks } from "./components/MainRisks";
 import { MetaSidebar } from "./components/MetaSidebar";
 
-const { Text } = Typography;
-
-// formatBreadcrumbDateTime renders the analysis timestamp shown in the
-// breadcrumb. Returns a dash placeholder when the input is invalid so the
-// breadcrumb does not collapse mid-render while the query is loading.
-function formatBreadcrumbDateTime(iso: string | undefined): string {
+// formatAnalysisTime renders the analysis timestamp shown in the page subtitle.
+// Returns a dash placeholder when the input is invalid.
+function formatAnalysisTime(iso: string | undefined): string {
 	if (!iso) return "--";
 	const d = new Date(iso);
 	if (Number.isNaN(d.getTime())) return "--";
@@ -128,22 +125,16 @@ export default function DecisionCardDetailPage() {
 		);
 	}
 
-	const breadcrumb = (
-		<Space size={4} data-testid="detail-breadcrumb">
-			<Link to="/dashboard">← Dashboard</Link>
-			<Text type="secondary">/</Text>
-			<Text type="secondary">{t("decisionCard.breadcrumb.decisionCard")}</Text>
-			<Text type="secondary">/</Text>
-			<Text>
-				{card.assetName} · {formatBreadcrumbDateTime(card.analyzedAt)}
-			</Text>
-		</Space>
-	);
-
 	return (
 		<PageContainer
-			title={t("decisionCard.detailTitle")}
-			header={{ extra: breadcrumb }}
+			title={card.assetName}
+			subTitle={formatAnalysisTime(card.analyzedAt)}
+			breadcrumb={{
+				items: [
+					{ title: <Link to="/briefing">{t("nav.briefing", { ns: "common" })}</Link> },
+					{ title: card.assetName },
+				],
+			}}
 			data-testid="decision-card-detail"
 		>
 			<Row gutter={[16, 16]}>

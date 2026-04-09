@@ -37,6 +37,16 @@ docs/
 - Database: snake_case, soft delete (is_deleted), audit fields on every table
 - Config: .env files per environment (dev/prod), .env.example as template, secrets not in repo
 
+## Internationalization (i18n) Convention
+
+- Frontend uses react-i18next; all user-visible strings must go through translation keys, never hardcoded
+- Any time copy text is added or changed, both locale files must be updated simultaneously:
+  - `src/i18n/locales/zh.json` (or namespace-scoped files under `src/i18n/locales/zh/`)
+  - `src/i18n/locales/en.json` (or namespace-scoped files under `src/i18n/locales/en/`)
+- Adding a key to one locale file without updating the other is a lint/review violation
+- Translation keys follow dot-notation namespacing that mirrors the feature hierarchy (e.g., `settings.account.riskPreference`)
+- Never use inline fallback strings as a substitute for missing translations; fix the missing key instead
+
 ## Frontend Testing Policy (MVP)
 
 - UI tests (.test.tsx) are prohibited — do not write them, do not suggest them

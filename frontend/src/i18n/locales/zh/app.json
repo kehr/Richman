@@ -76,9 +76,21 @@
 			"noSummary": "（暂无说明）",
 			"flipNote": "提示：此维度发生翻转是本次建议升级的主要驱动因素",
 			"label": {
-				"trend": "趋势 Trend",
-				"position": "仓位 Position",
-				"catalyst": "催化 Catalyst"
+				"trend": "趋势",
+				"position": "仓位",
+				"catalyst": "催化"
+			},
+			"badgeLabel": {
+				"trend": "趋势",
+				"position": "仓位",
+				"catalyst": "催化"
+			},
+			"direction": {
+				"upward": "上涨",
+				"downward": "下跌",
+				"bullish": "看涨",
+				"bearish": "看跌",
+				"neutral": "中性"
 			}
 		},
 		"executionPlan": {
@@ -118,7 +130,7 @@
 			"llmTooltip": "由 AI 解读生成（{{provider}}）",
 			"mixed": "Mixed",
 			"mixedTooltip": "文案由 AI 解读生成，建议动作由规则引擎兜底（{{provider}}）",
-			"template": "Rules",
+			"template": "规则引擎",
 			"templateTooltip": "由规则引擎生成 · 配置 LLM Provider 可启用 AI 解读"
 		},
 		"provider": {
@@ -128,11 +140,11 @@
 			"unknown": "未知"
 		},
 		"recommendation": {
-			"aggressiveAdd": "积极加仓",
-			"smallAdd": "小幅加仓",
+			"aggressive_add": "积极加仓",
+			"small_add": "小幅加仓",
 			"hold": "持有观望",
-			"gradualReduce": "逐步减仓",
-			"controlPosition": "控制仓位"
+			"gradual_reduce": "逐步减仓",
+			"control_position": "控制仓位"
 		},
 		"viewFullReasoning": "查看完整推理 →",
 		"confidenceLabel": "信心度",
@@ -196,6 +208,35 @@
 			"searchAsset": "搜索标的",
 			"searchPlaceholder": "输入代码或名称",
 			"notFound": "未找到标的"
+		},
+		"holdingForm": {
+			"asset": "标的",
+			"selectAsset": "选择标的",
+			"costPrice": "均价成本",
+			"positionRatio": "仓位比例 (%)",
+			"quantity": "持仓数量",
+			"createSuccess": "持仓已创建",
+			"updateSuccess": "持仓已更新",
+			"saveError": "操作失败",
+			"createButton": "创建",
+			"updateButton": "更新",
+			"validation": {
+				"assetRequired": "请选择标的",
+				"costPriceRequired": "请输入均价成本",
+				"positionRatioRequired": "请输入仓位比例"
+			}
+		},
+		"editPage": {
+			"title": "编辑持仓",
+			"notFound": "未找到持仓",
+			"editTitle": "编辑：{{name}}",
+			"holdingDetails": "持仓信息"
+		},
+		"tradeRecordList": {
+			"headerTitle": "交易记录",
+			"addButton": "添加交易",
+			"saveSuccess": "交易已记录",
+			"saveError": "记录交易失败"
 		},
 		"transactions": {
 			"title": "交易记录",

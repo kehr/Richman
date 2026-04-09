@@ -181,7 +181,7 @@ export function useOnboardingNav(): UseOnboardingNavReturn {
 		// itself open. On success we head straight to the dashboard; the
 		// mutation's own onSuccess already wipes the sessionStorage draft.
 		await skipMutateAsync();
-		navigate("/dashboard", { replace: true });
+		navigate("/briefing", { replace: true });
 	}, [skipMutateAsync, navigate]);
 
 	const jumpTo = useCallback(

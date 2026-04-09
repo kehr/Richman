@@ -13,7 +13,7 @@ import {
 	Form,
 	InputNumber,
 	Popconfirm,
-	Select,
+	Radio,
 	Space,
 	Tooltip,
 	Typography,
@@ -154,12 +154,11 @@ export function AccountTab() {
 
 			<Flex vertical gap={8}>
 				<Typography.Text type="secondary">{t("account.riskPreference")}</Typography.Text>
-				<Select<RiskPreference>
+				<Radio.Group
 					value={settings?.riskPreference}
-					onChange={handleRiskChange}
+					onChange={(e) => handleRiskChange(e.target.value as RiskPreference)}
 					options={riskOptions}
-					style={{ width: 240 }}
-					loading={settingsQuery.isLoading}
+					disabled={settingsQuery.isLoading}
 					data-testid="account-risk-preference"
 				/>
 				<Typography.Text type="secondary" style={{ fontSize: 12 }}>

@@ -109,7 +109,7 @@ export function MetaSidebar({ card, historicalCards = [], onSelectHistory }: Met
 									}}
 								>
 									{formatShanghaiDateTime(new Date(h.analyzedAt), i18n.language)} ·{" "}
-									{h.recommendation.label}
+									{t(`decisionCard.recommendation.${h.recommendation.action}`)}
 								</button>
 							))}
 						</Space>
