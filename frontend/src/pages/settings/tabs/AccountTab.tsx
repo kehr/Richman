@@ -12,6 +12,7 @@ import {
 	Flex,
 	Form,
 	InputNumber,
+	Popconfirm,
 	Select,
 	Space,
 	Tooltip,
@@ -19,6 +20,7 @@ import {
 	message,
 } from "@/ui-kit/eat";
 import { useEffect } from "react";
+import { useNavigate } from "react-router";
 
 const RISK_OPTIONS: { label: string; value: RiskPreference }[] = [
 	{ label: "稳健", value: "conservative" },
@@ -32,13 +34,17 @@ interface CapitalFormValues {
 
 // AccountTab renders the PRD §6.2 fields: read-only email, password reset
 // (disabled placeholder), total capital with privacy hint, risk preference
-// dropdown, logout, and a dev-only "reset onboarding" affordance.
+// dropdown, logout, and a "重新走一遍引导" CTA that clears both the server
+// onboarding flags and the local nudge dismissal state before navigating to
+// the wizard. The CTA ships to production (no dev-only gate) because users
+// who dismissed the Dashboard nudge would otherwise have no regret path.
 export function AccountTab() {
 	const settingsQuery = useUserSettings();
 	const patchMutation = usePatchUserSettings();
 	const resetOnboarding = useResetOnboarding();
 	const logout = useLogout();
 	const currentUser = useCurrentUser();
+	const navigate = useNavigate();
 
 	const [capitalForm] = Form.useForm<CapitalFormValues>();
 
@@ -84,13 +90,15 @@ export function AccountTab() {
 	const handleResetOnboarding = async () => {
 		try {
 			await resetOnboarding.mutateAsync();
-			message.success("Onboarding 已重置，下次进入将重新引导");
+			// useResetOnboarding's onSuccess already clears the sessionStorage
+			// draft, the localStorage nudge-dismissed flag, and refetches
+			// onboarding status — we just need to navigate once the mutation
+			// has settled so the guard sees the fresh not-completed status.
+			navigate("/onboarding/welcome");
 		} catch {
-			message.error("重置 Onboarding 失败");
+			message.error("重置失败，请稍后重试");
 		}
 	};
-
-	const isDev = import.meta.env.DEV === true;
 
 	return (
 		<Flex vertical gap={24} data-testid="account-tab">
@@ -160,15 +168,17 @@ export function AccountTab() {
 				<Button danger onClick={logout} data-testid="account-logout">
 					退出登录
 				</Button>
-				{isDev && (
-					<Button
-						onClick={handleResetOnboarding}
-						loading={resetOnboarding.isPending}
-						data-testid="account-reset-onboarding"
-					>
-						重置 Onboarding（dev）
+				<Popconfirm
+					title="重新走一遍引导？"
+					description="将清空本地引导草稿并让 Dashboard 的引导提示重新出现，当前持仓和决策卡不受影响。"
+					okText="开始引导"
+					cancelText="取消"
+					onConfirm={handleResetOnboarding}
+				>
+					<Button loading={resetOnboarding.isPending} data-testid="account-reset-onboarding">
+						重新走一遍引导
 					</Button>
-				)}
+				</Popconfirm>
 			</Flex>
 		</Flex>
 	);

@@ -47,6 +47,26 @@ if (typeof window.matchMedia !== "function") {
 	});
 }
 
+// framer-motion schedules animation frames that write latestValues into
+// element.style during an rAF callback. When a motion element unmounts
+// while a frame is still queued, the callback fires and tries to write an
+// undefined value into cssstyle, which crashes jsdom with a
+// "Cannot read properties of undefined (reading 'split')" uncaughtException.
+// The crash is async and happens after the test assertions resolve, so it
+// does not affect correctness — but vitest flags the uncaught exception
+// and fails the run. Swallow that exact error shape so legitimate errors
+// still surface.
+process.on("uncaughtException", (err: unknown) => {
+	if (
+		err instanceof TypeError &&
+		err.message.includes("Cannot read properties of undefined (reading 'split')") &&
+		err.stack?.includes("cssstyle")
+	) {
+		return;
+	}
+	throw err;
+});
+
 beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
 afterEach(() => server.resetHandlers());
 afterAll(() => server.close());

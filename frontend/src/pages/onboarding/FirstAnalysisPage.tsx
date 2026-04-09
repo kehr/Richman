@@ -1,9 +1,11 @@
 import { useRerunAnalysis } from "@/features/decision-card";
 import { useMarkOnboardingCompleted } from "@/features/user-settings";
 import { Alert, Button, Space, Spin, Typography } from "@/ui-kit/eat";
+import { motion, useReducedMotion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { OnboardingLayout } from "./components/OnboardingLayout";
+import { useOnboardingState } from "./state";
 
 const { Text } = Typography;
 
@@ -18,25 +20,41 @@ type StepStatus = "pending" | "active" | "done";
 // advance a local timer through four canned steps while the mutation runs in
 // the background. Once both the timer and the mutation have settled we mark
 // onboarding complete and redirect to /dashboard.
+//
+// The one-shot analysis trigger is gated by `state.analysisFired` from the
+// onboarding state provider (persisted in sessionStorage) so that navigating
+// back to step 3 and forward again does NOT re-dispatch the mutation. The
+// 4-step visual animation still plays on every mount so returning users see
+// consistent feedback; only the underlying mutation is suppressed.
 export default function FirstAnalysisPage() {
 	const navigate = useNavigate();
 	const rerunAnalysis = useRerunAnalysis();
 	const markCompleted = useMarkOnboardingCompleted();
+	const { state, update, clear } = useOnboardingState();
+	const reducedMotion = useReducedMotion();
 
 	const [currentStep, setCurrentStep] = useState(0);
 	const [error, setError] = useState<string | null>(null);
-	const startedRef = useRef(false);
 	const completedRef = useRef(false);
 
-	// Kick off the analysis mutation exactly once on mount. StrictMode would
-	// otherwise double-fire and produce two /analysis/trigger requests. The
-	// rerunAnalysis mutation object is stable across renders so we intentionally
-	// omit it from the dependency array via the biome ignore comment below.
-	// biome-ignore lint/correctness/useExhaustiveDependencies: mount-only effect
+	// Kick off the analysis mutation exactly once per onboarding session. The
+	// guard reads `state.analysisFired` on first render only — subsequent
+	// mounts (e.g. user navigates back to step 3 and returns) will see the
+	// flag already true and skip the trigger. The empty dependency array is
+	// intentional: adding `state.analysisFired` would re-run the effect every
+	// time the state updates, which would either re-fire the mutation or be
+	// a no-op depending on ordering. The current pattern is explicit and
+	// mirrors the "mount-once seed" convention used on FirstHoldingPage.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: mount-once guard
 	useEffect(() => {
-		if (startedRef.current) return;
-		startedRef.current = true;
+		if (state.analysisFired) return;
+		update({ analysisFired: true });
 		rerunAnalysis.mutateAsync().catch((err: unknown) => {
+			// The analysis call is fire-and-forget per the backend contract
+			// (202 Accepted, the real work runs in a detached goroutine). A
+			// rejection here means the HTTP round-trip itself failed, which we
+			// surface as an error so the user can retry rather than silently
+			// hanging on the progress screen.
 			const msg = err instanceof Error ? err.message : "分析触发失败";
 			setError(msg);
 		});
@@ -61,10 +79,10 @@ export default function FirstAnalysisPage() {
 	// to hang on the "all done" screen when the mutation state failed to
 	// settle for any reason (flaky network, stale reference, data source
 	// failure mid-request). completedRef guards against double-firing.
-	// `markCompleted` and `navigate` are stable references from TanStack Query
-	// and React Router v7, so we only react to the currentStep counter and
-	// the error state.
-	// biome-ignore lint/correctness/useExhaustiveDependencies: markCompleted and navigate are stable
+	// `markCompleted`, `navigate` and `clear` are stable references from
+	// TanStack Query, React Router v7, and the state provider respectively,
+	// so we only react to the currentStep counter and the error state.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: markCompleted/navigate/clear are stable
 	useEffect(() => {
 		if (completedRef.current) return;
 		if (error) return;
@@ -73,20 +91,33 @@ export default function FirstAnalysisPage() {
 		markCompleted
 			.mutateAsync()
 			.then(() => {
+				// Clear the onboarding draft so the next session (if the user
+				// ever re-enters the flow via Settings) starts fresh. The state
+				// provider's own effect also wipes it once the status query
+				// reports completed=true, but clearing here removes the race
+				// where the user reaches /dashboard before the status refetch
+				// has landed.
+				clear();
 				navigate("/dashboard", { replace: true });
 			})
 			.catch(() => {
 				// Even if the mark-complete call fails, free the user from the
 				// progress screen so they are not stuck. OnboardingGuard will
 				// simply put them back here on the next hard reload, which is a
-				// better failure mode than an infinite spinner.
+				// better failure mode than an infinite spinner. We deliberately
+				// do NOT show an error toast here — a failed markCompleted at
+				// the tail of the wizard should not ruin the "final step"
+				// moment.
 				navigate("/dashboard", { replace: true });
 			});
 	}, [currentStep, error]);
 
 	const handleRetry = () => {
-		// Reset UI state and re-fire the mutation directly; the mount-only
-		// effect above will not re-run (empty deps), so startedRef stays true.
+		// Reset UI state and re-fire the mutation directly. The mount-only
+		// effect above will not re-run (empty deps), and `state.analysisFired`
+		// is already true, so we bypass both guards by calling mutateAsync
+		// directly. This is the one documented escape hatch from the
+		// fire-once invariant: a user-initiated retry after an observed error.
 		setError(null);
 		setCurrentStep(0);
 		completedRef.current = false;
@@ -100,6 +131,7 @@ export default function FirstAnalysisPage() {
 		if (completedRef.current) return;
 		completedRef.current = true;
 		markCompleted.mutateAsync().finally(() => {
+			clear();
 			navigate("/dashboard", { replace: true });
 		});
 	};
@@ -192,7 +224,34 @@ export default function FirstAnalysisPage() {
 									fontWeight: 600,
 								}}
 							>
-								{status === "done" ? "✓" : index + 1}
+								{status === "done" ? (
+									// framer-motion pathLength draw-in: animates the checkmark
+									// stroke from 0 to 1 over 0.4s on transition to "done".
+									// When the user prefers reduced motion we render the path
+									// fully drawn so the visual payload is preserved without
+									// the motion.
+									<motion.svg
+										width="16"
+										height="16"
+										viewBox="0 0 20 20"
+										aria-hidden="true"
+										data-testid={`analysis-step-check-${index}`}
+									>
+										<motion.path
+											d="M4 10.5 L8 14.5 L16 6"
+											fill="none"
+											stroke="currentColor"
+											strokeWidth="2.5"
+											strokeLinecap="round"
+											strokeLinejoin="round"
+											initial={{ pathLength: reducedMotion ? 1 : 0 }}
+											animate={{ pathLength: 1 }}
+											transition={{ duration: reducedMotion ? 0 : 0.4, ease: "easeOut" }}
+										/>
+									</motion.svg>
+								) : (
+									index + 1
+								)}
 							</div>
 							<Text style={{ flex: 1, fontSize: 15 }}>{label}</Text>
 							{status === "active" ? <Spin size="small" /> : null}
