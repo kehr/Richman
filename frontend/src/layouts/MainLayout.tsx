@@ -16,7 +16,7 @@ import {
 } from "@/ui-kit/eat";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { Outlet, useLocation, useNavigate } from "react-router";
+import { Link, Outlet, useLocation, useNavigate } from "react-router";
 
 export function MainLayout() {
 	const navigate = useNavigate();
@@ -81,24 +81,14 @@ export function MainLayout() {
 		<ProLayout
 			title="Richman"
 			logo="/logo.svg"
-			layout="top"
+			layout="side"
 			fixSiderbar
 			token={layoutToken}
 			collapsed={false}
 			collapsedButtonRender={false}
 			location={{ pathname: location.pathname }}
 			route={menuRoutes}
-			menuItemRender={(item, dom) => (
-				<a
-					href={item.path || "#"}
-					onClick={(e) => {
-						e.preventDefault();
-						if (item.path) navigate(item.path);
-					}}
-				>
-					{dom}
-				</a>
-			)}
+			menuItemRender={(item, dom) => <Link to={item.path || "#"}>{dom}</Link>}
 			menuFooterRender={() => (
 				<div
 					style={{
