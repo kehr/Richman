@@ -97,14 +97,38 @@
 - 关键决策：asset-catalog/types.ts 的 ASSET_CATEGORY_META 中文 label 保留（A 股领域数据，非通用 UI 文案）；代码注释中的中文保留（不影响运行时）
 - 偏差说明：部分测试文件由 Step 12 agent 一并纳入提交（从 Step 11 background agent 的未提交修改中收集）
 
+## Rebase 状态
+
+- 基于 origin/main (85971dc) 开发，rebase 时 main 已有 5 个新 commit（至 5c2db07）
+- rebase 完成：2026-04-10，commit 4c0d4c4
+- 冲突文件：3 个（ExecutionPlanStrip.tsx / SourcePill.tsx / ExecutionPlanFull.tsx）
+- 冲突原因：main 的 fc11761 补了 .toFixed(2)，我们的 b703de3 把硬编码中文换成了 t() 调用，两者修改同一行
+- 解法：合并两侧变更（保留 .toFixed(2) + 用 i18n key 替换中文）
+- rebase 后 lint:all：通过（155 文件，无错误）
+
+## 翻译完整性审计（2026-04-10）
+
+基于 rebase 到最新 main 后执行 Python 全量扫描（过滤 locales/ / help/ / 注释行）：
+
+合法保留的中文（不需要迁移）：
+- `asset-catalog/types.ts`：ASSET_CATEGORY_META 的 label/description/examples — A 股领域数据，非 UI 文案
+- `MainLayout.tsx` 语言菜单：`{ key: "zh", label: "中文" }` 和 Globe 按钮 `"中文"`/`"EN"` — 语言名称按惯例显示自身语言
+- `PreferencesTab.tsx`：`<Radio value="zh">中文</Radio>` — 同上
+- 各组件注释中的中文引用（如"查看完整推理"、"今日建议"等）— 代码注释，不影响运行时
+
+结论：所有 UI 可见字符串均已迁移，零遗漏。
+
 ## 已修复问题
 
-（执行过程中记录）
+- PreferencesTab 保留了 useLocale 导致 runtime crash → 替换为 useTranslation + i18n.changeLanguage()
+- MainLayout Globe 按钮 Biome useSemanticElements 规则拒绝 Space[role="button"] → 改为 native button
+- tsconfig.json 引用已删除的 @testing-library/jest-dom/vitest 类型 → 移除该 types 条目
+- rebase 冲突（stop-loss/take-profit）→ 合并 .toFixed(2) 与 i18n key
 
 ## 未修复观察项
 
-（执行过程中记录）
+无。
 
 ## 无法决策项
 
-（等待用户验收时决策）
+无。所有翻译决策已按 PRD/TRD 约定处理，等待用户人眼验收。
