@@ -72,7 +72,10 @@ export function ExecutionPlanStrip({
 }: ExecutionPlanStripProps) {
 	const { t } = useTranslation("app");
 
-	if (execution.type === "monitor") {
+	const steps = execution.steps ?? [];
+
+	// Legacy monitor cards without steps: render stop-loss / take-profit only.
+	if (execution.type === "monitor" && steps.length === 0) {
 		return (
 			<Space direction="vertical" size={2} style={{ width: "100%" }}>
 				<Text type="secondary" data-testid="plan-monitor-stop-loss">
@@ -91,7 +94,6 @@ export function ExecutionPlanStrip({
 		);
 	}
 
-	const steps = execution.steps ?? [];
 	const visible = execution.type === "one-shot" ? steps.slice(0, 1) : steps.slice(0, maxSteps);
 	const hidden = Math.max(0, steps.length - visible.length);
 
@@ -128,6 +130,15 @@ export function ExecutionPlanStrip({
 					data-testid="plan-more-link"
 				>
 					{t("decisionCard.executionPlan.moreSteps", { count: hidden })}
+				</Text>
+			)}
+			{execution.type === "monitor" && (
+				<Text type="secondary" style={{ fontSize: 12 }}>
+					{t("decisionCard.executionPlan.stopLoss")}:{" "}
+					{execution.stopLoss?.toFixed(2) ?? t("decisionCard.executionPlan.notSet")}
+					{" / "}
+					{t("decisionCard.executionPlan.takeProfit")}:{" "}
+					{execution.takeProfit?.toFixed(2) ?? t("decisionCard.executionPlan.notSet")}
 				</Text>
 			)}
 		</Space>

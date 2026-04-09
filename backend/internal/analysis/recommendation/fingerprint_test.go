@@ -18,14 +18,14 @@ func sampleExecution() Execution {
 				TriggerType:  TriggerPrice,
 				TriggerValue: ">=110",
 				DeltaPct:     5.0,
-				Rationale:    "first leg",
+				Rationale:    StructuredRationale{TriggerReason: "first leg"},
 			},
 			{
 				Order:        2,
 				TriggerType:  TriggerTime,
 				TriggerValue: "2026-05-01",
 				DeltaPct:     5.0,
-				Rationale:    "second leg",
+				Rationale:    StructuredRationale{TriggerReason: "second leg"},
 			},
 		},
 	}
@@ -46,11 +46,25 @@ func TestFingerprint_Deterministic(t *testing.T) {
 func TestFingerprint_RationaleIgnored(t *testing.T) {
 	exec1 := sampleExecution()
 	exec2 := sampleExecution()
-	exec2.Steps[0].Rationale = "completely different prose"
-	exec2.Steps[1].Rationale = "another rewording"
+	exec2.Steps[0].Rationale = StructuredRationale{
+		TriggerReason:  "completely different",
+		PositionReason: "new reason",
+	}
+	exec2.Steps[1].Rationale = StructuredRationale{Fallback: "another"}
 
 	if Fingerprint(50.0, exec1) != Fingerprint(50.0, exec2) {
-		t.Fatal("rationale text must not affect fingerprint")
+		t.Fatal("rationale content must not affect fingerprint")
+	}
+}
+
+func TestFingerprint_LotCountIgnored(t *testing.T) {
+	exec1 := sampleExecution()
+	exec2 := sampleExecution()
+	exec2.Steps[0].LotCount = 500
+	exec2.Steps[1].LotCount = 1000
+
+	if Fingerprint(50.0, exec1) != Fingerprint(50.0, exec2) {
+		t.Fatal("LotCount must not affect fingerprint")
 	}
 }
 

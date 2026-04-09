@@ -99,7 +99,18 @@
 			"takeProfit": "Take-profit",
 			"notSet": "Not set",
 			"validDays": "This plan applies for the next {{days}} day(s). It will be automatically re-analyzed if stop-loss is triggered or if the validity window expires.",
-			"moreSteps": "+ {{count}} more"
+			"moreSteps": "+ {{count}} more",
+			"lotCount": "Ref. Lot Count",
+			"lotUnit": "lots",
+			"lotUnitShare": "shares",
+			"monitorStepLabel": "Watch",
+			"rationale": {
+				"triggerReason": "Trigger Reason",
+				"positionReason": "Position Rationale",
+				"precondition": "Precondition",
+				"fallback": "Fallback",
+				"timeWindow": "Time Window"
+			}
 		},
 		"mainRisks": {
 			"title": "Main Risks",

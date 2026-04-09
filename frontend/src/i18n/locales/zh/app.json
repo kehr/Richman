@@ -99,7 +99,18 @@
 			"takeProfit": "止盈",
 			"notSet": "未设置",
 			"validDays": "本计划适用未来 {{days}} 天，超过或触发止损条件会自动重新分析。",
-			"moreSteps": "+ 还有 {{count}} 步"
+			"moreSteps": "+ 还有 {{count}} 步",
+			"lotCount": "参考手数",
+			"lotUnit": "手",
+			"lotUnitShare": "股",
+			"monitorStepLabel": "条件监控",
+			"rationale": {
+				"triggerReason": "触发原因",
+				"positionReason": "仓位依据",
+				"precondition": "前提条件",
+				"fallback": "备选方案",
+				"timeWindow": "时间窗口"
+			}
 		},
 		"mainRisks": {
 			"title": "主要风险",

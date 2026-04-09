@@ -2,6 +2,7 @@ package synthesis
 
 import (
 	"encoding/json"
+	"fmt"
 	"strings"
 
 	"github.com/richman/backend/internal/analysis"
@@ -27,7 +28,13 @@ func recommendationPromptSection() string {
         "triggerType": "price|time|event",
         "triggerValue": "short condition text",
         "deltaPct": 5.0,
-        "rationale": "why this step"
+        "rationale": {
+          "triggerReason": "why this trigger condition (1 sentence)",
+          "positionReason": "why this delta size (1 sentence)",
+          "precondition": "what must be true before acting (1 sentence)",
+          "fallback": "what to do if trigger missed (1 sentence)",
+          "timeWindow": "expected timeframe (1 sentence)"
+        }
       }
     ],
     "stopLoss": null,
@@ -36,7 +43,9 @@ func recommendationPromptSection() string {
   }
 }`)
 	sb.WriteString("\nUse stopLoss / takeProfit as numeric price levels when relevant, otherwise omit or set null.\n")
-	sb.WriteString("Use steps = [] and type=\"monitor\" for hold recommendations.\n")
+	sb.WriteString("For hold recommendations: use type=\"monitor\" with 1-2 conditional watch steps ")
+	sb.WriteString("(triggerType=\"price\" or \"event\"). These steps represent conditions to watch, ")
+	sb.WriteString("not immediate actions. Monitor steps should have negative or zero deltaPct.\n")
 	return sb.String()
 }
 
@@ -101,7 +110,9 @@ func fallbackRecommendation(input *SynthesisInput) recommendation.Recommendation
 			TriggerType:  recommendation.TriggerTime,
 			TriggerValue: "execute immediately",
 			DeltaPct:     10,
-			Rationale:    "Aggressive add per matrix decision.",
+			Rationale: recommendation.StructuredRationale{
+				TriggerReason: "Aggressive add per matrix decision.",
+			},
 		}}
 	case recommendation.ActionSmallAdd:
 		rec.TargetPositionPct = currentPct + 5
@@ -110,11 +121,13 @@ func fallbackRecommendation(input *SynthesisInput) recommendation.Recommendation
 			TriggerType:  recommendation.TriggerTime,
 			TriggerValue: "execute immediately",
 			DeltaPct:     5,
-			Rationale:    "Small add per matrix decision.",
+			Rationale: recommendation.StructuredRationale{
+				TriggerReason: "Small add per matrix decision.",
+			},
 		}}
 	case recommendation.ActionHold:
 		rec.Execution.Type = recommendation.ExecutionMonitor
-		rec.Execution.Steps = nil
+		rec.Execution.Steps = fallbackMonitorSteps(input)
 		if input.CostPrice > 0 {
 			stop := input.CostPrice * 0.95
 			take := input.CostPrice * 1.10
@@ -128,7 +141,9 @@ func fallbackRecommendation(input *SynthesisInput) recommendation.Recommendation
 			TriggerType:  recommendation.TriggerTime,
 			TriggerValue: "execute immediately",
 			DeltaPct:     -10,
-			Rationale:    "Gradual reduce per matrix decision.",
+			Rationale: recommendation.StructuredRationale{
+				TriggerReason: "Gradual reduce per matrix decision.",
+			},
 		}}
 	case recommendation.ActionControl:
 		rec.TargetPositionPct = clampNonNegative(currentPct - 15)
@@ -137,15 +152,42 @@ func fallbackRecommendation(input *SynthesisInput) recommendation.Recommendation
 			TriggerType:  recommendation.TriggerTime,
 			TriggerValue: "execute immediately",
 			DeltaPct:     -15,
-			Rationale:    "Control position per matrix decision.",
+			Rationale: recommendation.StructuredRationale{
+				TriggerReason: "Control position per matrix decision.",
+			},
 		}}
 	default:
-		// Unknown action: treat as monitor with no guards.
+		// Unknown action: treat as monitor with fallback steps.
 		rec.Execution.Type = recommendation.ExecutionMonitor
-		rec.Execution.Steps = nil
+		rec.Execution.Steps = fallbackMonitorSteps(input)
 	}
 
 	return rec
+}
+
+// fallbackMonitorSteps generates a single conditional watch step for
+// monitor-type plans when the LLM did not provide steps. The step
+// instructs the user to trim if price drops below the stop-loss level.
+func fallbackMonitorSteps(input *SynthesisInput) []recommendation.Step {
+	triggerValue := "price breaks below stop-loss"
+	if input.CostPrice > 0 {
+		triggerValue = fmt.Sprintf("%.4f below", input.CostPrice*0.95)
+	}
+	return []recommendation.Step{
+		{
+			Order:        1,
+			TriggerType:  recommendation.TriggerPrice,
+			TriggerValue: triggerValue,
+			DeltaPct:     -5,
+			Rationale: recommendation.StructuredRationale{
+				TriggerReason:  "Reduce if price breaks below stop-loss to limit downside.",
+				PositionReason: "Moderate trim to observe before further action.",
+				Precondition:   "Price closes below stop-loss level on consecutive days.",
+				Fallback:       "If price recovers above cost, continue holding.",
+				TimeWindow:     "Continuous monitoring.",
+			},
+		},
+	}
 }
 
 func clampNonNegative(v float64) float64 {
@@ -177,5 +219,10 @@ func ensureRecommendation(rec *recommendation.Recommendation, input *SynthesisIn
 	}
 	if rec.Execution.ValidDays <= 0 {
 		rec.Execution.ValidDays = recommendation.ValidityDefaultDays
+	}
+	// Monitor plans must have at least one watch step; if the LLM returned
+	// an empty steps slice, inject fallback monitor steps.
+	if rec.Execution.Type == recommendation.ExecutionMonitor && len(rec.Execution.Steps) == 0 {
+		rec.Execution.Steps = fallbackMonitorSteps(input)
 	}
 }

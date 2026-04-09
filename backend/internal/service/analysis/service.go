@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -308,11 +309,18 @@ func (s *Service) AnalyzeHolding(
 		return nil, fmt.Errorf("synthesize: %w", err)
 	}
 
+	// Post-synthesis: compute lotCount per step. totalCapitalCNY is read
+	// from the user profile here (not in the synthesizer) so the capital
+	// value never enters the LLM context, satisfying the privacy guard
+	// constraint (TRD §5.2).
+	s.attachLotCounts(ctx, userID, holding.AssetType, data.Prices, &synthOutput.Recommendation.Execution)
+
 	now := time.Now()
 
 	// Compute execution fingerprint from the structured recommendation. The
 	// fingerprint is stable across LLM retries and feeds the badge diff
-	// algorithm's plan-adjustment check.
+	// algorithm's plan-adjustment check. LotCount is excluded from the
+	// fingerprint (see recommendation.Fingerprint docs).
 	fingerprint := recommendation.Fingerprint(
 		synthOutput.Recommendation.TargetPositionPct,
 		synthOutput.Recommendation.Execution,
@@ -500,5 +508,42 @@ func (s *Service) acquireSlot() func() {
 	s.semaphore <- struct{}{}
 	return func() {
 		<-s.semaphore
+	}
+}
+
+// attachLotCounts computes the reference lot count for each step based on
+// the user's total capital and the latest market price. LotCount stays zero
+// when any required input is missing (no totalCapitalCNY, no price data).
+// A-share assets round down to whole lots (100 shares per lot).
+func (s *Service) attachLotCounts(
+	ctx context.Context,
+	userID int64,
+	assetType string,
+	prices []datasource.PriceData,
+	exec *recommendation.Execution,
+) {
+	if len(exec.Steps) == 0 || len(prices) == 0 {
+		return
+	}
+	if s.userRepo == nil {
+		return
+	}
+	totalCap, err := s.userRepo.GetTotalCapitalCNY(ctx, userID)
+	if err != nil || totalCap == nil || *totalCap <= 0 {
+		return
+	}
+
+	latestPrice := prices[len(prices)-1].Close
+	if latestPrice <= 0 {
+		return
+	}
+
+	for i := range exec.Steps {
+		raw := *totalCap * math.Abs(exec.Steps[i].DeltaPct) / 100.0 / latestPrice
+		if assetType == "a_share" {
+			exec.Steps[i].LotCount = math.Floor(raw/100) * 100
+		} else {
+			exec.Steps[i].LotCount = math.Floor(raw)
+		}
 	}
 }

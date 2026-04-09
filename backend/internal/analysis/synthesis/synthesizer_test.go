@@ -91,7 +91,13 @@ func TestSynthesize_LLMSuccessWithRecommendation(t *testing.T) {
                         "triggerType": "price",
                         "triggerValue": "price <= 145",
                         "deltaPct": 5.0,
-                        "rationale": "buy the dip"
+                        "rationale": {
+                            "triggerReason": "buy the dip",
+                            "positionReason": "target position not reached",
+                            "precondition": "price at support",
+                            "fallback": "wait for lower entry",
+                            "timeWindow": "1-3 days"
+                        }
                     }
                 ],
                 "validDays": 7
@@ -317,7 +323,7 @@ func TestSynthesize_SystemDefaultFallback_RecordsLayer(t *testing.T) {
 	}
 	s := NewSynthesizer(resolver, zap.NewNop())
 
-	_, meta, err := s.Synthesize(context.Background(), sampleInput(analysis.RecommendHold), 42)
+	out, meta, err := s.Synthesize(context.Background(), sampleInput(analysis.RecommendHold), 42)
 	if err != nil {
 		t.Fatalf("unexpected err: %v", err)
 	}
@@ -327,6 +333,11 @@ func TestSynthesize_SystemDefaultFallback_RecordsLayer(t *testing.T) {
 	if meta.ProviderUsed != string(llm.LayerSystemDefault) {
 		t.Errorf("expected meta.ProviderUsed=system_default, got %q", meta.ProviderUsed)
 	}
+	// ensureRecommendation injects fallback steps when LLM returns monitor
+	// with empty steps.
+	if len(out.Recommendation.Execution.Steps) == 0 {
+		t.Error("expected fallback monitor steps to be injected")
+	}
 }
 
 func TestFallbackRecommendation_AllActions(t *testing.T) {
@@ -334,12 +345,13 @@ func TestFallbackRecommendation_AllActions(t *testing.T) {
 		rec       analysis.Recommendation
 		wantLevel int
 		wantType  recommendation.ExecutionType
+		wantSteps bool
 	}{
-		{analysis.RecommendAggressiveAdd, 2, recommendation.ExecutionOneShot},
-		{analysis.RecommendSmallAdd, 1, recommendation.ExecutionOneShot},
-		{analysis.RecommendHold, 0, recommendation.ExecutionMonitor},
-		{analysis.RecommendGradualReduce, -1, recommendation.ExecutionOneShot},
-		{analysis.RecommendControlPosition, -2, recommendation.ExecutionOneShot},
+		{analysis.RecommendAggressiveAdd, 2, recommendation.ExecutionOneShot, true},
+		{analysis.RecommendSmallAdd, 1, recommendation.ExecutionOneShot, true},
+		{analysis.RecommendHold, 0, recommendation.ExecutionMonitor, true},
+		{analysis.RecommendGradualReduce, -1, recommendation.ExecutionOneShot, true},
+		{analysis.RecommendControlPosition, -2, recommendation.ExecutionOneShot, true},
 	}
 	for _, c := range cases {
 		t.Run(string(c.rec), func(t *testing.T) {
@@ -353,6 +365,9 @@ func TestFallbackRecommendation_AllActions(t *testing.T) {
 			if got.Execution.ValidDays != recommendation.ValidityDefaultDays {
 				t.Errorf("validDays: want %d got %d",
 					recommendation.ValidityDefaultDays, got.Execution.ValidDays)
+			}
+			if c.wantSteps && len(got.Execution.Steps) == 0 {
+				t.Error("expected at least one step")
 			}
 		})
 	}

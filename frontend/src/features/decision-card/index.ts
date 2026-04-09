@@ -28,12 +28,15 @@ export { ExecutionPlanStrip } from "./components/ExecutionPlanStrip";
 export { DecisionCardSummary } from "./components/DecisionCardSummary";
 export { SourcePill } from "./components/SourcePill";
 
+export { isStructuredRationale } from "./types";
+
 export type {
 	DecisionCardDTO,
 	Recommendation,
 	Execution,
 	ExecutionType,
 	Step,
+	StructuredRationale,
 	TriggerType,
 	TriggerPayload,
 	Action,

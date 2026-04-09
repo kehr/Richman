@@ -1,5 +1,6 @@
-import type { Execution, Step } from "@/features/decision-card";
-import { Alert, Card, Space, Typography } from "@/ui-kit/eat";
+import { isStructuredRationale } from "@/features/decision-card";
+import type { Execution, Step, StructuredRationale } from "@/features/decision-card";
+import { Alert, Card, Space, Tag, Typography } from "@/ui-kit/eat";
 import type { CSSProperties } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -35,11 +36,71 @@ function formatDeltaPct(delta: number): string {
 	return `${sign}${delta.toFixed(0)}%`;
 }
 
-// StepRow renders one full execution step with its trigger condition, delta
-// and rationale paragraph. The rationale is rendered as plaintext because
-// the project does not pull in a markdown renderer yet; markdown symbols
-// from the backend show through unmodified rather than crashing the view.
-function StepRow({ step, index }: { step: Step; index: number }) {
+// RATIONALE_KEYS is the display order for StructuredRationale fields.
+const RATIONALE_KEYS: (keyof StructuredRationale)[] = [
+	"triggerReason",
+	"positionReason",
+	"precondition",
+	"fallback",
+	"timeWindow",
+];
+
+// RationaleBlock renders a StructuredRationale as labeled rows, hiding
+// empty fields. For legacy string rationale, the text is rendered as-is.
+function RationaleBlock({
+	rationale,
+	stepOrder,
+	t,
+}: {
+	rationale: StructuredRationale | string;
+	stepOrder: number;
+	t: (key: string) => string;
+}) {
+	if (typeof rationale === "string") {
+		if (!rationale) return null;
+		return (
+			<Paragraph
+				type="secondary"
+				style={{ margin: 0, whiteSpace: "pre-wrap" }}
+				data-testid={`plan-full-rationale-${stepOrder}`}
+			>
+				{rationale}
+			</Paragraph>
+		);
+	}
+
+	if (!isStructuredRationale(rationale)) return null;
+
+	const entries = RATIONALE_KEYS.filter((k) => rationale[k]);
+	if (entries.length === 0) return null;
+
+	return (
+		<div data-testid={`plan-full-rationale-${stepOrder}`}>
+			{entries.map((key) => (
+				<div key={key} style={{ marginBottom: 2 }}>
+					<Text type="secondary" style={{ fontSize: 12 }}>
+						{t(`decisionCard.executionPlan.rationale.${key}`)}:
+					</Text>{" "}
+					<Text style={{ fontSize: 12 }}>{rationale[key]}</Text>
+				</div>
+			))}
+		</div>
+	);
+}
+
+// StepRow renders one full execution step with its trigger condition, delta,
+// optional lotCount, and structured rationale fields.
+function StepRow({
+	step,
+	index,
+	isMonitor,
+	t,
+}: {
+	step: Step;
+	index: number;
+	isMonitor: boolean;
+	t: (key: string) => string;
+}) {
 	return (
 		<div
 			data-testid={`plan-full-step-${step.order}`}
@@ -48,20 +109,23 @@ function StepRow({ step, index }: { step: Step; index: number }) {
 			<span style={stepCircleStyle(index)}>{step.order}</span>
 			<Space direction="vertical" size={4} style={{ flex: 1 }}>
 				<div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
-					<Text strong>{step.triggerValue}</Text>
+					<Space size={4}>
+						<Text strong>{step.triggerValue}</Text>
+						{isMonitor && (
+							<Tag color="default">{t("decisionCard.executionPlan.monitorStepLabel")}</Tag>
+						)}
+					</Space>
 					<Text strong style={{ color: "#1677ff" }}>
 						{formatDeltaPct(step.deltaPct)}
 					</Text>
 				</div>
-				{step.rationale && (
-					<Paragraph
-						type="secondary"
-						style={{ margin: 0, whiteSpace: "pre-wrap" }}
-						data-testid={`plan-full-rationale-${step.order}`}
-					>
-						{step.rationale}
-					</Paragraph>
+				{step.lotCount != null && step.lotCount > 0 && (
+					<Text type="secondary" style={{ fontSize: 12 }}>
+						{t("decisionCard.executionPlan.lotCount")}: {step.lotCount}{" "}
+						{t("decisionCard.executionPlan.lotUnit")}
+					</Text>
 				)}
+				<RationaleBlock rationale={step.rationale} stepOrder={step.order} t={t} />
 			</Space>
 		</div>
 	);
@@ -75,8 +139,11 @@ function StepRow({ step, index }: { step: Step; index: number }) {
 export function ExecutionPlanFull({ execution }: ExecutionPlanFullProps) {
 	const { t } = useTranslation("app");
 	const validDaysText = t("decisionCard.executionPlan.validDays", { days: execution.validDays });
+	const steps = execution.steps ?? [];
+	const isMonitor = execution.type === "monitor";
 
-	if (execution.type === "monitor") {
+	// Legacy monitor cards without steps: render stop-loss / take-profit only.
+	if (isMonitor && steps.length === 0) {
 		return (
 			<Card
 				data-testid="plan-full"
@@ -101,8 +168,6 @@ export function ExecutionPlanFull({ execution }: ExecutionPlanFullProps) {
 		);
 	}
 
-	const steps = execution.steps ?? [];
-
 	return (
 		<Card
 			data-testid="plan-full"
@@ -110,8 +175,17 @@ export function ExecutionPlanFull({ execution }: ExecutionPlanFullProps) {
 		>
 			<Space direction="vertical" size={16} style={{ width: "100%" }}>
 				{steps.map((step, idx) => (
-					<StepRow key={step.order} step={step} index={idx} />
+					<StepRow key={step.order} step={step} index={idx} isMonitor={isMonitor} t={t} />
 				))}
+				{isMonitor && (execution.stopLoss != null || execution.takeProfit != null) && (
+					<Text type="secondary" style={{ fontSize: 12 }}>
+						{t("decisionCard.executionPlan.stopLoss")}:{" "}
+						{execution.stopLoss?.toFixed(2) ?? t("decisionCard.executionPlan.notSet")}
+						{" / "}
+						{t("decisionCard.executionPlan.takeProfit")}:{" "}
+						{execution.takeProfit?.toFixed(2) ?? t("decisionCard.executionPlan.notSet")}
+					</Text>
+				)}
 				<Alert type="warning" showIcon message={validDaysText} />
 			</Space>
 		</Card>
