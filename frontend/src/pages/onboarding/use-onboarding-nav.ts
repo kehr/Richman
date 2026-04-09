@@ -150,13 +150,20 @@ export function useOnboardingNav(): UseOnboardingNavReturn {
 		navigate(STEP_PATHS[target], { replace: true });
 	}, [currentStep, canGoNext, reachedStep, update, navigate]);
 
+	// react-query returns a fresh wrapper object from useMutation every render,
+	// so we pull the stable `mutateAsync` callback out before closing over it.
+	// Depending on `skipMutation` directly would make `skip` a new reference on
+	// every render, which defeats the navMemo below and retriggers the
+	// infinite register/unregister loop in consumers that key a useEffect on
+	// the nav object.
+	const skipMutateAsync = skipMutation.mutateAsync;
 	const skip = useCallback(async () => {
 		// Let errors bubble up so the skip Modal in step 10 can toast + keep
 		// itself open. On success we head straight to the dashboard; the
 		// mutation's own onSuccess already wipes the sessionStorage draft.
-		await skipMutation.mutateAsync();
+		await skipMutateAsync();
 		navigate("/dashboard", { replace: true });
-	}, [skipMutation, navigate]);
+	}, [skipMutateAsync, navigate]);
 
 	const jumpTo = useCallback(
 		(step: OnboardingStep) => {
@@ -166,14 +173,30 @@ export function useOnboardingNav(): UseOnboardingNavReturn {
 		[reachedStep, navigate],
 	);
 
-	return {
-		currentStep,
-		reachedStep,
-		canGoNext,
-		prev,
-		next,
-		skip,
-		jumpTo,
-		registerCanGoNext,
-	};
+	// Memoize the return object so consumers that depend on the hook's
+	// return value (e.g. `useEffect(() => nav.registerCanGoNext(...), [nav])`)
+	// do not see a fresh reference on every render. Without this wrap, any
+	// component that registers a canGoNext predicate would unregister and
+	// re-register on every render of the hook's owner, which immediately
+	// creates an infinite update loop:
+	//
+	//     register → setPredicateVersion → re-render → new nav object →
+	//     effect re-runs → unregister → register → setPredicateVersion → ...
+	//
+	// The deps below cover every primitive / memoized value the return
+	// object exposes, so the identity changes exactly when any of them
+	// does — and never on render-only redraws.
+	return useMemo(
+		() => ({
+			currentStep,
+			reachedStep,
+			canGoNext,
+			prev,
+			next,
+			skip,
+			jumpTo,
+			registerCanGoNext,
+		}),
+		[currentStep, reachedStep, canGoNext, prev, next, skip, jumpTo, registerCanGoNext],
+	);
 }

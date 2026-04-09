@@ -1,8 +1,8 @@
 import type { OnboardingStatus, UserSettings } from "@/features/user-settings";
-import { act, renderHook, waitFor } from "@testing-library/react";
-import type { ReactNode } from "react";
+import { act, render, renderHook, waitFor } from "@testing-library/react";
+import { type ReactNode, useEffect } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { OnboardingStateProvider } from "./state";
+import { OnboardingStateProvider, useOnboardingState } from "./state";
 import { SHAKE_EVENT_NAME, useOnboardingNav } from "./use-onboarding-nav";
 
 // react-router mocks: we stub useNavigate + useLocation per-test so we can
@@ -173,5 +173,47 @@ describe("useOnboardingNav", () => {
 
 		expect(mockSkipMutateAsync).toHaveBeenCalledTimes(1);
 		expect(mockNavigate).toHaveBeenCalledWith("/dashboard", { replace: true });
+	});
+
+	// Regression: a consumer that registers a canGoNext predicate inside a
+	// useEffect keyed on `nav` used to infinite-loop because the hook returned
+	// a fresh object literal every render. The fix is to wrap the return in
+	// useMemo so the nav object identity is stable when nothing real changed.
+	// This test mounts a component that mirrors the real CategoriesPage wiring
+	// (state.categories + nav.registerCanGoNext + nav in deps) and asserts
+	// the render settles without exceeding React's "maximum update depth"
+	// safeguard.
+	it("does not infinite-loop when a consumer registers a predicate in a nav-keyed effect", () => {
+		setLocation("/onboarding/categories");
+
+		function ConsumerProbe() {
+			const nav = useOnboardingNav();
+			const { state } = useOnboardingState();
+			useEffect(() => {
+				return nav.registerCanGoNext(() => state.categories.length >= 1);
+			}, [nav, state.categories]);
+			return <div data-testid="probe">canGoNext={String(nav.canGoNext)}</div>;
+		}
+
+		// React logs "Maximum update depth exceeded" via console.error before
+		// throwing. If the bug regresses, this render call will either throw
+		// directly or stall; a try/catch plus a spy lets us fail loudly with a
+		// specific message instead of a test timeout.
+		const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+		try {
+			const { getByTestId } = render(
+				<OnboardingStateProvider>
+					<ConsumerProbe />
+				</OnboardingStateProvider>,
+			);
+			expect(getByTestId("probe").textContent).toBe("canGoNext=false");
+
+			const depthErrors = errorSpy.mock.calls.filter((call) =>
+				String(call[0]).includes("Maximum update depth exceeded"),
+			);
+			expect(depthErrors).toHaveLength(0);
+		} finally {
+			errorSpy.mockRestore();
+		}
 	});
 });
