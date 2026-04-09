@@ -33,6 +33,10 @@ export interface UseOnboardingNavReturn {
 	canGoNext: boolean;
 	prev: () => void;
 	next: () => Promise<void>;
+	// forceNext advances to the next step bypassing canGoNext predicates. Use
+	// only for explicit user actions that intentionally skip form validation
+	// (e.g. "use existing holdings" fast-forward on the first-holding step).
+	forceNext: () => Promise<void>;
 	skip: () => Promise<void>;
 	jumpTo: (step: OnboardingStep) => void;
 	registerCanGoNext: (predicate: () => boolean) => () => void;
@@ -153,6 +157,18 @@ export function useOnboardingNav(): UseOnboardingNavReturn {
 		navigate(STEP_PATHS[target], { replace: true });
 	}, [currentStep, canGoNext, reachedStep, update, navigate]);
 
+	// forceNext advances without checking canGoNext predicates. Only use for
+	// explicit user actions that intentionally bypass form validation (e.g. the
+	// "use existing holdings" fast-forward on the first-holding step).
+	const forceNext = useCallback(async () => {
+		if (currentStep >= 5) return;
+		const target = clampStep(currentStep + 1);
+		if (target > reachedStep) {
+			update({ reachedStep: target });
+		}
+		navigate(STEP_PATHS[target], { replace: true });
+	}, [currentStep, reachedStep, update, navigate]);
+
 	// react-query returns a fresh wrapper object from useMutation every render,
 	// so we pull the stable `mutateAsync` callback out before closing over it.
 	// Depending on `skipMutation` directly would make `skip` a new reference on
@@ -196,10 +212,11 @@ export function useOnboardingNav(): UseOnboardingNavReturn {
 			canGoNext,
 			prev,
 			next,
+			forceNext,
 			skip,
 			jumpTo,
 			registerCanGoNext,
 		}),
-		[currentStep, reachedStep, canGoNext, prev, next, skip, jumpTo, registerCanGoNext],
+		[currentStep, reachedStep, canGoNext, prev, next, forceNext, skip, jumpTo, registerCanGoNext],
 	);
 }

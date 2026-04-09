@@ -117,14 +117,15 @@ function QuickModeForm({ itemsVariant }: QuickModeFormProps) {
 	const handleCategoryChange = (next: AssetCategory) => {
 		setCategory(next);
 		setKeyword("");
-		form.setFieldValue("assetCode", undefined);
-		// Clear the committed asset reference when the user switches category so
-		// the draft does not retain a stale code that no longer matches the
-		// visible options.
+		// Reset all asset-dependent fields so the form shows a clean slate and
+		// canGoNext does not stay false with stale cost/ratio values visible.
+		form.setFieldsValue({ assetCode: undefined, costPrice: undefined, positionRatio: undefined });
 		updateHoldingDraft({
 			assetCode: undefined,
 			assetName: undefined,
 			assetType: undefined,
+			costPrice: undefined,
+			positionRatio: undefined,
 		});
 	};
 
@@ -351,7 +352,7 @@ export default function FirstHoldingPage() {
 	// button advances the form into step 4 so FirstAnalysisPage owns the
 	// markCompleted call (step 4 is the single source of truth for completion).
 	const handleFastForward = async () => {
-		await nav.next();
+		await nav.forceNext();
 	};
 
 	return (
