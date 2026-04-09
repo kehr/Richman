@@ -73,10 +73,10 @@ export function ExecutionPlanStrip({
 		return (
 			<Space direction="vertical" size={2} style={{ width: "100%" }}>
 				<Text type="secondary" data-testid="plan-monitor-stop-loss">
-					止损: {execution.stopLoss != null ? execution.stopLoss : "未设置"}
+					止损: {execution.stopLoss != null ? execution.stopLoss.toFixed(2) : "未设置"}
 				</Text>
 				<Text type="secondary" data-testid="plan-monitor-take-profit">
-					止盈: {execution.takeProfit != null ? execution.takeProfit : "未设置"}
+					止盈: {execution.takeProfit != null ? execution.takeProfit.toFixed(2) : "未设置"}
 				</Text>
 			</Space>
 		);

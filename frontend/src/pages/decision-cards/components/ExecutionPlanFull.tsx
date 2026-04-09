@@ -79,10 +79,10 @@ export function ExecutionPlanFull({ execution }: ExecutionPlanFullProps) {
 			<Card data-testid="plan-full" title={<Title level={5}>执行计划</Title>}>
 				<Space direction="vertical" size={8} style={{ width: "100%" }}>
 					<Text data-testid="plan-full-stop-loss">
-						止损: {execution.stopLoss != null ? execution.stopLoss : "未设置"}
+						止损: {execution.stopLoss != null ? execution.stopLoss.toFixed(2) : "未设置"}
 					</Text>
 					<Text data-testid="plan-full-take-profit">
-						止盈: {execution.takeProfit != null ? execution.takeProfit : "未设置"}
+						止盈: {execution.takeProfit != null ? execution.takeProfit.toFixed(2) : "未设置"}
 					</Text>
 					<Alert type="warning" showIcon message={validDaysText} style={{ marginTop: 8 }} />
 				</Space>
