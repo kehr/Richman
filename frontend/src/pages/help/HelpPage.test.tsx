@@ -1,28 +1,9 @@
 import { getSectionIds } from "@/i18n/help";
-import { renderWithProviders } from "@/test/utils";
+import { renderWithProviders, testI18n } from "@/test/utils";
 import { act, fireEvent, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import HelpPage from "./HelpPage";
-
-// Mutable locale state so tests can flip between zh and en without tearing
-// down the I18nProvider. `setLocale` is exposed on the mock just in case a
-// future test needs to simulate the user changing languages mid-render.
-let currentLocale: "zh" | "en" = "zh";
-vi.mock("@/domain/i18n/provider", async () => {
-	const actual =
-		await vi.importActual<typeof import("@/domain/i18n/provider")>("@/domain/i18n/provider");
-	return {
-		...actual,
-		useLocale: () => ({
-			locale: currentLocale,
-			setLocale: (l: "zh" | "en") => {
-				currentLocale = l;
-			},
-			t: (namespace: string, key: string) => `${namespace}.${key}`,
-		}),
-	};
-});
 
 // jsdom does not implement IntersectionObserver — stub it so the hook runs
 // without throwing. The stub records the callback so tests can trigger
@@ -61,8 +42,8 @@ function renderHelp(initialEntry = "/help") {
 }
 
 describe("HelpPage", () => {
-	beforeEach(() => {
-		currentLocale = "zh";
+	beforeEach(async () => {
+		await testI18n.changeLanguage("en");
 	});
 
 	it("renders all 9 section ids from PRD §7.2", () => {
@@ -78,7 +59,7 @@ describe("HelpPage", () => {
 			"push",
 			"risk",
 		];
-		expect(getSectionIds("zh")).toEqual(expectedIds);
+		expect(getSectionIds("en")).toEqual(expectedIds);
 		for (const id of expectedIds) {
 			expect(screen.getByTestId(`help-section-${id}`)).toBeInTheDocument();
 		}
@@ -120,7 +101,8 @@ describe("HelpPage", () => {
 	});
 
 	it("surfaces English content when the locale is en", () => {
-		currentLocale = "en";
+		// testI18n is initialized to "en" and reset to "en" in beforeEach, so
+		// HelpPage will pick up English content via i18n.language.
 		renderHelp();
 		// Section titles show up in both the sidebar and the main heading, so
 		// use getAllByText and assert at least one match rather than a unique

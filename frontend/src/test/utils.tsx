@@ -6,8 +6,10 @@ import i18n from "i18next";
 import type { ReactElement } from "react";
 import { I18nextProvider, initReactI18next } from "react-i18next";
 
-// Create a test-only i18n instance (isolated from app singleton)
-const testI18n = i18n.createInstance();
+// Create a test-only i18n instance (isolated from app singleton).
+// Exported so individual test files can call testI18n.changeLanguage() to
+// simulate locale switches without re-rendering the full provider tree.
+export const testI18n = i18n.createInstance();
 testI18n.use(initReactI18next).init({
 	resources,
 	lng: "en",
