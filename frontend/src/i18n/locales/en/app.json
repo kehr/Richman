@@ -374,7 +374,7 @@
 		"degradedWarning": "{{name}} used rule template this time — no AI deep analysis",
 		"updating": "Updating…",
 		"pollError": "Unable to fetch progress",
-		"buttonRunning": "Analyzing {{pct}}%",
+		"buttonRunning": "View Progress",
 		"viewLast": "View Last Analysis",
 		"step": {
 			"fetch_data": "Fetch Data",

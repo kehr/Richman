@@ -34,7 +34,6 @@ interface DashboardTopStripProps {
 	nextAnalysisAt: Date | null;
 	onRerun: () => void;
 	isRunning: boolean;
-	taskProgress: number;
 	// hasRecentTask is true when a taskId is in state (running or completed)
 	// so the "view last analysis" link can be shown.
 	hasRecentTask: boolean;
@@ -63,7 +62,6 @@ export function DashboardTopStrip({
 	nextAnalysisAt,
 	onRerun,
 	isRunning,
-	taskProgress,
 	hasRecentTask,
 	onShowHistory,
 	onConfigureCapital,
@@ -109,7 +107,7 @@ export function DashboardTopStrip({
 						{/* When running: progress button opens analysis modal */}
 						{isRunning ? (
 							<Button type="primary" onClick={onShowHistory} data-testid="dashboard-rerun-button">
-								{t("analysisProgress.buttonRunning", { pct: Math.round(taskProgress * 100) })}
+								{t("analysisProgress.buttonRunning")}
 							</Button>
 						) : (
 							<Button
