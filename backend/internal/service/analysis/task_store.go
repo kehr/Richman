@@ -169,11 +169,11 @@ func (s *TaskStore) UpdateHoldingStatus(taskID, symbol string, status model.Task
 
 // StartStep marks a pipeline step as running and records its start time.
 func (s *TaskStore) StartStep(taskID string, key string) {
-	s.stepStartTimes.Store(taskID+":"+key, time.Now())
 	if task := s.getTask(taskID); task != nil {
 		for i := range task.Steps {
 			if task.Steps[i].Key == key {
 				task.Steps[i].Status = model.StepRunning
+				s.stepStartTimes.Store(taskID+":"+key, time.Now())
 				return
 			}
 		}
