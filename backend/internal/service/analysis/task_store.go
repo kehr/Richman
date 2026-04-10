@@ -12,6 +12,7 @@ import (
 
 // TaskStore provides tracking for analysis tasks with in-memory cache + DB persistence.
 type TaskStore struct {
+	mu              sync.RWMutex // protects all TaskStatus field reads and writes
 	tasks           sync.Map
 	stepStartTimes  sync.Map // key: "taskID:stepKey" → time.Time
 	repo            *repo.AnalysisTaskRepo
@@ -70,13 +71,21 @@ func (s *TaskStore) Create(taskID string, userID int64) *model.TaskStatus {
 	return task
 }
 
-// Get retrieves the current status of a task. Returns nil if not found.
+// Get retrieves a snapshot of the current task status. The returned value is safe
+// for concurrent reads with ongoing task writes. Returns nil if not found.
 func (s *TaskStore) Get(taskID string) *model.TaskStatus {
+	s.mu.RLock()
+	var snap *model.TaskStatus
 	if val, ok := s.tasks.Load(taskID); ok {
 		if task, ok := val.(*model.TaskStatus); ok {
-			return task
+			snap = copyTask(task)
 		}
 	}
+	s.mu.RUnlock()
+	if snap != nil {
+		return snap
+	}
+
 	if s.repo == nil {
 		return nil
 	}
@@ -95,38 +104,54 @@ func (s *TaskStore) Get(taskID string) *model.TaskStatus {
 
 // UpdateProgress updates the progress of a running task.
 func (s *TaskStore) UpdateProgress(taskID string, progress float64) {
-	if task := s.Get(taskID); task != nil {
+	s.mu.Lock()
+	task := s.getTask(taskID)
+	if task != nil {
 		task.Status = "running"
 		task.Progress = progress
+	}
+	s.mu.Unlock()
+	if task != nil {
 		s.persist(task)
 	}
 }
 
 // Complete marks a task as successfully completed.
 func (s *TaskStore) Complete(taskID string) {
-	if task := s.Get(taskID); task != nil {
+	s.mu.Lock()
+	task := s.getTask(taskID)
+	if task != nil {
 		now := time.Now()
 		task.Status = "completed"
 		task.Progress = 1.0
 		task.DoneAt = &now
+	}
+	s.mu.Unlock()
+	if task != nil {
 		s.persist(task)
 	}
 }
 
 // Fail marks a task as failed with the given error.
 func (s *TaskStore) Fail(taskID string, err error) {
-	if task := s.Get(taskID); task != nil {
+	s.mu.Lock()
+	task := s.getTask(taskID)
+	if task != nil {
 		now := time.Now()
 		task.Status = "failed"
 		task.DoneAt = &now
 		if err != nil {
 			task.Error = err.Error()
 		}
+	}
+	s.mu.Unlock()
+	if task != nil {
 		s.persist(task)
 	}
 }
 
-// getTask returns the in-memory task pointer without DB fallback, for hot-path internal use.
+// getTask returns the in-memory task pointer without DB fallback.
+// Caller must hold s.mu before calling.
 func (s *TaskStore) getTask(taskID string) *model.TaskStatus {
 	if val, ok := s.tasks.Load(taskID); ok {
 		if task, ok := val.(*model.TaskStatus); ok {
@@ -136,8 +161,10 @@ func (s *TaskStore) getTask(taskID string) *model.TaskStatus {
 	return nil
 }
 
-// InitHoldings sets the holdings list and initializes steps for the task.
+// InitHoldings sets the holdings list and resets pipeline steps to pending.
 func (s *TaskStore) InitHoldings(taskID string, holdings []model.HoldingProgress) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	if task := s.getTask(taskID); task != nil {
 		task.Holdings = holdings
 		task.Steps = model.DefaultSteps()
@@ -146,6 +173,8 @@ func (s *TaskStore) InitHoldings(taskID string, holdings []model.HoldingProgress
 
 // SetCurrentHolding updates the currently analyzed holding and resets step progress.
 func (s *TaskStore) SetCurrentHolding(taskID string, symbol string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	if task := s.getTask(taskID); task != nil {
 		task.CurrentHolding = symbol
 		task.Steps = model.DefaultSteps()
@@ -154,6 +183,8 @@ func (s *TaskStore) SetCurrentHolding(taskID string, symbol string) {
 
 // UpdateHoldingStatus updates the status and result metadata for a specific holding.
 func (s *TaskStore) UpdateHoldingStatus(taskID, symbol string, status model.TaskStepStatus, source, provider *string, durationMs *int64) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	if task := s.getTask(taskID); task != nil {
 		for i := range task.Holdings {
 			if task.Holdings[i].Symbol == symbol {
@@ -169,6 +200,8 @@ func (s *TaskStore) UpdateHoldingStatus(taskID, symbol string, status model.Task
 
 // StartStep marks a pipeline step as running and records its start time.
 func (s *TaskStore) StartStep(taskID string, key string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	if task := s.getTask(taskID); task != nil {
 		for i := range task.Steps {
 			if task.Steps[i].Key == key {
@@ -182,6 +215,8 @@ func (s *TaskStore) StartStep(taskID string, key string) {
 
 // CompleteStep marks a pipeline step as done and records its duration.
 func (s *TaskStore) CompleteStep(taskID string, key string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	if task := s.getTask(taskID); task != nil {
 		for i := range task.Steps {
 			if task.Steps[i].Key == key {
@@ -199,6 +234,8 @@ func (s *TaskStore) CompleteStep(taskID string, key string) {
 
 // FailStep marks a pipeline step as failed and records its duration.
 func (s *TaskStore) FailStep(taskID string, key string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	if task := s.getTask(taskID); task != nil {
 		for i := range task.Steps {
 			if task.Steps[i].Key == key {
@@ -216,6 +253,8 @@ func (s *TaskStore) FailStep(taskID string, key string) {
 
 // AppendLog appends a structured log entry to the task's log buffer.
 func (s *TaskStore) AppendLog(taskID string, level model.LogLevel, msg string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	if task := s.getTask(taskID); task != nil {
 		task.Logs = append(task.Logs, model.TaskLog{
 			Ts:    time.Now(),
@@ -223,6 +262,16 @@ func (s *TaskStore) AppendLog(taskID string, level model.LogLevel, msg string) {
 			Msg:   msg,
 		})
 	}
+}
+
+// copyTask creates a snapshot of task with independent copies of slice fields.
+// Caller must hold s.mu.RLock or s.mu.Lock before calling.
+func copyTask(task *model.TaskStatus) *model.TaskStatus {
+	cp := *task
+	cp.Holdings = append([]model.HoldingProgress(nil), task.Holdings...)
+	cp.Steps = append([]model.TaskStep(nil), task.Steps...)
+	cp.Logs = append([]model.TaskLog(nil), task.Logs...)
+	return &cp
 }
 
 func (s *TaskStore) persist(task *model.TaskStatus) {
@@ -251,6 +300,10 @@ func (s *TaskStore) cleanupLoop() {
 					return true
 				}
 				if task.DoneAt != nil && task.DoneAt.Before(cutoff) {
+					taskID := task.TaskID
+					for _, sk := range model.AllStepKeys() {
+						s.stepStartTimes.Delete(taskID + ":" + sk)
+					}
 					s.tasks.Delete(key)
 				}
 				return true

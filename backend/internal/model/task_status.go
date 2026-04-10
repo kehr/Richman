@@ -57,6 +57,17 @@ type HoldingProgress struct {
 	startedAt       time.Time
 }
 
+// AllStepKeys returns all pipeline step keys in execution order.
+func AllStepKeys() []string {
+	return []string{
+		StepKeyFetchData,
+		StepKeyCalcIndicators,
+		StepKeyRecommendation,
+		StepKeyLLMSynthesis,
+		StepKeyPersist,
+	}
+}
+
 // DefaultSteps returns the five pipeline steps in execution order, all in pending state.
 func DefaultSteps() []TaskStep {
 	return []TaskStep{
