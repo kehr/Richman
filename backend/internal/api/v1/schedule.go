@@ -10,6 +10,7 @@ import (
 	"github.com/richman/backend/internal/api/middleware"
 	"github.com/richman/backend/internal/model"
 	scheduleSvc "github.com/richman/backend/internal/service/schedule"
+	"go.uber.org/zap"
 )
 
 // ScheduleReloader is the subset of the Scheduler that the schedule handler
@@ -39,6 +40,7 @@ type ScheduleHandler struct {
 	holdingRepo HoldingReader
 	cardRepo    CardReader
 	reloader    ScheduleReloader // may be nil when scheduler rewrite is not yet wired
+	logger      *zap.Logger
 }
 
 // NewScheduleHandler constructs a ScheduleHandler. reloader may be nil; in
@@ -49,12 +51,17 @@ func NewScheduleHandler(
 	holdingRepo HoldingReader,
 	cardRepo CardReader,
 	reloader ScheduleReloader,
+	logger *zap.Logger,
 ) *ScheduleHandler {
+	if logger == nil {
+		logger = zap.NewNop()
+	}
 	return &ScheduleHandler{
 		svc:         svc,
 		holdingRepo: holdingRepo,
 		cardRepo:    cardRepo,
 		reloader:    reloader,
+		logger:      logger,
 	}
 }
 
@@ -98,28 +105,12 @@ type windowFields struct {
 }
 
 // scheduleSettingsResponse is the JSON shape for GET and PUT responses.
+// It reuses the same market sub-structs as the request because the shapes
+// are symmetric (confirmed by TRD).
 type scheduleSettingsResponse struct {
-	GlobalFrequency     string          `json:"globalFrequency"`
-	GlobalFrequencyDays *int32          `json:"globalFrequencyDays"`
-	Markets             marketsResponse `json:"markets"`
-}
-
-type marketsResponse struct {
-	AShare  marketSettingsResponse `json:"a_share"`
-	USStock marketSettingsResponse `json:"us_stock"`
-}
-
-type marketSettingsResponse struct {
-	Frequency     *string          `json:"frequency"`
-	FrequencyDays *int32           `json:"frequencyDays"`
-	PreWindow     windowFieldsResp `json:"preWindow"`
-	PostWindow    windowFieldsResp `json:"postWindow"`
-}
-
-type windowFieldsResp struct {
-	Enabled  bool   `json:"enabled"`
-	Time     string `json:"time"`
-	IsCustom bool   `json:"isCustom"`
+	GlobalFrequency     string  `json:"globalFrequency"`
+	GlobalFrequencyDays *int32  `json:"globalFrequencyDays"`
+	Markets             markets `json:"markets"`
 }
 
 // toSettingsResponse converts the service/model type to the API response shape.
@@ -127,30 +118,30 @@ func toSettingsResponse(s *model.UserScheduleSettings) scheduleSettingsResponse 
 	return scheduleSettingsResponse{
 		GlobalFrequency:     s.GlobalFrequency,
 		GlobalFrequencyDays: s.GlobalFrequencyDays,
-		Markets: marketsResponse{
-			AShare: marketSettingsResponse{
+		Markets: markets{
+			AShare: marketSettings{
 				Frequency:     s.AShareFrequency,
 				FrequencyDays: s.AShareFrequencyDays,
-				PreWindow: windowFieldsResp{
+				PreWindow: windowFields{
 					Enabled:  s.ASharePreEnabled,
 					Time:     s.ASharePreTime,
 					IsCustom: s.ASharePreCustom,
 				},
-				PostWindow: windowFieldsResp{
+				PostWindow: windowFields{
 					Enabled:  s.ASharePostEnabled,
 					Time:     s.ASharePostTime,
 					IsCustom: s.ASharePostCustom,
 				},
 			},
-			USStock: marketSettingsResponse{
+			USStock: marketSettings{
 				Frequency:     s.USFrequency,
 				FrequencyDays: s.USFrequencyDays,
-				PreWindow: windowFieldsResp{
+				PreWindow: windowFields{
 					Enabled:  s.USPreEnabled,
 					Time:     s.USPreTime,
 					IsCustom: s.USPreCustom,
 				},
-				PostWindow: windowFieldsResp{
+				PostWindow: windowFields{
 					Enabled:  s.USPostEnabled,
 					Time:     s.USPostTime,
 					IsCustom: s.USPostCustom,
@@ -222,8 +213,12 @@ func (h *ScheduleHandler) UpdateSettings(c *gin.Context) {
 	// and will be picked up on the next server restart or scheduled reload.
 	if h.reloader != nil {
 		if reloadErr := h.reloader.ReloadUser(c.Request.Context(), userID); reloadErr != nil {
-			// Log but do not fail the request; the settings are already saved.
-			_ = reloadErr
+			// Non-fatal: persisted settings are authoritative; the cron will
+			// pick them up on the next server restart or scheduled reload.
+			h.logger.Warn("schedule reload failed after settings update",
+				zap.Int64("user_id", userID),
+				zap.Error(reloadErr),
+			)
 		}
 	}
 

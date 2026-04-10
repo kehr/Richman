@@ -307,7 +307,7 @@ func main() {
 	)
 	exchangeRateService := exchangerate.NewService(yahooClient, zapLogger)
 	exchangeRatesHandler := v1.NewExchangeRatesHandler(exchangeRateService)
-	scheduleHandler := v1.NewScheduleHandler(scheduleService, holdingRepo, cardRepo, scheduler)
+	scheduleHandler := v1.NewScheduleHandler(scheduleService, holdingRepo, cardRepo, scheduler, zapLogger)
 
 	// Setup Gin
 	if !cfg.IsDev() {
