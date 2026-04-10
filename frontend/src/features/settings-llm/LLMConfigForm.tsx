@@ -1,4 +1,15 @@
-import { App, Button, Form, Input, Modal, Select, Space, Switch, Typography } from "@/ui-kit/eat";
+import {
+	App,
+	Button,
+	Divider,
+	Form,
+	Input,
+	Modal,
+	Radio,
+	Space,
+	Switch,
+	Typography,
+} from "@/ui-kit/eat";
 import { useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useUpsertLLMSettings } from "./hooks";
@@ -89,17 +100,11 @@ export function LLMConfigForm({ open, mode, initialValue, onClose, onSaved }: LL
 		[t, apiKeyOptional],
 	);
 
-	const providerOptions = useMemo(
-		() => [
-			{ label: t("llm.configForm.providerOptions.claude"), value: "claude" as LLMProviderType },
-			{ label: t("llm.configForm.providerOptions.openai"), value: "openai" as LLMProviderType },
-			{
-				label: t("llm.configForm.providerOptions.openai_compatible"),
-				value: "openai_compatible" as LLMProviderType,
-			},
-		],
-		[t],
-	);
+	const providerHelpText: Partial<Record<LLMProviderType, string>> = {
+		claude: t("llm.configForm.providerHelp.claude"),
+		openai: t("llm.configForm.providerHelp.openai"),
+		openai_compatible: t("llm.configForm.providerHelp.openai_compatible"),
+	};
 
 	const handleOk = async () => {
 		let values: FormValues;
@@ -160,11 +165,15 @@ export function LLMConfigForm({ open, mode, initialValue, onClose, onSaved }: LL
 					name="providerType"
 					label={t("llm.configForm.providerType")}
 					rules={rules.providerType}
+					help={providerHelpText[providerType]}
 				>
-					<Select<LLMProviderType>
-						options={providerOptions}
-						data-testid="llm-config-provider-type"
-					/>
+					<Radio.Group data-testid="llm-config-provider-type">
+						<Radio value="claude">{t("llm.configForm.providerOptions.claude")}</Radio>
+						<Radio value="openai">{t("llm.configForm.providerOptions.openai")}</Radio>
+						<Radio value="openai_compatible">
+							{t("llm.configForm.providerOptions.openai_compatible")}
+						</Radio>
+					</Radio.Group>
 				</Form.Item>
 
 				{requiresBaseUrl && (
@@ -202,6 +211,8 @@ export function LLMConfigForm({ open, mode, initialValue, onClose, onSaved }: LL
 						data-testid="llm-config-model"
 					/>
 				</Form.Item>
+
+				<Divider style={{ margin: "8px 0 16px" }} />
 
 				<Form.Item<FormValues>
 					name="fallbackToSystemDefaultOnFailure"

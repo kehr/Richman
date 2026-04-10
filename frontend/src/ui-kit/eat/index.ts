@@ -54,7 +54,7 @@ export { Tag } from "./Tag";
 
 export type { UploadProps, UploadFile } from "antd";
 
-export type { ThemeConfig, FormInstance } from "antd";
+export type { ThemeConfig, FormInstance, BadgeProps, MenuProps } from "antd";
 
 export {
 	ProLayout,
