@@ -64,11 +64,12 @@ function formatHistoryDate(isoDate: string, locale: string): string {
 		day: "2-digit",
 		hour: "2-digit",
 		minute: "2-digit",
+		second: "2-digit",
 		hour12: false,
 	});
 	const parts = fmt.formatToParts(d);
 	const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
-	return `${get("year")}-${get("month")}-${get("day")} ${get("hour")}:${get("minute")}`;
+	return `${get("year")}-${get("month")}-${get("day")} ${get("hour")}:${get("minute")}:${get("second")}`;
 }
 
 export function MetaSidebar({ card, historicalCards = [], onSelectHistory }: MetaSidebarProps) {
