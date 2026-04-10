@@ -21,6 +21,9 @@
 			"neutral": "中性",
 			"aggressive": "激进"
 		},
+		"avatar": {
+			"changeLink": "在 Gravatar 更换头像"
+		},
 		"logout": "退出登录",
 		"resetOnboarding": "重新走一遍引导",
 		"resetOnboardingConfirm": {

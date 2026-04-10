@@ -21,6 +21,9 @@
 			"neutral": "Neutral",
 			"aggressive": "Aggressive"
 		},
+		"avatar": {
+			"changeLink": "Change avatar on Gravatar"
+		},
 		"logout": "Logout",
 		"resetOnboarding": "Redo onboarding",
 		"resetOnboardingConfirm": {
