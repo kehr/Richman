@@ -1,4 +1,5 @@
 import { layoutToken } from "@/config/theme";
+import { gravatarUrl } from "@/domain/auth/gravatar";
 import { clearAuth } from "@/domain/auth/storage";
 import { useCurrentUser } from "@/domain/auth/use-current-user";
 import {
@@ -105,7 +106,7 @@ export function MainLayout() {
 							paddingBlock: 0,
 						}}
 					>
-						<Avatar icon={<UserOutlined />} />
+						<Avatar src={gravatarUrl(user?.email ?? "", 32)} icon={<UserOutlined />} />
 						<span>{displayName}</span>
 					</Space>
 				</Dropdown>,
