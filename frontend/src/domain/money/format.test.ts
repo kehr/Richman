@@ -57,19 +57,19 @@ describe("formatPercentWithAmount", () => {
 	});
 
 	it("returns percentage + amount when both are available", () => {
-		expect(formatPercentWithAmount(5, 5000, true)).toBe("5% · ¥5,000");
+		expect(formatPercentWithAmount(5, 5000, true)).toBe("5% (¥5,000)");
 	});
 
 	it("formats large amounts with thousand separators", () => {
-		expect(formatPercentWithAmount(12, 1234567, true)).toBe("12% · ¥1,234,567");
+		expect(formatPercentWithAmount(12, 1234567, true)).toBe("12% (¥1,234,567)");
 	});
 
 	it("renders zero amounts explicitly", () => {
-		expect(formatPercentWithAmount(0, 0, true)).toBe("0% · ¥0");
+		expect(formatPercentWithAmount(0, 0, true)).toBe("0% (¥0)");
 	});
 
 	it("supports negative amounts (e.g. unrealized losses)", () => {
-		expect(formatPercentWithAmount(-3, -1500, true)).toBe("-3% · -¥1,500");
+		expect(formatPercentWithAmount(-3, -1500, true)).toBe("-3% (-¥1,500)");
 	});
 });
 
@@ -102,6 +102,6 @@ describe("edge cases: NaN and negative zero", () => {
 	});
 
 	it("formatPercentWithAmount handles NaN percent with an amount", () => {
-		expect(formatPercentWithAmount(Number.NaN, 1000, true)).toBe("0% · ¥1,000");
+		expect(formatPercentWithAmount(Number.NaN, 1000, true)).toBe("0% (¥1,000)");
 	});
 });

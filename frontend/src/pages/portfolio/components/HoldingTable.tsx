@@ -1,3 +1,4 @@
+import { AssetTypeTag } from "@/components/AssetTypeTag";
 import { formatPercent } from "@/domain/money/format";
 import { useMoney } from "@/domain/money/useMoney";
 import type { HoldingDto } from "@/features/portfolio";
@@ -9,7 +10,6 @@ import {
 	Popconfirm,
 	Space,
 	Table,
-	Tag,
 	Typography,
 } from "@/ui-kit/eat";
 import { History } from "lucide-react";
@@ -67,9 +67,7 @@ export function HoldingTable({
 				dataIndex: "assetType",
 				key: "assetType",
 				width: 120,
-				render: (value: string) => (
-					<Tag>{t(`portfolio.assetTypes.${value}`, { defaultValue: value })}</Tag>
-				),
+				render: (value: string) => <AssetTypeTag assetType={value} />,
 			},
 			{
 				title: t("portfolio.holdingTable.cost"),

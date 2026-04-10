@@ -1,5 +1,6 @@
+import { AssetTypeTag } from "@/components/AssetTypeTag";
 import { useMoney } from "@/domain/money/useMoney";
-import { Card, Divider, Space, Tag, Typography } from "@/ui-kit/eat";
+import { Card, Divider, Space, Typography } from "@/ui-kit/eat";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { DecisionCardDTO, HoldingAnalysisStatus } from "../types";
@@ -145,7 +146,7 @@ export function DecisionCardSummary({
 			>
 				<Space direction="vertical" size={2} style={{ flex: 1 }}>
 					<Space wrap>
-						<Tag>{card.assetType}</Tag>
+						<AssetTypeTag assetType={card.assetType} />
 						<Text strong style={{ fontSize: 16 }}>
 							{card.assetName}
 						</Text>

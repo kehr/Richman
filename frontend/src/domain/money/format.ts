@@ -67,9 +67,10 @@ export function formatAmount(
 	}).format(amount);
 }
 
-// formatPercentWithAmount composes "X% · ¥Y" (or $Y / HK$Y) when a capital is
+// formatPercentWithAmount composes "X% (¥Y)" (or $Y / HK$Y) when a capital is
 // configured and an amount is known, falling back to just the percentage
-// otherwise. The middle dot (·) is the separator used in the PRD mockups.
+// otherwise. The parenthesis form keeps the percentage as the primary value
+// and the amount as a secondary annotation.
 export function formatPercentWithAmount(
 	pct: number,
 	amount: number | null | undefined,
@@ -80,7 +81,7 @@ export function formatPercentWithAmount(
 	if (!hasCapital || amount == null) {
 		return formatPercent(pct);
 	}
-	return `${formatPercent(pct)} · ${formatAmount(amount, locale, currency)}`;
+	return `${formatPercent(pct)} (${formatAmount(amount, locale, currency)})`;
 }
 
 // formatAmountOrNull returns the formatted amount when a capital is configured
