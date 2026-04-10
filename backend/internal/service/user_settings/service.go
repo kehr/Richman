@@ -35,6 +35,14 @@ var allowedLanguages = map[string]struct{}{
 	model.LanguageZH: {},
 }
 
+// allowedDisplayCurrencies mirrors the CHECK constraint
+// chk_users_display_currency in migration 016_user_display_currency.
+var allowedDisplayCurrencies = map[string]struct{}{
+	model.DisplayCurrencyCNY: {},
+	model.DisplayCurrencyUSD: {},
+	model.DisplayCurrencyHKD: {},
+}
+
 // allowedCategories mirrors the four asset types defined in PRD §1.5 and the
 // asset_catalog.asset_type column.
 var allowedCategories = map[string]struct{}{
@@ -62,6 +70,7 @@ type UserSettings struct {
 	RiskPreference        string   `json:"riskPreference"`
 	Categories            []string `json:"categories"`
 	Language              string   `json:"language"`
+	DisplayCurrency       string   `json:"displayCurrency"`
 	OnboardingCompleted   bool     `json:"onboardingCompleted"`
 	OnboardingCompletedAt *string  `json:"onboardingCompletedAt,omitempty"`
 }
@@ -76,6 +85,7 @@ type PatchUserSettings struct {
 	RiskPreference       *string   `json:"riskPreference,omitempty"`
 	Categories           *[]string `json:"categories,omitempty"`
 	Language             *string   `json:"language,omitempty"`
+	DisplayCurrency      *string   `json:"displayCurrency,omitempty"`
 }
 
 // Service provides read/write access to user profile settings.
@@ -139,6 +149,7 @@ func (s *Service) PatchUserSettings(
 		RiskPreference:       patch.RiskPreference,
 		Categories:           patch.Categories,
 		Language:             patch.Language,
+		DisplayCurrency:      patch.DisplayCurrency,
 	}
 
 	u, err := s.users.UpdateUserSettings(ctx, userID, repoPatch)
@@ -185,6 +196,14 @@ func validatePatch(patch *PatchUserSettings) error {
 		}
 	}
 
+	if patch.DisplayCurrency != nil {
+		if _, ok := allowedDisplayCurrencies[*patch.DisplayCurrency]; !ok {
+			return model.NewAppError(http.StatusBadRequest,
+				"INVALID_DISPLAY_CURRENCY",
+				fmt.Sprintf("display_currency %q is not allowed", *patch.DisplayCurrency))
+		}
+	}
+
 	if patch.Categories != nil {
 		seen := make(map[string]struct{}, len(*patch.Categories))
 		for _, c := range *patch.Categories {
@@ -215,7 +234,8 @@ func isEmptyPatch(patch *PatchUserSettings) bool {
 		!patch.ClearTotalCapitalCNY &&
 		patch.RiskPreference == nil &&
 		patch.Categories == nil &&
-		patch.Language == nil
+		patch.Language == nil &&
+		patch.DisplayCurrency == nil
 }
 
 // toUserSettings projects a model.User into the service-level DTO.
@@ -226,6 +246,7 @@ func toUserSettings(u *model.User) *UserSettings {
 		RiskPreference:      u.RiskPreference,
 		Categories:          u.Categories,
 		Language:            u.Language,
+		DisplayCurrency:     u.DisplayCurrency,
 		OnboardingCompleted: u.OnboardingCompletedAt != nil,
 	}
 	if out.Categories == nil {

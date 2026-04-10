@@ -17,6 +17,14 @@ const (
 	LanguageZH = "zh"
 )
 
+// DisplayCurrency preference values. These must stay in sync with the CHECK
+// constraint chk_users_display_currency defined in migration 016_user_display_currency.
+const (
+	DisplayCurrencyCNY = "CNY"
+	DisplayCurrencyUSD = "USD"
+	DisplayCurrencyHKD = "HKD"
+)
+
 // Asset type values. These must stay in sync with the asset_catalog.asset_type
 // column and the categories JSONB array on users (PRD §1.5).
 const (
@@ -39,6 +47,7 @@ type User struct {
 	OnboardingSkippedAt   *time.Time `json:"onboardingSkippedAt,omitempty"`
 	Categories            []string   `json:"categories"`
 	Language              string     `json:"language"`
+	DisplayCurrency       string     `json:"displayCurrency"`
 	CreatedAt             time.Time  `json:"createdAt"`
 	UpdatedAt             time.Time  `json:"updatedAt"`
 	Creator               string     `json:"-"`

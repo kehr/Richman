@@ -27,7 +27,7 @@ func NewUserRepo(pool *pgxpool.Pool) *UserRepo {
 // users so every Get* method stays in sync.
 const userSelectColumns = `user_id, email, password_hash, role, plan_id,
 	risk_preference, total_capital_cny, onboarding_completed_at, onboarding_skipped_at, categories,
-	language, created_at, updated_at`
+	language, display_currency, created_at, updated_at`
 
 // UserSettingsPatch carries a sparse update to the profile fields managed by
 // the user_settings service. A nil field means "leave unchanged". To clear a
@@ -38,6 +38,7 @@ type UserSettingsPatch struct {
 	RiskPreference       *string
 	Categories           *[]string
 	Language             *string
+	DisplayCurrency      *string
 }
 
 // scanUser reads the canonical user columns into a model.User, handling the
@@ -52,7 +53,7 @@ func scanUser(row pgx.Row, u *model.User) error {
 	if err := row.Scan(
 		&u.UserID, &u.Email, &u.PasswordHash, &u.Role, &u.PlanID,
 		&u.RiskPreference, &totalCap, &onboardedAt, &skippedAt, &categoriesRaw,
-		&u.Language, &u.CreatedAt, &u.UpdatedAt,
+		&u.Language, &u.DisplayCurrency, &u.CreatedAt, &u.UpdatedAt,
 	); err != nil {
 		return err
 	}
@@ -237,6 +238,11 @@ func (r *UserRepo) UpdateUserSettings(
 		langArg = *patch.Language
 	}
 
+	var displayCurrencyArg any
+	if patch.DisplayCurrency != nil {
+		displayCurrencyArg = *patch.DisplayCurrency
+	}
+
 	// COALESCE preserves existing value when the parameter is NULL. For
 	// ClearTotalCapitalCNY we need to force NULL, so we branch the SET clause.
 	capExpr := "COALESCE($1::NUMERIC, total_capital_cny)"
@@ -249,12 +255,13 @@ func (r *UserRepo) UpdateUserSettings(
 		    risk_preference   = COALESCE($2::VARCHAR, risk_preference),
 		    categories        = COALESCE($3::JSONB, categories),
 		    language          = COALESCE($4::VARCHAR, language),
+		    display_currency  = COALESCE($6::VARCHAR, display_currency),
 		    updated_at        = NOW()
 		WHERE user_id = $5 AND is_deleted = 0
 		RETURNING ` + userSelectColumns
 
 	var u model.User
-	row := r.pool.QueryRow(ctx, query, totalCapArg, riskArg, categoriesArg, langArg, userID)
+	row := r.pool.QueryRow(ctx, query, totalCapArg, riskArg, categoriesArg, langArg, userID, displayCurrencyArg)
 	if err := scanUser(row, &u); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil
