@@ -1,5 +1,6 @@
 import { Badge, Button, Card, Dropdown, EllipsisOutlined, Popconfirm, theme } from "@/ui-kit/eat";
 import type { MenuProps } from "@/ui-kit/eat";
+import { BrainCircuit } from "lucide-react";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import type { LLMSettingsDTO } from "./types";
@@ -22,21 +23,16 @@ interface ProviderCardLayoutProps {
 
 const PROVIDER_BADGE_STYLE: Record<
 	NonNullable<LLMSettingsDTO["providerType"]>,
-	{ bg: string; border: string; color: string; letter: string }
+	{ bg: string; border: string; color: string }
 > = {
-	claude: { bg: "#f0f5ff", border: "#d6e4ff", color: "#2f54eb", letter: "C" },
-	openai: { bg: "#f6ffed", border: "#d9f7be", color: "#389e0d", letter: "O" },
-	openai_compatible: { bg: "#f9f0ff", border: "#efdbff", color: "#531dab", letter: "O" },
+	claude: { bg: "#f0f5ff", border: "#d6e4ff", color: "#2f54eb" },
+	openai: { bg: "#f6ffed", border: "#d9f7be", color: "#389e0d" },
+	openai_compatible: { bg: "#f9f0ff", border: "#efdbff", color: "#531dab" },
 };
 
 const FAILING_BADGE_OVERRIDE = { bg: "#fff2f0", border: "#ffccc7", color: "#cf1322" };
 
-const FALLBACK_BADGE_STYLE = {
-	bg: "#f5f5f5",
-	border: "#d9d9d9",
-	color: "#595959",
-	letter: "?",
-};
+const FALLBACK_BADGE_STYLE = { bg: "#f5f5f5", border: "#d9d9d9", color: "#595959" };
 
 // Badge status values mirror antd PresetStatusColorType
 type BadgeStatus = "success" | "processing" | "error" | "default" | "warning";
@@ -135,13 +131,11 @@ export function ProviderCardLayout({
 								display: "flex",
 								alignItems: "center",
 								justifyContent: "center",
-								fontSize: 13,
-								fontWeight: 700,
 								color: badge.color,
 								flexShrink: 0,
 							}}
 						>
-							{badge.letter}
+							<BrainCircuit size={16} />
 						</div>
 						<div>
 							<div style={{ fontSize: 15, fontWeight: 600, color: token.colorText }}>
