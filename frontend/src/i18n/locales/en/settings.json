@@ -8,7 +8,6 @@
 		"subscription": "Subscription & Quota"
 	},
 	"account": {
-		"email": "Email",
 		"changePassword": "Send change link to email",
 		"changePasswordTooltip": "Change password API pending backend",
 		"totalCapital": "Total Capital",

@@ -8,7 +8,6 @@
 		"subscription": "订阅与额度"
 	},
 	"account": {
-		"email": "邮箱",
 		"changePassword": "发送修改链接到邮箱",
 		"changePasswordTooltip": "修改密码接口待后端补齐",
 		"totalCapital": "总资金",

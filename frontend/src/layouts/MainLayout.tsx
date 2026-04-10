@@ -25,7 +25,7 @@ export function MainLayout() {
 	const { data: user } = useCurrentUser();
 	const { t, i18n } = useTranslation();
 
-	const displayName = user?.email?.split("@")[0] || "User";
+	const displayName = user?.email?.split("@")[0] || "—";
 
 	const menuRoutes = useMemo(
 		() => ({
