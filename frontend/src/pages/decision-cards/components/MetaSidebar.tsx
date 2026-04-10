@@ -2,6 +2,7 @@ import { type DecisionCardDTO, computeNextAnalysisTime } from "@/features/decisi
 import { Card, Divider, Space, Typography } from "@/ui-kit/eat";
 import type { MouseEvent } from "react";
 import { useTranslation } from "react-i18next";
+import { HoldingScheduleSection, useHoldingNextAnalysisAt } from "./HoldingScheduleSection";
 
 const { Text, Paragraph } = Typography;
 
@@ -51,7 +52,15 @@ function formatShanghaiDateTime(date: Date | null, locale: string): string {
 export function MetaSidebar({ card, historicalCards = [], onSelectHistory }: MetaSidebarProps) {
 	const { t, i18n } = useTranslation("app");
 	const analyzedAt = new Date(card.analyzedAt);
-	const nextAnalysisAt = computeNextAnalysisTime(new Date());
+
+	// nextAnalysisAt is sourced from the backend-computed holding schedule.
+	// Falls back to the local computeNextAnalysisTime when the backend value is
+	// not yet available (e.g. query still loading or holding has no override).
+	const backendNextAt = useHoldingNextAnalysisAt(card.holdingId);
+	const nextAnalysisAt = backendNextAt
+		? new Date(backendNextAt)
+		: computeNextAnalysisTime(new Date());
+
 	const historyItems = historicalCards.filter((c) => c.cardId !== card.cardId).slice(0, 5);
 
 	const handleSelect = (cardId: number) => (event: MouseEvent<HTMLElement>) => {
@@ -82,6 +91,8 @@ export function MetaSidebar({ card, historicalCards = [], onSelectHistory }: Met
 						{formatShanghaiDateTime(nextAnalysisAt, i18n.language)}
 					</div>
 				</div>
+
+				<HoldingScheduleSection holdingId={card.holdingId} />
 
 				<Divider style={{ margin: "4px 0" }} />
 
