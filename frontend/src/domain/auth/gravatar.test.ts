@@ -37,4 +37,8 @@ describe("gravatarUrl", () => {
 		const url = gravatarUrl("user@example.com");
 		expect(url).toContain("s=32");
 	});
+
+	it("returns empty string for whitespace-only email", () => {
+		expect(gravatarUrl("   ")).toBe("");
+	});
 });
