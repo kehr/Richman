@@ -1,4 +1,4 @@
-import { Alert, App, Button, Divider, Typography, theme } from "@/ui-kit/eat";
+import { Alert, App, Button, Divider, Space, Typography, theme } from "@/ui-kit/eat";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { LLMProbeButton } from "./LLMProbeButton";
@@ -93,12 +93,12 @@ export function LLMFailingCard({ config, systemDefaultAvailable, onEdit }: LLMFa
 	);
 
 	const footerContent: ReactNode = (
-		<>
+		<Space>
 			<LLMProbeButton label={t("llm.failingCard.retestButton")} />
 			<Button onClick={onEdit} data-testid="llm-edit-button">
 				{t("llm.failingCard.editButton")}
 			</Button>
-		</>
+		</Space>
 	);
 
 	return (
