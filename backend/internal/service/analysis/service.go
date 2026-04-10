@@ -101,6 +101,12 @@ func (s *Service) GetTaskStore() *TaskStore {
 	return s.taskStore
 }
 
+// GetTask retrieves a snapshot of the task status by ID.
+// Returns nil if the task is not found.
+func (s *Service) GetTask(taskID string) *model.TaskStatus {
+	return s.taskStore.Get(taskID)
+}
+
 // TriggerReanalyzeAll is the endpoint-facing alias for TriggerAnalysis.
 // The LLM degraded contract exposes POST /analysis/reanalyze-all so the
 // dashboard banner can upgrade template/mixed cards after a provider

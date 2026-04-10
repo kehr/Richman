@@ -59,9 +59,13 @@ func (h *AnalysisHandler) GetTask(c *gin.Context) {
 	taskID := c.Param("taskId")
 	userID := middleware.GetUserID(c)
 
-	task := h.analysisSvc.GetTaskStore().Get(taskID)
+	// 404 for both not-found and wrong-user cases (prevent task ID enumeration).
+	task := h.analysisSvc.GetTask(taskID)
 	if task == nil || task.UserID != userID {
-		c.JSON(http.StatusNotFound, gin.H{"error": "task not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": gin.H{
+			"code":    "NOT_FOUND",
+			"message": "task not found",
+		}})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"data": task})
