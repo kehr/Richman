@@ -139,13 +139,34 @@ func (s *Service) TriggerAnalysis(ctx context.Context, userID int64, taskID stri
 			return
 		}
 
+		// Build holding progress list for task tracking.
+		if s.taskStore != nil {
+			hps := make([]model.HoldingProgress, len(holdings))
+			for i, h := range holdings {
+				hps[i] = model.HoldingProgress{
+					Symbol: h.AssetCode,
+					Name:   h.AssetName,
+					Status: model.StepPending,
+				}
+			}
+			s.taskStore.InitHoldings(taskID, hps)
+		}
+
 		total := float64(len(holdings))
 		for i := range holdings {
 			progress := 0.1 + (float64(i)/total)*0.85
 			s.taskStore.UpdateProgress(taskID, progress)
 
+			symbol := holdings[i].AssetCode
+			holdingStart := time.Now()
+			if s.taskStore != nil {
+				s.taskStore.SetCurrentHolding(taskID, symbol)
+				s.taskStore.UpdateHoldingStatus(taskID, symbol, model.StepRunning, nil, nil, nil)
+				s.taskStore.AppendLog(taskID, model.LogLevelInfo, symbol+" analysis start")
+			}
+
 			ctxHolding, cancel := s.holdingContext(bgCtx)
-			_, analyzeErr := s.AnalyzeHolding(ctxHolding, userID, &holdings[i])
+			card, analyzeErr := s.AnalyzeHolding(ctxHolding, userID, &holdings[i], taskID)
 			cancel()
 			if analyzeErr != nil {
 				s.logger.Error("failed to analyze holding",
@@ -153,7 +174,24 @@ func (s *Service) TriggerAnalysis(ctx context.Context, userID int64, taskID stri
 					zap.String("asset", holdings[i].AssetCode),
 					zap.Error(analyzeErr),
 				)
+				if s.taskStore != nil {
+					ms := time.Since(holdingStart).Milliseconds()
+					s.taskStore.UpdateHoldingStatus(taskID, symbol, model.StepFailed, nil, nil, &ms)
+					s.taskStore.AppendLog(taskID, model.LogLevelError, symbol+" analysis failed: "+analyzeErr.Error())
+				}
 				// Continue with other holdings even if one fails.
+			} else if s.taskStore != nil {
+				ms := time.Since(holdingStart).Milliseconds()
+				src := ""
+				prov := ""
+				if card.SynthesisSource != nil {
+					src = *card.SynthesisSource
+				}
+				if card.ProviderUsed != nil {
+					prov = *card.ProviderUsed
+				}
+				s.taskStore.UpdateHoldingStatus(taskID, symbol, model.StepDone, card.SynthesisSource, card.ProviderUsed, &ms)
+				s.taskStore.AppendLog(taskID, model.LogLevelInfo, symbol+" done · source="+src+" provider="+prov)
 			}
 		}
 
@@ -162,9 +200,17 @@ func (s *Service) TriggerAnalysis(ctx context.Context, userID int64, taskID stri
 }
 
 // AnalyzeHolding runs the full analysis pipeline for a single holding.
+// The optional taskID variadic parameter enables per-step progress tracking via
+// TaskStore. Callers that do not pass a taskID (e.g. the scheduler) get the
+// same pipeline behavior with no tracking overhead.
 func (s *Service) AnalyzeHolding(
-	ctx context.Context, userID int64, holding *model.Holding,
+	ctx context.Context, userID int64, holding *model.Holding, taskID ...string,
 ) (*model.DecisionCard, error) {
+	tID := ""
+	if len(taskID) > 0 {
+		tID = taskID[0]
+	}
+
 	release := s.acquireSlot()
 	defer release()
 	if _, ok := ctx.Deadline(); !ok && s.analysisTimeout > 0 {
@@ -179,12 +225,17 @@ func (s *Service) AnalyzeHolding(
 	)
 
 	// Step 1: Fetch data.
+	s.tsStart(tID, model.StepKeyFetchData)
 	data, err := s.fetcher.FetchAssetData(ctx, holding.AssetCode, holding.AssetType)
 	if err != nil {
+		s.tsFail(tID, model.StepKeyFetchData)
 		return nil, fmt.Errorf("fetch data: %w", err)
 	}
+	s.tsComplete(tID, model.StepKeyFetchData)
+	s.tsLog(tID, model.LogLevelInfo, holding.AssetCode+" fetch ok · trend pending")
 
 	// Step 2: Calculate trend.
+	s.tsStart(tID, model.StepKeyCalcIndicators)
 	trendResult, err := s.trendCalc.Calculate(data.Prices)
 	if err != nil {
 		s.logger.Warn("trend calculation failed, using neutral default",
@@ -276,6 +327,7 @@ func (s *Service) AnalyzeHolding(
 		}
 	}
 	weights = s.weightMgr.ApplyRiskBias(weights, holding.AssetType, riskPref)
+	s.tsComplete(tID, model.StepKeyCalcIndicators)
 
 	// Load user language preference for localized synthesis output.
 	userLang := model.LanguageEN
@@ -292,6 +344,7 @@ func (s *Service) AnalyzeHolding(
 	}
 
 	// Step 7: Calculate confidence.
+	s.tsStart(tID, model.StepKeyRecommendation)
 	conf := s.confCalc.Calculate(confidence.Input{
 		Trend:          &trendResult,
 		Position:       &posResult,
@@ -301,11 +354,13 @@ func (s *Service) AnalyzeHolding(
 
 	// Step 8: Decide recommendation.
 	rec := s.matrix.Decide(trendResult, posResult, catResult, weights)
+	s.tsComplete(tID, model.StepKeyRecommendation)
 
 	// Step 9: Synthesize card content.
 	costPrice, _ := holding.CostPrice.Float64()
 	posRatio, _ := holding.PositionRatio.Float64()
 
+	s.tsStart(tID, model.StepKeyLLMSynthesis)
 	synthOutput, synthMeta, err := s.synthesizer.Synthesize(ctx, &synthesis.SynthesisInput{
 		AssetCode:      holding.AssetCode,
 		AssetType:      holding.AssetType,
@@ -321,8 +376,17 @@ func (s *Service) AnalyzeHolding(
 		Language:       userLang,
 	}, userID)
 	if err != nil {
+		s.tsFail(tID, model.StepKeyLLMSynthesis)
 		return nil, fmt.Errorf("synthesize: %w", err)
 	}
+	if synthMeta != nil {
+		if synthMeta.Source == "template" || synthMeta.Source == "mixed" {
+			s.tsLog(tID, model.LogLevelWarn, holding.AssetCode+" LLM fallback → "+synthMeta.Source)
+		} else {
+			s.tsLog(tID, model.LogLevelInfo, holding.AssetCode+" LLM ok · provider="+synthMeta.ProviderUsed)
+		}
+	}
+	s.tsComplete(tID, model.StepKeyLLMSynthesis)
 
 	// Post-synthesis: compute lotCount per step. totalCapitalCNY is read
 	// from the user profile here (not in the synthesizer) so the capital
@@ -388,6 +452,7 @@ func (s *Service) AnalyzeHolding(
 	}
 
 	// Step 10: Persist raw analysis result (non-critical, runs outside tx).
+	s.tsStart(tID, model.StepKeyPersist)
 	rawResult := analysis.AnalysisResult{
 		AssetCode:      holding.AssetCode,
 		AssetType:      holding.AssetType,
@@ -408,8 +473,10 @@ func (s *Service) AnalyzeHolding(
 	// Step 11: Persist decision card with badge diff inside a transaction.
 	saved, err := s.persistDecisionCardWithDiff(ctx, card)
 	if err != nil {
+		s.tsFail(tID, model.StepKeyPersist)
 		return nil, fmt.Errorf("save decision card: %w", err)
 	}
+	s.tsComplete(tID, model.StepKeyPersist)
 
 	s.logger.Info("analysis completed",
 		zap.Int64("holding_id", holding.HoldingID),
@@ -523,6 +590,30 @@ func (s *Service) acquireSlot() func() {
 	s.semaphore <- struct{}{}
 	return func() {
 		<-s.semaphore
+	}
+}
+
+func (s *Service) tsStart(taskID, key string) {
+	if s.taskStore != nil && taskID != "" {
+		s.taskStore.StartStep(taskID, key)
+	}
+}
+
+func (s *Service) tsComplete(taskID, key string) {
+	if s.taskStore != nil && taskID != "" {
+		s.taskStore.CompleteStep(taskID, key)
+	}
+}
+
+func (s *Service) tsFail(taskID, key string) {
+	if s.taskStore != nil && taskID != "" {
+		s.taskStore.FailStep(taskID, key)
+	}
+}
+
+func (s *Service) tsLog(taskID string, level model.LogLevel, msg string) {
+	if s.taskStore != nil && taskID != "" {
+		s.taskStore.AppendLog(taskID, level, msg)
 	}
 }
 
