@@ -97,23 +97,54 @@ func NewScheduler(
 }
 
 // Start loads all user schedule configs, registers per-user cron entries, and
-// starts the scheduler.
+// starts the scheduler. Users with a saved settings row use that config; users
+// with active holdings but no saved row receive system-default entries.
 func (s *Scheduler) Start() {
 	ctx := context.Background()
 
+	// Load users who have explicitly saved schedule settings.
 	settings, err := s.schedSvc.ListActiveUserScheduleSettings(ctx)
 	if err != nil {
 		s.logger.Error("failed to load user schedule settings on startup", zap.Error(err))
 	}
 
+	coveredUsers := make(map[int64]struct{}, len(settings))
 	for i := range settings {
 		s.registerUserEntries(&settings[i])
+		coveredUsers[settings[i].UserID] = struct{}{}
+	}
+
+	// Register system-default entries for users who have holdings but no saved
+	// settings row. GetUserScheduleSettings returns defaults when no row exists.
+	allUsersWithHoldings, err := s.holdingRepo.ListUsersWithHoldings(ctx)
+	if err != nil {
+		s.logger.Error("failed to list users with holdings on startup", zap.Error(err))
+	}
+
+	defaultCount := 0
+	for _, userID := range allUsersWithHoldings {
+		if _, covered := coveredUsers[userID]; covered {
+			continue
+		}
+		defaults, err := s.schedSvc.GetUserScheduleSettings(ctx, userID)
+		if err != nil {
+			s.logger.Error("failed to get default schedule settings for user",
+				zap.Int64("user_id", userID),
+				zap.Error(err),
+			)
+			continue
+		}
+		s.registerUserEntries(defaults)
+		defaultCount++
 	}
 
 	s.scheduleDSTCallback()
 
 	s.cron.Start()
-	s.logger.Info("analysis scheduler started", zap.Int("configured_users", len(settings)))
+	s.logger.Info("analysis scheduler started",
+		zap.Int("configured_users", len(settings)),
+		zap.Int("default_users", defaultCount),
+	)
 }
 
 // Stop gracefully stops the scheduler.

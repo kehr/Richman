@@ -213,6 +213,29 @@ func (r *HoldingRepo) SoftDeleteHolding(ctx context.Context, holdingID int64, mo
 	return nil
 }
 
+// ListUsersWithHoldings returns the distinct user IDs that have at least one
+// active (is_deleted = 0) holding. Used by the scheduler to ensure every user
+// with holdings gets cron entries, even if they have no saved schedule settings.
+func (r *HoldingRepo) ListUsersWithHoldings(ctx context.Context) ([]int64, error) {
+	rows, err := r.pool.Query(ctx,
+		`SELECT DISTINCT user_id FROM holdings WHERE is_deleted = 0 ORDER BY user_id ASC`,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("query users with holdings: %w", err)
+	}
+	defer rows.Close()
+
+	var userIDs []int64
+	for rows.Next() {
+		var id int64
+		if err := rows.Scan(&id); err != nil {
+			return nil, fmt.Errorf("scan user id: %w", err)
+		}
+		userIDs = append(userIDs, id)
+	}
+	return userIDs, nil
+}
+
 // ListHoldingsByAssetType returns all active holdings of a given asset type across all users.
 func (r *HoldingRepo) ListHoldingsByAssetType(ctx context.Context, assetType string) ([]model.Holding, error) {
 	rows, err := r.pool.Query(ctx,
