@@ -1,3 +1,5 @@
+import { formatAmount } from "@/domain/money/format";
+import { useMoney } from "@/domain/money/useMoney";
 import { isStructuredRationale, useFormatTriggerValue } from "@/features/decision-card";
 import type { Execution, Step, StructuredRationale } from "@/features/decision-card";
 import { Alert, Card, Space, Tag, Typography } from "@/ui-kit/eat";
@@ -8,6 +10,8 @@ const { Text, Paragraph, Title } = Typography;
 
 interface ExecutionPlanFullProps {
 	execution: Execution;
+	positionAmountCny?: number | null;
+	positionRatioPct?: number;
 }
 
 // stepCircleStyle matches the ExecutionPlanStrip visual but uses a slightly
@@ -120,15 +124,17 @@ function RationaleBlock({
 }
 
 // StepRow renders one full execution step with its trigger condition, delta,
-// optional lotCount, and structured rationale fields.
+// optional absolute amount, lotCount, and structured rationale fields.
 function StepRow({
 	step,
 	index,
 	isMonitor,
+	amountStr,
 }: {
 	step: Step;
 	index: number;
 	isMonitor: boolean;
+	amountStr?: string | null;
 }) {
 	const { t } = useTranslation("app");
 	const formatTrigger = useFormatTriggerValue();
@@ -146,9 +152,16 @@ function StepRow({
 							<Tag color="default">{t("decisionCard.executionPlan.monitorStepLabel")}</Tag>
 						)}
 					</Space>
-					<Text strong style={{ color: "#1677ff" }}>
-						{formatDeltaPct(step.deltaPct)}
-					</Text>
+					<div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
+						<Text strong style={{ color: "#1677ff" }}>
+							{formatDeltaPct(step.deltaPct)}
+						</Text>
+						{amountStr != null && (
+							<Text type="secondary" style={{ fontSize: 11, lineHeight: 1.3 }}>
+								{amountStr}
+							</Text>
+						)}
+					</div>
 				</div>
 				{step.lotCount != null && step.lotCount > 0 && (
 					<Text type="secondary" style={{ fontSize: 12 }}>
@@ -171,11 +184,32 @@ function StepRow({
 // and surfaces every step's rationale so the user can understand "why" at
 // each trigger. Monitor plans render as two lines (stop-loss / take-profit);
 // staged and one-shot plans render numbered step rows.
-export function ExecutionPlanFull({ execution }: ExecutionPlanFullProps) {
-	const { t } = useTranslation("app");
+export function ExecutionPlanFull({
+	execution,
+	positionAmountCny,
+	positionRatioPct,
+}: ExecutionPlanFullProps) {
+	const { t, i18n } = useTranslation("app");
+	const money = useMoney();
 	const validDaysText = t("decisionCard.executionPlan.validDays", { days: execution.validDays });
 	const steps = execution.steps ?? [];
 	const isMonitor = execution.type === "monitor";
+
+	// Derive total capital to show absolute change amounts per step.
+	// Only computed when the user has configured capital (hasCapital).
+	const totalCapitalCny =
+		money.hasCapital &&
+		positionAmountCny != null &&
+		positionRatioPct != null &&
+		positionRatioPct > 0
+			? positionAmountCny / (positionRatioPct / 100)
+			: null;
+
+	function stepAmountStr(step: Step): string | null {
+		if (totalCapitalCny == null || totalCapitalCny <= 0 || step.deltaPct === 0) return null;
+		const amountCny = Math.round(Math.abs((totalCapitalCny * step.deltaPct) / 100));
+		return formatAmount(amountCny, i18n.language, money.currency);
+	}
 
 	// Legacy monitor cards without steps: render stop-loss / take-profit only.
 	if (isMonitor && steps.length === 0) {
@@ -210,7 +244,13 @@ export function ExecutionPlanFull({ execution }: ExecutionPlanFullProps) {
 		>
 			<Space direction="vertical" size={16} style={{ width: "100%" }}>
 				{steps.map((step, idx) => (
-					<StepRow key={step.order} step={step} index={idx} isMonitor={isMonitor} />
+					<StepRow
+						key={step.order}
+						step={step}
+						index={idx}
+						isMonitor={isMonitor}
+						amountStr={stepAmountStr(step)}
+					/>
 				))}
 				{isMonitor && (execution.stopLoss != null || execution.takeProfit != null) && (
 					<Text type="secondary" style={{ fontSize: 12 }}>

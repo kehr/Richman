@@ -142,7 +142,11 @@ export default function DecisionCardDetailPage() {
 					<Space direction="vertical" size={16} style={{ width: "100%" }}>
 						<CardHero card={card} />
 						<ConclusionBanner card={card} prevCard={prevCard} />
-						<ExecutionPlanFull execution={card.recommendation.execution} />
+						<ExecutionPlanFull
+							execution={card.recommendation.execution}
+							positionAmountCny={card.positionAmount}
+							positionRatioPct={card.positionRatio}
+						/>
 						<DimensionReasoning card={card} prevCard={prevCard} />
 						<MainRisks riskWarnings={card.riskWarnings} />
 					</Space>
