@@ -47,6 +47,7 @@ import (
 
 	analysisService "github.com/richman/backend/internal/service/analysis"
 	decisioncard "github.com/richman/backend/internal/service/decision_card"
+	"github.com/richman/backend/internal/service/exchangerate"
 	notificationSvc "github.com/richman/backend/internal/service/notification"
 	onboardingSvc "github.com/richman/backend/internal/service/onboarding"
 	screenshotSvc "github.com/richman/backend/internal/service/screenshot"
@@ -299,6 +300,8 @@ func main() {
 		llmProvider != nil,
 		zapLogger,
 	)
+	exchangeRateService := exchangerate.NewService(yahooClient, zapLogger)
+	exchangeRatesHandler := v1.NewExchangeRatesHandler(exchangeRateService)
 
 	// Setup Gin
 	if !cfg.IsDev() {
@@ -332,6 +335,7 @@ func main() {
 	userSettingsHandler.RegisterRoutes(apiV1, authMiddleware)
 	llmSettingsHandler.RegisterRoutes(apiV1, authMiddleware)
 	dashboardHandler.RegisterRoutes(apiV1, authMiddleware)
+	exchangeRatesHandler.RegisterRoutes(apiV1, authMiddleware)
 
 	// Start scheduler
 	scheduler.Start()
