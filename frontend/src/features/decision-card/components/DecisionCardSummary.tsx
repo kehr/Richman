@@ -206,8 +206,6 @@ export function DecisionCardSummary({
 				<ExecutionPlanStrip
 					execution={card.recommendation.execution}
 					onShowAll={onShowFullPlan ? () => onShowFullPlan(card) : undefined}
-					positionAmountCny={card.positionAmount}
-					positionRatioPct={card.positionRatio}
 				/>
 			</div>
 

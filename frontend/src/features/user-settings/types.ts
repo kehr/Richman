@@ -6,12 +6,15 @@ export type RiskPreference = "conservative" | "neutral" | "aggressive";
 
 export type Language = "en" | "zh";
 
+export type DisplayCurrency = "CNY" | "USD" | "HKD";
+
 export interface UserSettings {
 	userId: number;
 	totalCapitalCny?: number | null;
 	riskPreference: RiskPreference;
 	categories: string[];
 	language: Language;
+	displayCurrency: DisplayCurrency;
 	onboardingCompleted: boolean;
 	onboardingCompletedAt?: string | null;
 }
@@ -25,6 +28,7 @@ export interface PatchUserSettings {
 	riskPreference?: RiskPreference;
 	categories?: string[];
 	language?: Language;
+	displayCurrency?: DisplayCurrency;
 }
 
 export interface OnboardingStatus {

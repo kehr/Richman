@@ -1,4 +1,5 @@
 export type {
+	DisplayCurrency,
 	Language,
 	OnboardingStatus,
 	PatchUserSettings,
