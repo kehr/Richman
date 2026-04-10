@@ -6,7 +6,7 @@
 		"schedule": "Schedule",
 		"channels": "Push Channels",
 		"preferences": "Preferences",
-		"subscription": "Subscription & Quota"
+		"subscription": "Subscriptions"
 	},
 	"account": {
 		"changePassword": "Send change link to email",
