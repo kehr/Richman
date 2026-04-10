@@ -58,8 +58,8 @@ export function SettingsTabsLayout({ items, activeKey, onChange }: SettingsTabsL
 										left: 0,
 										top: "50%",
 										transform: "translateY(-50%)",
-										width: 3,
-										height: 16,
+										width: 4,
+										height: 24,
 										background: "#000",
 										borderRadius: 2,
 									}}
