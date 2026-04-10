@@ -1,4 +1,3 @@
-import { formatAmount } from "@/domain/money/format";
 import { useMoney } from "@/domain/money/useMoney";
 import { Space, Typography } from "@/ui-kit/eat";
 import type { CSSProperties } from "react";
@@ -98,7 +97,7 @@ export function ExecutionPlanStrip({
 	positionAmountCny,
 	positionRatioPct,
 }: ExecutionPlanStripProps) {
-	const { t, i18n } = useTranslation("app");
+	const { t } = useTranslation("app");
 	const money = useMoney();
 
 	const steps = execution.steps ?? [];
@@ -116,11 +115,12 @@ export function ExecutionPlanStrip({
 			: null;
 
 	// Format a step's absolute change amount in the user's display currency.
-	// Returns null when totalCapitalCny is unknown or the step has no delta.
+	// Delegates to money.formatAmountOnly so conversion and degraded-mode
+	// currency fallback are handled consistently with the rest of the app.
 	function stepAmountStr(step: Step): string | null {
 		if (totalCapitalCny == null || totalCapitalCny <= 0 || step.deltaPct === 0) return null;
 		const amountCny = Math.round(Math.abs((totalCapitalCny * step.deltaPct) / 100));
-		return formatAmount(amountCny, i18n.language, money.currency);
+		return money.formatAmountOnly(amountCny);
 	}
 
 	// Legacy monitor cards without steps: render stop-loss / take-profit only.

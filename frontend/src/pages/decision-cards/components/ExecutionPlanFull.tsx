@@ -1,4 +1,3 @@
-import { formatAmount } from "@/domain/money/format";
 import { useMoney } from "@/domain/money/useMoney";
 import { isStructuredRationale, useFormatTriggerValue } from "@/features/decision-card";
 import type { Execution, Step, StructuredRationale } from "@/features/decision-card";
@@ -189,7 +188,7 @@ export function ExecutionPlanFull({
 	positionAmountCny,
 	positionRatioPct,
 }: ExecutionPlanFullProps) {
-	const { t, i18n } = useTranslation("app");
+	const { t } = useTranslation("app");
 	const money = useMoney();
 	const validDaysText = t("decisionCard.executionPlan.validDays", { days: execution.validDays });
 	const steps = execution.steps ?? [];
@@ -208,7 +207,7 @@ export function ExecutionPlanFull({
 	function stepAmountStr(step: Step): string | null {
 		if (totalCapitalCny == null || totalCapitalCny <= 0 || step.deltaPct === 0) return null;
 		const amountCny = Math.round(Math.abs((totalCapitalCny * step.deltaPct) / 100));
-		return formatAmount(amountCny, i18n.language, money.currency);
+		return money.formatAmountOnly(amountCny);
 	}
 
 	// Legacy monitor cards without steps: render stop-loss / take-profit only.

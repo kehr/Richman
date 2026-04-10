@@ -38,6 +38,12 @@ export function useMoney() {
 	const currency: DisplayCurrency = settings?.displayCurrency ?? "CNY";
 	const locale = i18n.language;
 
+	// When the rate for the selected currency is unavailable, format amounts in
+	// CNY so numbers and symbols stay consistent (¥15,000 not $15,000 with a
+	// CNY value). Falls back to CNY both when rates are loading and on error.
+	const effectiveCurrency: DisplayCurrency =
+		currency === "CNY" || rates[currency] != null ? currency : "CNY";
+
 	return useMemo(
 		() => ({
 			hasCapital,
@@ -48,11 +54,16 @@ export function useMoney() {
 					convertCny(amountCny, currency, rates),
 					hasCapital,
 					locale,
-					currency,
+					effectiveCurrency,
 				),
 			formatAmountOnly: (amountCny?: number | null) =>
-				formatAmountOrNull(convertCny(amountCny, currency, rates), hasCapital, locale, currency),
+				formatAmountOrNull(
+					convertCny(amountCny, currency, rates),
+					hasCapital,
+					locale,
+					effectiveCurrency,
+				),
 		}),
-		[hasCapital, currency, rates, locale],
+		[hasCapital, currency, rates, locale, effectiveCurrency],
 	);
 }
