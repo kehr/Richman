@@ -8,10 +8,10 @@ AIR      := $(shell go env GOPATH)/bin/air
 #           go install github.com/air-verse/air@latest
 dev: migrate-up
 	@if [ -x "$(AIR)" ]; then \
-		$(AIR) 2>&1 | $(HUMANLOG) --time-fields ts --level-fields level --message-fields msg; \
+		$(AIR) 2>&1 | $(HUMANLOG) --time-fields ts --level-fields level --message-fields msg --time-format "2006-01-02 15:04:05"; \
 	else \
 		echo "air not found, falling back to go run (install: go install github.com/air-verse/air@latest)"; \
-		go run ./cmd/server/main.go 2>&1 | $(HUMANLOG) --time-fields ts --level-fields level --message-fields msg; \
+		go run ./cmd/server/main.go 2>&1 | $(HUMANLOG) --time-fields ts --level-fields level --message-fields msg --time-format "2006-01-02 15:04:05"; \
 	fi
 
 # dev-raw: same as dev but raw JSON output, no humanlog pipe.
