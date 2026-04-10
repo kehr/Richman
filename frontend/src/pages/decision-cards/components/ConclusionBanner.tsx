@@ -38,7 +38,7 @@ function formatDelta(delta: number): string {
 export function ConclusionBanner({ card, prevCard }: ConclusionBannerProps) {
 	const { t } = useTranslation("app");
 	const borderColor = BORDER_COLORS[card.badgeState];
-	const confidencePct = Math.round(card.confidence * 100);
+	const confidencePct = Math.round(card.confidence);
 	const targetPct = card.targetPositionRatio;
 	const currentPct = card.positionRatio;
 	const gapPct = targetPct - currentPct;

@@ -76,8 +76,10 @@ export function DecisionCardSummary({
 
 	// When running, the card is wrapped in .card-glow-wrapper (global.css) which
 	// provides the spinning rainbow border; the Card itself gets border:none so
-	// only the gradient wrapper shows. When just-updated (2 s flash on
-	// completion) the green border takes over briefly.
+	// only the gradient wrapper shows. When just-updated (1.5 s flash on
+	// completion) a subtle green ring replaces the default border briefly.
+	// box-shadow is used instead of borderColor so the ring does not affect
+	// layout, and the body background is left untouched to avoid a heavy flash.
 	const isRunning = analysisStatus === "running";
 	// overflow:hidden is always set so the ant-card-body white background never
 	// bleeds past border-radius — this fixes both the shimmer-border corner clip
@@ -85,11 +87,10 @@ export function DecisionCardSummary({
 	const borderStyle: React.CSSProperties = isRunning
 		? { border: "none", borderRadius: 6, overflow: "hidden" }
 		: justUpdated
-			? { borderColor: "#b7eb8f", overflow: "hidden" }
+			? { boxShadow: "0 0 0 2px rgba(82, 196, 26, 0.45)", overflow: "hidden" }
 			: { overflow: "hidden" };
 
-	// Card body background flashes green on completion for 2 seconds.
-	const bodyBg = justUpdated ? "#f6ffed" : undefined;
+	const bodyBg = undefined;
 
 	const handleKeyDown = interactive
 		? (event: React.KeyboardEvent<HTMLDivElement>) => {
@@ -223,7 +224,7 @@ export function DecisionCardSummary({
 			<div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
 				<Space size={4} align="baseline">
 					<Text strong style={{ fontSize: 18 }} data-testid="card-confidence">
-						{Math.round(card.confidence * 100)}%
+						{Math.round(card.confidence)}%
 					</Text>
 					<Text type="secondary" style={{ fontSize: 12 }}>
 						{t("decisionCard.confidenceLabel")}
