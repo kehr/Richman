@@ -52,6 +52,11 @@ type SynthesisInput struct {
 	CostPrice      float64
 	PositionRatio  float64
 	Language       string // "en" or "zh"; empty defaults to "en"
+	// PriceDeltaContext is an optional pre-formatted string describing price
+	// changes since the last analysis. Set only for pre-window scheduled jobs.
+	// When non-empty it is prepended to the prompt so the LLM can factor in
+	// recent price movement before the market opens.
+	PriceDeltaContext string
 }
 
 // SynthesisOutput contains the generated content for a decision card.
@@ -260,7 +265,9 @@ func elapsedMs(start time.Time) int64 {
 
 // buildSynthesisPrompt constructs the synthesis user prompt from templates.
 // It populates SynthesisUserData and SynthesisRecommendationData from the
-// input, then concatenates the two rendered sections.
+// input, then concatenates the two rendered sections. When PriceDeltaContext
+// is non-empty (pre-window scheduled jobs), it is prepended so the LLM can
+// factor in recent price movement before the market opens.
 func buildSynthesisPrompt(input *SynthesisInput) (string, error) {
 	catEvents := make([]prompts.CatalystEventData, 0, len(input.Catalyst.Events))
 	for _, ev := range input.Catalyst.Events {
@@ -308,7 +315,15 @@ func buildSynthesisPrompt(input *SynthesisInput) (string, error) {
 		return "", err
 	}
 
-	return userSection + recSection, nil
+	// Prepend price delta context when available (pre-window scheduled jobs).
+	// This informs the LLM about price movement since the last analysis before
+	// presenting the full structured analysis data.
+	var deltaPrefix string
+	if input.PriceDeltaContext != "" {
+		deltaPrefix = "Recent price movement since last analysis:\n" + input.PriceDeltaContext + "\n\n"
+	}
+
+	return deltaPrefix + userSection + recSection, nil
 }
 
 func parseSynthesisResponse(content string) (*SynthesisOutput, error) {

@@ -212,6 +212,16 @@ func (s *Service) AnalyzeHolding(
 	if len(taskID) > 0 {
 		tID = taskID[0]
 	}
+	return s.analyzeHolding(ctx, userID, holding, "", tID)
+}
+
+// analyzeHolding is the internal implementation shared by AnalyzeHolding and
+// the pre-window scheduler path. priceDeltaCtx is prepended to the synthesis
+// prompt when non-empty; taskID enables TaskStore progress tracking.
+func (s *Service) analyzeHolding(
+	ctx context.Context, userID int64, holding *model.Holding,
+	priceDeltaCtx string, tID string,
+) (*model.DecisionCard, error) {
 
 	release := s.acquireSlot()
 	defer release()
@@ -387,18 +397,19 @@ func (s *Service) AnalyzeHolding(
 
 	s.tsStart(tID, model.StepKeyLLMSynthesis)
 	synthOutput, synthMeta, err := s.synthesizer.Synthesize(ctx, &synthesis.SynthesisInput{
-		AssetCode:      holding.AssetCode,
-		AssetType:      holding.AssetType,
-		AssetName:      holding.AssetName,
-		Trend:          trendResult,
-		Position:       posResult,
-		Catalyst:       catResult,
-		Weights:        weights,
-		Confidence:     conf,
-		Recommendation: rec,
-		CostPrice:      costPrice,
-		PositionRatio:  posRatio,
-		Language:       userLang,
+		AssetCode:         holding.AssetCode,
+		AssetType:         holding.AssetType,
+		AssetName:         holding.AssetName,
+		Trend:             trendResult,
+		Position:          posResult,
+		Catalyst:          catResult,
+		Weights:           weights,
+		Confidence:        conf,
+		Recommendation:    rec,
+		CostPrice:         costPrice,
+		PositionRatio:     posRatio,
+		Language:          userLang,
+		PriceDeltaContext: priceDeltaCtx,
 	}, userID)
 	if err != nil {
 		s.tsFail(tID, model.StepKeyLLMSynthesis)

@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/richman/backend/internal/datasource"
 	"github.com/richman/backend/internal/model"
 	"github.com/richman/backend/internal/notification/adapter"
 	"github.com/richman/backend/internal/repo"
@@ -264,6 +265,12 @@ func (s *Scheduler) registerUserUSEntries(settings *model.UserScheduleSettings) 
 	}
 }
 
+// fetcher exposes the datasource.Fetcher from the analysis service so the
+// scheduler can fetch recent price history for pre-window context.
+func (s *Scheduler) fetcher() *datasource.Fetcher {
+	return s.analysisSvc.fetcher
+}
+
 // registerWindowEntry parses "HH:MM", builds a cron spec, and registers the
 // entry, recording its EntryID.
 func (s *Scheduler) registerWindowEntry(
@@ -287,9 +294,10 @@ func (s *Scheduler) registerWindowEntry(
 	}
 
 	spec := fmt.Sprintf("%d %d * * %s", minute, hour, weekdays)
+	isPreWindow := window == windowPre
 
 	id, err := s.cron.AddFunc(spec, func() {
-		s.runJobForUser(userID, assetTypes, messageType)
+		s.runJobForUser(userID, assetTypes, messageType, isPreWindow)
 	})
 	if err != nil {
 		s.logger.Error("failed to register cron entry",
@@ -422,12 +430,15 @@ func (s *Scheduler) onDSTTransition() {
 
 // runJobForUser executes an analysis job for a single user's holdings of the
 // given asset types, applying a frequency gate before running analysis.
-func (s *Scheduler) runJobForUser(userID int64, assetTypes []string, messageType string) {
+// isPreWindow indicates this is a pre-market trigger, enabling price-delta
+// context injection into the synthesis prompt.
+func (s *Scheduler) runJobForUser(userID int64, assetTypes []string, messageType string, isPreWindow bool) {
 	ctx := context.Background()
 
 	s.logger.Info("cron job triggered for user",
 		zap.Int64("user_id", userID),
 		zap.String("message_type", messageType),
+		zap.Bool("pre_window", isPreWindow),
 	)
 
 	// Fetch all user holdings and filter to the relevant asset types.
@@ -470,7 +481,7 @@ func (s *Scheduler) runJobForUser(userID int64, assetTypes []string, messageType
 		return
 	}
 
-	s.processUserJob(ctx, userID, eligible, messageType)
+	s.processUserJob(ctx, userID, eligible, messageType, isPreWindow)
 }
 
 // filterEligibleHoldings returns only holdings for which the frequency minimum
@@ -532,14 +543,21 @@ func assetTypeToMarket(assetType string) string {
 }
 
 // processUserJob runs analysis on a user's holdings and sends a notification.
+// When isPreWindow is true, per-holding price delta since last analysis is
+// fetched and injected into the synthesis prompt as additional context.
 func (s *Scheduler) processUserJob(
 	ctx context.Context, userID int64,
-	holdings []model.Holding, messageType string,
+	holdings []model.Holding, messageType string, isPreWindow bool,
 ) {
 	var cardSummaries []string
 
 	for i := range holdings {
-		card, err := s.analysisSvc.AnalyzeHolding(ctx, userID, &holdings[i])
+		priceDeltaCtx := ""
+		if isPreWindow {
+			priceDeltaCtx = s.buildPriceDeltaContext(ctx, &holdings[i])
+		}
+
+		card, err := s.analysisSvc.analyzeHolding(ctx, userID, &holdings[i], priceDeltaCtx, "")
 		if err != nil {
 			s.logger.Warn("analysis failed for holding in cron job",
 				zap.Int64("user_id", userID),
@@ -586,6 +604,99 @@ func (s *Scheduler) processUserJob(
 			zap.Error(err),
 		)
 	}
+}
+
+// buildPriceDeltaContext fetches recent OHLCV data for a holding and returns a
+// formatted string describing price changes since the last analysis. Returns an
+// empty string if the last card is unavailable, the price fetch fails, or there
+// are no new data points since the last analysis — so callers can always treat
+// an empty return as "no context available, proceed normally".
+func (s *Scheduler) buildPriceDeltaContext(ctx context.Context, holding *model.Holding) string {
+	card, err := s.cardRepo.GetLatestByHolding(ctx, holding.HoldingID)
+	if err != nil {
+		s.logger.Warn("pre-window: failed to get latest card for price delta",
+			zap.Int64("holding_id", holding.HoldingID),
+			zap.Error(err),
+		)
+		return ""
+	}
+	if card == nil {
+		// No prior analysis — nothing to diff against.
+		return ""
+	}
+
+	lastAnalyzedAt := card.AnalyzedAt
+
+	// Fetch 5 days of price history to cover weekends and short sessions.
+	prices, err := s.fetcher().FetchAssetData(ctx, holding.AssetCode, holding.AssetType)
+	if err != nil {
+		s.logger.Warn("pre-window: failed to fetch price data for delta context",
+			zap.String("asset", holding.AssetCode),
+			zap.Error(err),
+		)
+		return ""
+	}
+
+	// Collect price bars that fall strictly after lastAnalyzedAt.
+	var recent []datasource.PriceData
+	for _, p := range prices.Prices {
+		if p.Date.After(lastAnalyzedAt) {
+			recent = append(recent, p)
+		}
+	}
+	if len(recent) == 0 {
+		return ""
+	}
+
+	// Find the reference close price (last bar before lastAnalyzedAt).
+	var refClose float64
+	for _, p := range prices.Prices {
+		if !p.Date.After(lastAnalyzedAt) {
+			refClose = p.Close
+		}
+	}
+
+	// Summarize the interval: open of first bar, high/low across all bars,
+	// close of last bar, and percent change from refClose if available.
+	first := recent[0]
+	last := recent[len(recent)-1]
+
+	var high, low float64
+	high = first.High
+	low = first.Low
+	for _, p := range recent[1:] {
+		if p.High > high {
+			high = p.High
+		}
+		if p.Low < low {
+			low = p.Low
+		}
+	}
+
+	var sb strings.Builder
+	fmt.Fprintf(&sb, "Since last analysis (%s):\n", lastAnalyzedAt.Format("2006-01-02 15:04 MST"))
+	fmt.Fprintf(&sb, "  Open: %.4f, High: %.4f, Low: %.4f, Close: %.4f\n",
+		first.Open, high, low, last.Close)
+
+	if refClose > 0 {
+		pctChange := (last.Close - refClose) / refClose * 100
+		direction := "up"
+		if pctChange < 0 {
+			direction = "down"
+		}
+		fmt.Fprintf(&sb, "  Change: %s %.2f%% from prior close %.4f\n",
+			direction, abs64(pctChange), refClose)
+	}
+
+	return sb.String()
+}
+
+// abs64 returns the absolute value of a float64.
+func abs64(x float64) float64 {
+	if x < 0 {
+		return -x
+	}
+	return x
 }
 
 // buildSubject returns a human-readable subject for the given message type.
