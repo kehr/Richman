@@ -140,17 +140,15 @@ func (s *Service) TriggerAnalysis(ctx context.Context, userID int64, taskID stri
 		}
 
 		// Build holding progress list for task tracking.
-		if s.taskStore != nil {
-			hps := make([]model.HoldingProgress, len(holdings))
-			for i, h := range holdings {
-				hps[i] = model.HoldingProgress{
-					Symbol: h.AssetCode,
-					Name:   h.AssetName,
-					Status: model.StepPending,
-				}
+		hps := make([]model.HoldingProgress, len(holdings))
+		for i, h := range holdings {
+			hps[i] = model.HoldingProgress{
+				Symbol: h.AssetCode,
+				Name:   h.AssetName,
+				Status: model.StepPending,
 			}
-			s.taskStore.InitHoldings(taskID, hps)
 		}
+		s.taskStore.InitHoldings(taskID, hps)
 
 		total := float64(len(holdings))
 		for i := range holdings {
@@ -159,29 +157,24 @@ func (s *Service) TriggerAnalysis(ctx context.Context, userID int64, taskID stri
 
 			symbol := holdings[i].AssetCode
 			holdingStart := time.Now()
-			if s.taskStore != nil {
-				s.taskStore.SetCurrentHolding(taskID, symbol)
-				s.taskStore.UpdateHoldingStatus(taskID, symbol, model.StepRunning, nil, nil, nil)
-				s.taskStore.AppendLog(taskID, model.LogLevelInfo, symbol+" analysis start")
-			}
+			s.taskStore.SetCurrentHolding(taskID, symbol)
+			s.taskStore.UpdateHoldingStatus(taskID, symbol, model.StepRunning, nil, nil, nil)
+			s.taskStore.AppendLog(taskID, model.LogLevelInfo, symbol+" analysis start")
 
 			ctxHolding, cancel := s.holdingContext(bgCtx)
 			card, analyzeErr := s.AnalyzeHolding(ctxHolding, userID, &holdings[i], taskID)
 			cancel()
+			ms := time.Since(holdingStart).Milliseconds()
 			if analyzeErr != nil {
 				s.logger.Error("failed to analyze holding",
 					zap.Int64("holding_id", holdings[i].HoldingID),
 					zap.String("asset", holdings[i].AssetCode),
 					zap.Error(analyzeErr),
 				)
-				if s.taskStore != nil {
-					ms := time.Since(holdingStart).Milliseconds()
-					s.taskStore.UpdateHoldingStatus(taskID, symbol, model.StepFailed, nil, nil, &ms)
-					s.taskStore.AppendLog(taskID, model.LogLevelError, symbol+" analysis failed: "+analyzeErr.Error())
-				}
+				s.taskStore.UpdateHoldingStatus(taskID, symbol, model.StepFailed, nil, nil, &ms)
+				s.taskStore.AppendLog(taskID, model.LogLevelError, symbol+" analysis failed: "+analyzeErr.Error())
 				// Continue with other holdings even if one fails.
-			} else if s.taskStore != nil {
-				ms := time.Since(holdingStart).Milliseconds()
+			} else {
 				src := ""
 				prov := ""
 				if card.SynthesisSource != nil {
@@ -232,7 +225,7 @@ func (s *Service) AnalyzeHolding(
 		return nil, fmt.Errorf("fetch data: %w", err)
 	}
 	s.tsComplete(tID, model.StepKeyFetchData)
-	s.tsLog(tID, model.LogLevelInfo, holding.AssetCode+" fetch ok · trend pending")
+	s.tsLog(tID, model.LogLevelInfo, holding.AssetCode+" data fetched")
 
 	// Step 2: Calculate trend.
 	s.tsStart(tID, model.StepKeyCalcIndicators)
