@@ -34,6 +34,7 @@ func (h *AnalysisHandler) RegisterRoutes(rg *gin.RouterGroup, authMiddleware gin
 	group := rg.Group("/analysis", authMiddleware)
 	group.POST("/trigger", h.Trigger)
 	group.POST("/reanalyze-all", middleware.PerUserRateLimit(reanalyzeAllWindow), h.ReanalyzeAll)
+	group.GET("/tasks/:taskId", h.GetTask)
 }
 
 // Trigger handles POST /api/v1/analysis/trigger.
@@ -50,6 +51,20 @@ func (h *AnalysisHandler) Trigger(c *gin.Context) {
 			"message": "analysis started",
 		},
 	})
+}
+
+// GetTask handles GET /api/v1/analysis/tasks/:taskId.
+// Returns the current analysis task status for the authenticated user.
+func (h *AnalysisHandler) GetTask(c *gin.Context) {
+	taskID := c.Param("taskId")
+	userID := middleware.GetUserID(c)
+
+	task := h.analysisSvc.GetTaskStore().Get(taskID)
+	if task == nil || task.UserID != userID {
+		c.JSON(http.StatusNotFound, gin.H{"error": "task not found"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"data": task})
 }
 
 // ReanalyzeAll handles POST /api/v1/analysis/reanalyze-all. It triggers
