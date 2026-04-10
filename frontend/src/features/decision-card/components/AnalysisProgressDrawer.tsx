@@ -80,6 +80,8 @@ export function AnalysisProgressDrawer({ taskId, open, onClose }: AnalysisProgre
 	const { task } = useAnalysisTask(taskId);
 
 	const holdings = task?.holdings ?? [];
+	const steps = task?.steps ?? [];
+	const logs = task?.logs ?? [];
 	const doneCount = holdings.filter((h) => h.status === "done" || h.status === "failed").length;
 
 	const title = resolveTitle(
@@ -182,10 +184,10 @@ export function AnalysisProgressDrawer({ taskId, open, onClose }: AnalysisProgre
 					</div>
 
 					{/* Step timeline */}
-					{task.steps.length > 0 && (
+					{steps.length > 0 && (
 						<>
 							<Divider style={{ margin: 0 }} />
-							<AnalysisStepTimeline steps={task.steps} currentHolding={task.currentHolding} />
+							<AnalysisStepTimeline steps={steps} currentHolding={task.currentHolding} />
 						</>
 					)}
 
@@ -206,7 +208,7 @@ export function AnalysisProgressDrawer({ taskId, open, onClose }: AnalysisProgre
 									overflow: "hidden",
 								}}
 							>
-								<AnalysisLogPanel logs={task.logs} />
+								<AnalysisLogPanel logs={logs} />
 							</div>
 						</div>
 					</>

@@ -62,6 +62,11 @@ func (r *AnalysisTaskRepo) GetByID(ctx context.Context, taskID string) (*model.T
 		}
 		return nil, err
 	}
+	// DB-restored tasks do not persist Holdings/Steps/Logs; initialize to
+	// empty slices so the JSON response always sends [] instead of null.
+	task.Holdings = make([]model.HoldingProgress, 0)
+	task.Steps = make([]model.TaskStep, 0)
+	task.Logs = make([]model.TaskLog, 0)
 	return &task, nil
 }
 
