@@ -1,5 +1,4 @@
 import {
-	BellOutlined,
 	Button,
 	DeleteOutlined,
 	Empty,
@@ -15,6 +14,7 @@ import {
 import { useTranslation } from "react-i18next";
 import type { ChannelDto, ChannelType } from "../types";
 import { useDeleteChannel, useUpdateChannel } from "../use-channels";
+import { ChannelIcon } from "./ChannelIcon";
 import { ChannelTestButton } from "./ChannelTestButton";
 
 interface ChannelListProps {
@@ -127,7 +127,7 @@ export function ChannelList({ channels, loading }: ChannelListProps) {
 					]}
 				>
 					<List.Item.Meta
-						avatar={<BellOutlined style={{ fontSize: 20 }} />}
+						avatar={<ChannelIcon channelType={channel.channelType} size={20} />}
 						title={
 							<Space>
 								<Typography.Text strong>{typeLabel[channel.channelType]}</Typography.Text>
