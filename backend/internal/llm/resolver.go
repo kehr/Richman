@@ -274,7 +274,7 @@ func (r *resolverImpl) buildUserProvider(cfg *model.LLMConfig) (Provider, error)
 		if cfg.BaseURL == nil {
 			return nil, ErrConfigDamaged
 		}
-		if validateErr := ValidateBaseURL(*cfg.BaseURL); validateErr != nil {
+		if validateErr := ValidateSelfHostedBaseURL(*cfg.BaseURL); validateErr != nil {
 			return nil, validateErr
 		}
 		return r.openaiBuilder(*cfg.BaseURL, string(plaintext), cfg.Model), nil

@@ -239,7 +239,9 @@ func (h *LLMSettingsHandler) Put(c *gin.Context) {
 				"baseUrl is required for openai_compatible")
 			return
 		}
-		if ssrfErr := llm.ValidateBaseURL(*req.BaseURL); ssrfErr != nil {
+		// Self-hosted providers (e.g. Ollama) may run on http and localhost;
+		// use the relaxed validator that only blocks cloud metadata endpoints.
+		if ssrfErr := llm.ValidateSelfHostedBaseURL(*req.BaseURL); ssrfErr != nil {
 			respondError(c, http.StatusBadRequest, "SSRF_BLOCKED", ssrfErr.Error())
 			return
 		}
@@ -420,7 +422,7 @@ func (h *LLMSettingsHandler) runLiveProbe(
 		if baseURL == nil || strings.TrimSpace(*baseURL) == "" {
 			return probeFailure(0, errors.New("baseUrl is required"))
 		}
-		if ssrfErr := llm.ValidateBaseURL(*baseURL); ssrfErr != nil {
+		if ssrfErr := llm.ValidateSelfHostedBaseURL(*baseURL); ssrfErr != nil {
 			return probeFailure(0, ssrfErr)
 		}
 	}

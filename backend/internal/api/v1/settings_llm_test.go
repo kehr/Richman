@@ -282,13 +282,15 @@ func TestLLMSettings_PutAndGetClaude(t *testing.T) {
 }
 
 func TestLLMSettings_PutOpenAICompatible_BadScheme(t *testing.T) {
+	// openai_compatible uses the relaxed SSRF validator: http and https are
+	// both accepted, but non-HTTP schemes (ftp, file, etc.) must be rejected.
 	b := &llmHandlerBuilder{}
 	h := b.build(t)
 	r := newLLMTestRouter(h, 7)
 
 	body := []byte(`{
         "providerType": "openai_compatible",
-        "baseUrl": "http://example.com/v1",
+        "baseUrl": "ftp://example.com/v1",
         "apiKey": "sk-local-1234",
         "model": "llama3",
         "fallbackToSystemDefaultOnFailure": false,
@@ -296,26 +298,28 @@ func TestLLMSettings_PutOpenAICompatible_BadScheme(t *testing.T) {
     }`)
 	w := mustServe(t, r, http.MethodPut, "/api/v1/settings/llm", body)
 	if w.Code != http.StatusBadRequest {
-		t.Fatalf("want 400 for http scheme, got %d body=%s", w.Code, w.Body.String())
+		t.Fatalf("want 400 for ftp scheme, got %d body=%s", w.Code, w.Body.String())
 	}
 }
 
-func TestLLMSettings_PutOpenAICompatible_Localhost(t *testing.T) {
+func TestLLMSettings_PutOpenAICompatible_HTTP_LocalhostAllowed(t *testing.T) {
+	// openai_compatible providers like Ollama run on http and localhost;
+	// both should be accepted by the relaxed SSRF validator.
 	b := &llmHandlerBuilder{}
 	h := b.build(t)
 	r := newLLMTestRouter(h, 7)
 
 	body := []byte(`{
         "providerType": "openai_compatible",
-        "baseUrl": "https://localhost:11434/v1",
+        "baseUrl": "http://localhost:11434/v1",
         "apiKey": "sk-local-1234",
         "model": "llama3",
         "fallbackToSystemDefaultOnFailure": false,
         "probe": false
     }`)
 	w := mustServe(t, r, http.MethodPut, "/api/v1/settings/llm", body)
-	if w.Code != http.StatusBadRequest {
-		t.Fatalf("want 400 for localhost, got %d body=%s", w.Code, w.Body.String())
+	if w.Code != http.StatusOK {
+		t.Fatalf("want 200 for http localhost (self-hosted), got %d body=%s", w.Code, w.Body.String())
 	}
 }
 

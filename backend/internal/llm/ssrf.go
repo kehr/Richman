@@ -125,3 +125,26 @@ func ValidateBaseURL(rawURL string) error {
 	}
 	return nil
 }
+
+// ValidateSelfHostedBaseURL is the relaxed SSRF policy for user-configured
+// self-hosted providers (openai_compatible). It permits both http and https
+// schemes and allows loopback / private-network addresses so users can point
+// to a local Ollama or an on-premises inference server. Cloud metadata
+// endpoints are still blocked because they are never a legitimate LLM target.
+func ValidateSelfHostedBaseURL(rawURL string) error {
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		return ErrSSRFBadScheme
+	}
+	if u.Scheme != "https" && u.Scheme != "http" {
+		return ErrSSRFBadScheme
+	}
+	host := strings.ToLower(u.Hostname())
+	if host == "" {
+		return ErrSSRFHostBlocked
+	}
+	if metadataHosts[host] {
+		return ErrSSRFMetadataHost
+	}
+	return nil
+}
