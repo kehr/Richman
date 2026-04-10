@@ -1,6 +1,6 @@
 import type { MarketScheduleDTO, ScheduleSettingsDTO } from "@/features/schedule";
 import { useScheduleSettings, useUpdateScheduleSettings } from "@/features/schedule";
-import { Button, Divider, Flex, Skeleton, Typography, message } from "@/ui-kit/eat";
+import { Button, Divider, Flex, Skeleton, message } from "@/ui-kit/eat";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { GlobalFrequencySelector } from "./schedule/GlobalFrequencySelector";
@@ -74,15 +74,6 @@ export function ScheduleTab() {
 
 	return (
 		<Flex vertical gap={24} data-testid="schedule-tab">
-			<Flex vertical gap={4}>
-				<Typography.Title level={5} style={{ margin: 0 }}>
-					{t("schedule.title")}
-				</Typography.Title>
-				<Typography.Text type="secondary" style={{ fontSize: 13 }}>
-					{t("schedule.description")}
-				</Typography.Text>
-			</Flex>
-
 			<GlobalFrequencySelector
 				value={effective.globalFrequency}
 				customDays={effective.globalFrequencyDays}

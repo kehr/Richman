@@ -46,42 +46,33 @@ export function GlobalFrequencySelector({
 	};
 
 	return (
-		<Flex vertical gap={12}>
-			<Typography.Text type="secondary" style={{ fontSize: 13 }}>
+		<Flex align="center" gap={12} wrap>
+			<Typography.Text type="secondary" style={{ fontSize: 13, whiteSpace: "nowrap" }}>
 				{t("schedule.globalFrequency.label")}
 			</Typography.Text>
 			<Radio.Group
 				value={value}
 				onChange={(e) => handleRadioChange(e.target.value as NonNullFrequency)}
 			>
-				<Flex vertical gap={10}>
+				<Flex gap={16} wrap>
 					{FREQUENCY_LIST.map((freq) => (
-						<Flex key={freq} align="center" gap={12}>
-							<Radio value={freq}>
-								<Flex vertical gap={0}>
-									<Typography.Text style={{ fontSize: 13 }}>
-										{t(`schedule.globalFrequency.${freq}`)}
-									</Typography.Text>
-									<Typography.Text type="secondary" style={{ fontSize: 12 }}>
-										{t(`schedule.globalFrequency.${freq}Hint`)}
-									</Typography.Text>
-								</Flex>
-							</Radio>
-							{freq === "custom" && value === "custom" && (
-								<InputNumber
-									min={1}
-									max={30}
-									value={customDays ?? 7}
-									onChange={handleDaysChange}
-									size="small"
-									style={{ width: 80 }}
-									addonAfter={t("schedule.globalFrequency.customPlaceholder")}
-								/>
-							)}
-						</Flex>
+						<Radio key={freq} value={freq}>
+							{t(`schedule.globalFrequency.${freq}`)}
+						</Radio>
 					))}
 				</Flex>
 			</Radio.Group>
+			{value === "custom" && (
+				<InputNumber
+					min={1}
+					max={30}
+					value={customDays ?? 7}
+					onChange={handleDaysChange}
+					size="small"
+					style={{ width: 100 }}
+					addonAfter={t("schedule.globalFrequency.customPlaceholder")}
+				/>
+			)}
 		</Flex>
 	);
 }
