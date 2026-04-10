@@ -5,18 +5,23 @@ import { WindowToggleRow } from "./WindowToggleRow";
 
 // DEFAULT_TIMES holds the server-side defaults for each market window so the
 // UI can reset a customised time back to its original value.
+// All times are in Asia/Shanghai timezone, matching backend defaults.go.
 const DEFAULT_TIMES: Record<"a_share" | "us_stock", { pre: string; post: string }> = {
-	a_share: { pre: "09:00", post: "15:30" },
-	us_stock: { pre: "09:00", post: "16:30" },
+	a_share: { pre: "08:30", post: "15:05" },
+	// US pre = NYSE 09:30 EDT - 1h buffer = 08:30 EDT = 20:30 CST
+	// US post = NYSE 16:00 EDT + 5min = 16:05 EDT = 04:05 CST (next day)
+	us_stock: { pre: "20:30", post: "04:05" },
 };
 
 // TIME_RANGES constrains the TimePicker to a sensible hour band per window.
+// All ranges are in Asia/Shanghai timezone (TRD spec).
+// US post ["04:00", "08:00"] spans midnight — buildDisabledHours handles this case.
 const TIME_RANGES: Record<
 	"a_share" | "us_stock",
 	{ pre: [string, string]; post: [string, string] }
 > = {
-	a_share: { pre: ["06:00", "09:30"], post: ["15:00", "18:00"] },
-	us_stock: { pre: ["06:00", "10:00"], post: ["16:00", "22:00"] },
+	a_share: { pre: ["07:00", "09:29"], post: ["15:00", "20:00"] },
+	us_stock: { pre: ["20:00", "23:00"], post: ["04:00", "08:00"] },
 };
 
 // FREQUENCY_OPTIONS lists all per-market frequency override choices. null means

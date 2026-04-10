@@ -71,8 +71,17 @@ export function WindowToggleRow({
 
 	const buildDisabledHours = () => {
 		const hours: number[] = [];
-		for (let h = 0; h < startHour; h++) hours.push(h);
-		for (let h = endHour + 1; h < 24; h++) hours.push(h);
+		if (startHour <= endHour) {
+			// Normal range (e.g. 07:00-09:29): disable hours outside [start, end].
+			for (let h = 0; h < startHour; h++) hours.push(h);
+			for (let h = endHour + 1; h < 24; h++) hours.push(h);
+		} else {
+			// Cross-midnight range (e.g. 04:00-08:00 where startHour=4, endHour=8
+			// but the window actually means 04:xx of the next calendar day, stored
+			// as a clock time). Disable hours NOT in [startHour, 23] ∪ [0, endHour].
+			// In practice this means only hours in (endHour, startHour) are disabled.
+			for (let h = endHour + 1; h < startHour; h++) hours.push(h);
+		}
 		return hours;
 	};
 
@@ -80,7 +89,7 @@ export function WindowToggleRow({
 		<Flex
 			align="center"
 			gap={12}
-			style={{ opacity: !enabled && !disabled ? 0.45 : 1, transition: "opacity 0.2s" }}
+			style={{ opacity: !enabled || disabled ? 0.45 : 1, transition: "opacity 0.2s" }}
 		>
 			<Switch checked={enabled} onChange={onToggle} size="small" disabled={disabled} />
 
