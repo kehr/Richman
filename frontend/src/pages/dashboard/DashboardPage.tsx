@@ -37,11 +37,9 @@ export default function DashboardPage() {
 
 	const rerun = useRerunAnalysis((id) => {
 		setTaskId(id);
-		setDrawerOpen(true);
 	});
 	const reanalyzeAll = useReanalyzeAll((id) => {
 		setTaskId(id);
-		setDrawerOpen(true);
 	});
 
 	// Open the analysis modal for the current/last task without clearing taskId.
