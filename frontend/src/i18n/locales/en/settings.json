@@ -43,6 +43,13 @@
 		"language": "Language",
 		"languageHint": "After switching language, newly generated analysis reports will use the selected language. Existing reports are unaffected.",
 		"languageSaveError": "Failed to save language preference",
+		"displayCurrency": "Display Currency",
+		"displayCurrencyHint": "Amounts are converted using live exchange rates, updated hourly",
+		"currencyOptions": {
+			"CNY": "Chinese Yuan (¥)",
+			"USD": "US Dollar ($)",
+			"HKD": "Hong Kong Dollar (HK$)"
+		},
 		"timezone": "Timezone",
 		"timezoneHint": "Timezone selection does not affect push notification windows yet.",
 		"theme": "Theme",

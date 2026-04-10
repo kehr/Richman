@@ -1,15 +1,34 @@
-import { type Language, usePatchUserSettings, useUserSettings } from "@/features/user-settings";
+import {
+	type DisplayCurrency,
+	type Language,
+	usePatchUserSettings,
+	useUserSettings,
+} from "@/features/user-settings";
 import { Collapse, Divider, Flex, Radio, Typography, message } from "@/ui-kit/eat";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-// PreferencesTab covers PRD §6.4: language radio, timezone select (frozen at
-// Asia/Shanghai for MVP), theme placeholder, and a collapsible "advanced
-// number formatting" panel. The language setting persists to the backend so
-// the LLM synthesis layer generates content in the user's preferred language.
+// PreferencesTab covers PRD §6.4: language radio, display currency radio,
+// timezone select (frozen at Asia/Shanghai for MVP), theme placeholder, and a
+// collapsible "advanced number formatting" panel. The language and currency
+// settings persist to the backend so the LLM synthesis layer generates content
+// in the user's preferred language and amounts render in the chosen currency.
 export function PreferencesTab() {
 	const { t, i18n } = useTranslation("settings");
 	const settingsQuery = useUserSettings();
 	const patchMutation = usePatchUserSettings();
+
+	const settings = settingsQuery.data;
+
+	const [currency, setCurrency] = useState<DisplayCurrency>(
+		() => settings?.displayCurrency ?? "CNY",
+	);
+
+	useEffect(() => {
+		if (settings?.displayCurrency) {
+			setCurrency(settings.displayCurrency);
+		}
+	}, [settings?.displayCurrency]);
 
 	const handleLanguageChange = async (lang: Language) => {
 		await i18n.changeLanguage(lang);
@@ -18,6 +37,11 @@ export function PreferencesTab() {
 		} catch {
 			message.error(t("preferences.languageSaveError"));
 		}
+	};
+
+	const handleCurrencyChange = (val: DisplayCurrency) => {
+		setCurrency(val);
+		patchMutation.mutate({ displayCurrency: val });
 	};
 
 	return (
@@ -35,6 +59,25 @@ export function PreferencesTab() {
 				</Radio.Group>
 				<Typography.Text type="secondary" style={{ fontSize: 12 }}>
 					{t("preferences.languageHint")}
+				</Typography.Text>
+			</Flex>
+
+			<Divider style={{ margin: 0 }} />
+
+			<Flex vertical gap={8}>
+				<Typography.Text type="secondary">{t("preferences.displayCurrency")}</Typography.Text>
+				<Radio.Group
+					value={currency}
+					onChange={(e) => handleCurrencyChange(e.target.value as DisplayCurrency)}
+					disabled={settingsQuery.isLoading}
+					data-testid="preferences-currency"
+				>
+					<Radio value="CNY">{t("preferences.currencyOptions.CNY")}</Radio>
+					<Radio value="USD">{t("preferences.currencyOptions.USD")}</Radio>
+					<Radio value="HKD">{t("preferences.currencyOptions.HKD")}</Radio>
+				</Radio.Group>
+				<Typography.Text type="secondary" style={{ fontSize: 12 }}>
+					{t("preferences.displayCurrencyHint")}
 				</Typography.Text>
 			</Flex>
 
