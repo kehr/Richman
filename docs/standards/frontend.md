@@ -250,12 +250,93 @@ import { Sparkles, BrainCircuit, Zap } from "lucide-react";
 |------|------|------|
 | 服务端状态 | TanStack Query v5 | 缓存、重试、后台刷新 |
 | 客户端状态 | React hooks | useState、useReducer、Context |
+| 持久化客户端状态 | useLocalStorage（domain/storage） | 跨会话存活的 UI 状态 |
 | 全局状态 | 不用 Redux/Zustand | 除非复杂度明确需要 |
 
 **TanStack Query 配置：**
 - 默认缓存时间：30 秒
 - 默认重试：1 次
 - 错误处理：全局 QueryCache/MutationCache 捕获，显示 toast
+
+
+## 客户端持久化存储
+
+所有 localStorage 读写必须通过 `domain/storage/` 的两层抽象，**禁止在组件、hook、feature 模块中直接调用 `localStorage`**。
+
+**两层结构：**
+
+```
+domain/storage/
+  local-storage.ts    # 原语层：StorageKeys 注册表 + 安全读写删函数
+  use-local-storage.ts  # Hook 层：React 组件专用
+```
+
+**Key 注册表（local-storage.ts）**
+
+所有 key 集中定义在 `StorageKeys` 常量对象，不允许在业务代码中出现字符串字面量 key：
+
+```typescript
+// 正确
+import { StorageKeys } from "@/domain/storage/local-storage";
+useLocalStorage(StorageKeys.lastAnalysisTaskId, null);
+
+// 错误
+localStorage.getItem("richman_last_task_id");
+useLocalStorage("richman_last_task_id", null);
+```
+
+新增持久化字段时，先在 `StorageKeys` 注册，再使用。
+
+**React 组件 / Hook 中使用 `useLocalStorage`**
+
+接口与 `useState` 完全相同，第三个返回值是删除函数：
+
+```typescript
+import { StorageKeys } from "@/domain/storage/local-storage";
+import { useLocalStorage } from "@/domain/storage/use-local-storage";
+
+// 替代 useState + 手动读写 localStorage
+const [taskId, setTaskId] = useLocalStorage<string | null>(
+  StorageKeys.lastAnalysisTaskId,
+  null,
+);
+
+// 清除 key（重置为 initialValue）
+const [dismissed, setDismissed, clearDismissed] = useLocalStorage<boolean>(
+  StorageKeys.onboardingNudgeDismissed,
+  false,
+);
+```
+
+**非组件上下文（mutation 回调、HTTP 拦截器等）使用原语函数**
+
+当代码不在 React 渲染树内（如 `useMutation.onSuccess`、`domain/auth/`），Hook 无法使用，改用低层原语：
+
+```typescript
+import { StorageKeys, storageGet, storageRemove, storageSet } from "@/domain/storage/local-storage";
+
+// mutation 回调中清除 flag
+storageRemove(StorageKeys.onboardingNudgeDismissed);
+
+// HTTP 拦截器中读取 token
+const token = storageGet<string>(StorageKeys.authToken);
+```
+
+**判断用哪一层的规则：**
+
+| 调用上下文 | 使用 |
+|---|---|
+| React 组件、自定义 hook | `useLocalStorage` |
+| TanStack Query mutation/query 回调 | `storageGet / storageSet / storageRemove` |
+| domain/auth、domain/http 等非组件模块 | `storageGet / storageSet / storageRemove` |
+
+**值的序列化**
+
+原语层统一用 `JSON.stringify / JSON.parse`，因此 `T` 必须是 JSON 兼容类型（string、number、boolean、object、array）。不可存储 `Date`、`Map`、`Set`、`undefined` 等非 JSON 类型——需要时在调用方做转换。
+
+**存储不可用的处理**
+
+隐私模式或配额溢出时，读操作返回 `initialValue`，写/删操作静默忽略，不抛异常。调用方无需额外防御。
 
 
 ## 样式

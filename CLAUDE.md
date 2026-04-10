@@ -99,7 +99,7 @@ task (see "Design Review Gate" above); the rest are loaded on demand.
 | `lint-toolchain.md` | MANDATORY lint tool version management, config migration flow, local/CI enforcement, exemption rules |
 | `commit-hygiene.md` | MANDATORY commit scope discipline: one topic per commit, explicit file staging, message/file alignment |
 | `naming.md` | Files, identifiers, database, API, git naming |
-| `frontend.md` | Pages+Features architecture, dependency rules, component usage, Biome config |
+| `frontend.md` | Pages+Features architecture, dependency rules, component usage, Biome config, **client-side storage abstraction (localStorage)** |
 | `backend.md` | Go three-layer architecture, service/repo patterns, error handling |
 | `database.md` | PostgreSQL schema, audit fields, soft delete, indexing, migrations |
 | `api.md` | RESTful design, versioning, pagination, error format, MVP endpoints |
