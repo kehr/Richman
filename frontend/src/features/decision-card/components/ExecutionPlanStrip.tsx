@@ -1,3 +1,5 @@
+import { formatAmount } from "@/domain/money/format";
+import { useMoney } from "@/domain/money/useMoney";
 import { Space, Typography } from "@/ui-kit/eat";
 import type { CSSProperties } from "react";
 import { useTranslation } from "react-i18next";
@@ -36,15 +38,42 @@ function formatDeltaPct(delta: number): string {
 	return `${sign}${delta.toFixed(0)}%`;
 }
 
-function StepRow({ step, index }: { step: Step; index: number }) {
+function StepRow({
+	step,
+	index,
+	totalCapitalCny,
+}: { step: Step; index: number; totalCapitalCny?: number | null }) {
 	const formatTrigger = useFormatTriggerValue();
+	const { i18n } = useTranslation();
+
+	// Derive the change amount from total capital and deltaPct.
+	// Only shown when totalCapitalCny is known and the step actually moves position.
+	// totalCapitalCny is already null-gated by hasCapital in ExecutionPlanStrip.
+	const amountCny =
+		totalCapitalCny != null && totalCapitalCny > 0 && step.deltaPct !== 0
+			? Math.round(Math.abs((totalCapitalCny * step.deltaPct) / 100))
+			: null;
+	const amountStr = amountCny != null ? formatAmount(amountCny, i18n.language) : null;
+
 	return (
 		<div style={{ display: "flex", alignItems: "center" }} data-testid={`plan-step-${step.order}`}>
 			<span style={stepCircleStyle(index)}>{step.order}</span>
 			<Text style={{ flex: 1 }}>{formatTrigger(step)}</Text>
-			<Text strong style={{ marginLeft: 8 }}>
-				{formatDeltaPct(step.deltaPct)}
-			</Text>
+			<div
+				style={{
+					display: "flex",
+					flexDirection: "column",
+					alignItems: "flex-end",
+					marginLeft: 8,
+				}}
+			>
+				<Text strong>{formatDeltaPct(step.deltaPct)}</Text>
+				{amountStr != null && (
+					<Text type="secondary" style={{ fontSize: 11, lineHeight: 1.3 }}>
+						{amountStr}
+					</Text>
+				)}
+			</div>
 		</div>
 	);
 }
@@ -53,6 +82,11 @@ interface ExecutionPlanStripProps {
 	execution: Execution;
 	maxSteps?: number;
 	onShowAll?: () => void;
+	// positionAmountCny and positionRatioPct are used together to derive total
+	// capital so each step can show the CNY change amount alongside the percent.
+	// Both must be non-null and positionRatioPct must be > 0 to enable display.
+	positionAmountCny?: number | null;
+	positionRatioPct?: number;
 }
 
 // ExecutionPlanStrip renders a compact summary of the structured execution
@@ -71,10 +105,25 @@ export function ExecutionPlanStrip({
 	execution,
 	maxSteps = 3,
 	onShowAll,
+	positionAmountCny,
+	positionRatioPct,
 }: ExecutionPlanStripProps) {
 	const { t } = useTranslation("app");
+	const money = useMoney();
 
 	const steps = execution.steps ?? [];
+
+	// Derive total capital from the holding's current position so each step can
+	// display the absolute amount change alongside the percentage delta. Only
+	// computed when the user has configured capital (hasCapital) so the display
+	// stays consistent with every other money amount in the app.
+	const totalCapitalCny =
+		money.hasCapital &&
+		positionAmountCny != null &&
+		positionRatioPct != null &&
+		positionRatioPct > 0
+			? positionAmountCny / (positionRatioPct / 100)
+			: null;
 
 	// Legacy monitor cards without steps: render stop-loss / take-profit only.
 	if (execution.type === "monitor" && steps.length === 0) {
@@ -102,7 +151,7 @@ export function ExecutionPlanStrip({
 	return (
 		<Space direction="vertical" size={4} style={{ width: "100%" }}>
 			{visible.map((step, idx) => (
-				<StepRow key={step.order} step={step} index={idx} />
+				<StepRow key={step.order} step={step} index={idx} totalCapitalCny={totalCapitalCny} />
 			))}
 			{hidden > 0 && (
 				<Text
