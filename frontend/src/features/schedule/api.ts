@@ -28,7 +28,8 @@ export interface WindowDTO {
 // frequency/frequencyDays override the global defaults for this market only.
 export interface MarketScheduleDTO {
 	frequency: Frequency;
-	frequencyDays: number | null;
+	// frequencyDays is absent (undefined) when the backend omits it via omitempty.
+	frequencyDays: number | null | undefined;
 	preWindow: WindowDTO;
 	postWindow: WindowDTO;
 }
@@ -37,7 +38,8 @@ export interface MarketScheduleDTO {
 // accepted by GET/PUT /api/v1/settings/schedule.
 export interface ScheduleSettingsDTO {
 	globalFrequency: Exclude<Frequency, null>;
-	globalFrequencyDays: number | null;
+	// globalFrequencyDays is absent (undefined) when the backend omits it via omitempty.
+	globalFrequencyDays: number | null | undefined;
 	markets: {
 		a_share: MarketScheduleDTO;
 		us_stock: MarketScheduleDTO;
@@ -49,7 +51,8 @@ export interface ScheduleSettingsDTO {
 export interface HoldingScheduleDTO {
 	holdingId: number;
 	frequency: Frequency;
-	frequencyDays: number | null;
+	// frequencyDays is absent (undefined) when the backend omits it via omitempty.
+	frequencyDays: number | null | undefined;
 	window: WindowPreference;
 	nextAnalysisAt: string | null; // ISO 8601
 }
@@ -63,24 +66,24 @@ export type UpdateHoldingScheduleInput = Pick<
 >;
 
 // fetchScheduleSettings loads the global schedule configuration.
-export function fetchScheduleSettings(): Promise<ScheduleSettingsDTO> {
-	return request<ApiResponse<ScheduleSettingsDTO>>("/settings/schedule").then((res) => res.data);
+export function fetchScheduleSettings(): Promise<ApiResponse<ScheduleSettingsDTO>> {
+	return request<ApiResponse<ScheduleSettingsDTO>>("/settings/schedule");
 }
 
 // updateScheduleSettings persists a new global schedule configuration.
-export function updateScheduleSettings(data: ScheduleSettingsDTO): Promise<ScheduleSettingsDTO> {
+export function updateScheduleSettings(
+	data: ScheduleSettingsDTO,
+): Promise<ApiResponse<ScheduleSettingsDTO>> {
 	return request<ApiResponse<ScheduleSettingsDTO>>("/settings/schedule", {
 		method: "PUT",
 		body: JSON.stringify(data),
-	}).then((res) => res.data);
+	});
 }
 
 // fetchHoldingSchedule loads the per-holding schedule override for a single
 // holding identified by holdingId.
-export function fetchHoldingSchedule(holdingId: number): Promise<HoldingScheduleDTO> {
-	return request<ApiResponse<HoldingScheduleDTO>>(`/holdings/${holdingId}/schedule`).then(
-		(res) => res.data,
-	);
+export function fetchHoldingSchedule(holdingId: number): Promise<ApiResponse<HoldingScheduleDTO>> {
+	return request<ApiResponse<HoldingScheduleDTO>>(`/holdings/${holdingId}/schedule`);
 }
 
 // updateHoldingSchedule persists per-holding schedule overrides. Pass null for
@@ -88,9 +91,9 @@ export function fetchHoldingSchedule(holdingId: number): Promise<HoldingSchedule
 export function updateHoldingSchedule(
 	holdingId: number,
 	data: UpdateHoldingScheduleInput,
-): Promise<HoldingScheduleDTO> {
+): Promise<ApiResponse<HoldingScheduleDTO>> {
 	return request<ApiResponse<HoldingScheduleDTO>>(`/holdings/${holdingId}/schedule`, {
 		method: "PUT",
 		body: JSON.stringify(data),
-	}).then((res) => res.data);
+	});
 }

@@ -25,7 +25,10 @@ export const HOLDING_SCHEDULE_BASE_KEY = ["holding-schedule"] as const;
 export function useScheduleSettings() {
 	return useQuery<ScheduleSettingsDTO>({
 		queryKey: SCHEDULE_SETTINGS_QUERY_KEY,
-		queryFn: fetchScheduleSettings,
+		queryFn: async () => {
+			const res = await fetchScheduleSettings();
+			return res.data;
+		},
 		staleTime: 30_000,
 	});
 }
@@ -36,7 +39,10 @@ export function useScheduleSettings() {
 export function useUpdateScheduleSettings() {
 	const queryClient = useQueryClient();
 	return useMutation<ScheduleSettingsDTO, Error, ScheduleSettingsDTO>({
-		mutationFn: updateScheduleSettings,
+		mutationFn: async (data) => {
+			const res = await updateScheduleSettings(data);
+			return res.data;
+		},
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: SCHEDULE_SETTINGS_QUERY_KEY });
 		},
@@ -49,7 +55,10 @@ export function useUpdateScheduleSettings() {
 export function useHoldingSchedule(holdingId: number) {
 	return useQuery<HoldingScheduleDTO>({
 		queryKey: holdingScheduleQueryKey(holdingId),
-		queryFn: () => fetchHoldingSchedule(holdingId),
+		queryFn: async () => {
+			const res = await fetchHoldingSchedule(holdingId);
+			return res.data;
+		},
 		staleTime: 30_000,
 	});
 }
@@ -64,7 +73,10 @@ export function useUpdateHoldingSchedule() {
 		Error,
 		{ holdingId: number; data: UpdateHoldingScheduleInput }
 	>({
-		mutationFn: ({ holdingId, data }) => updateHoldingSchedule(holdingId, data),
+		mutationFn: async ({ holdingId, data }) => {
+			const res = await updateHoldingSchedule(holdingId, data);
+			return res.data;
+		},
 		onSuccess: (_result, variables) => {
 			queryClient.invalidateQueries({
 				queryKey: holdingScheduleQueryKey(variables.holdingId),
