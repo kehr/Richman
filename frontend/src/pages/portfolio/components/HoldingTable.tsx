@@ -1,3 +1,4 @@
+import { formatPercent } from "@/domain/money/format";
 import { useMoney } from "@/domain/money/useMoney";
 import type { HoldingDto } from "@/features/portfolio";
 import { useUserSettings } from "@/features/user-settings";
@@ -11,6 +12,7 @@ import {
 	Tag,
 	Typography,
 } from "@/ui-kit/eat";
+import { History } from "lucide-react";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -83,9 +85,20 @@ export function HoldingTable({
 			{
 				title: t("portfolio.holdingTable.position"),
 				key: "positionRatio",
-				width: 160,
-				render: (_: unknown, record: HoldingDto) =>
-					money.format(record.positionRatio, computeAmount(record.positionRatio)),
+				width: 140,
+				render: (_: unknown, record: HoldingDto) => {
+					const amountStr = money.formatAmountOnly(computeAmount(record.positionRatio));
+					return (
+						<Space direction="vertical" size={0}>
+							<Typography.Text>{formatPercent(record.positionRatio)}</Typography.Text>
+							{amountStr != null && (
+								<Typography.Text type="secondary" style={{ fontSize: 12 }}>
+									{amountStr}
+								</Typography.Text>
+							)}
+						</Space>
+					);
+				},
 			},
 			{
 				title: t("portfolio.holdingTable.pnl"),
@@ -111,7 +124,12 @@ export function HoldingTable({
 						>
 							{t("portfolio.holdingTable.editButton")}
 						</Button>
-						<Button type="link" size="small" onClick={() => onTransactions?.(record)}>
+						<Button
+							type="link"
+							size="small"
+							icon={<History size={14} />}
+							onClick={() => onTransactions?.(record)}
+						>
 							{t("portfolio.holdingTable.transactionsButton")}
 						</Button>
 						<Popconfirm
