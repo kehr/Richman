@@ -17,7 +17,7 @@ import { PreferencesTab } from "./tabs/PreferencesTab";
 import { ScheduleTab } from "./tabs/ScheduleTab";
 import { SubscriptionTab } from "./tabs/SubscriptionTab";
 
-const TAB_KEYS = ["account", "ai", "schedule", "channels", "preferences", "subscription"] as const;
+const TAB_KEYS = ["account", "preferences", "schedule", "channels", "ai", "subscription"] as const;
 type TabKey = (typeof TAB_KEYS)[number];
 
 function isTabKey(value: string | null): value is TabKey {
@@ -37,7 +37,12 @@ export default function SettingsPage() {
 	const items = useMemo<SettingsTabItem[]>(
 		() => [
 			{ key: "account", label: t("tabs.account"), icon: <UserOutlined />, content: <AccountTab /> },
-			{ key: "ai", label: t("tabs.ai"), icon: <Sparkles size={14} />, content: <AITab /> },
+			{
+				key: "preferences",
+				label: t("tabs.preferences"),
+				icon: <SettingOutlined />,
+				content: <PreferencesTab />,
+			},
 			{
 				key: "schedule",
 				label: t("tabs.schedule"),
@@ -50,12 +55,7 @@ export default function SettingsPage() {
 				icon: <BellOutlined />,
 				content: <ChannelsTab />,
 			},
-			{
-				key: "preferences",
-				label: t("tabs.preferences"),
-				icon: <SettingOutlined />,
-				content: <PreferencesTab />,
-			},
+			{ key: "ai", label: t("tabs.ai"), icon: <Sparkles size={14} />, content: <AITab /> },
 			{
 				key: "subscription",
 				label: t("tabs.subscription"),
