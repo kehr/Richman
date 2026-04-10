@@ -48,8 +48,8 @@ export function AccountTab() {
 	const [capitalForm] = Form.useForm<CapitalFormValues>();
 
 	const settings = settingsQuery.data;
-	const email = currentUser.data?.email ?? "—";
-	const displayName = email.split("@")[0] || "—";
+	const email = currentUser.data?.email ?? "";
+	const displayName = email ? email.split("@")[0] : "—";
 
 	const riskOptions = useMemo(
 		() => [
