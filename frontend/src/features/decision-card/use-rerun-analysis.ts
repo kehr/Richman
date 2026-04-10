@@ -1,18 +1,15 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { postRerunAnalysis } from "./api";
-import { DECISION_CARDS_QUERY_KEY } from "./use-decision-cards";
 
-// useRerunAnalysis triggers a backend re-analysis. On success we invalidate
-// both the list and detail caches so the UI picks up the freshly written
-// card on the next render. The detail cache is invalidated via the shared
-// `decision-card` prefix; individual ids do not need to be enumerated.
-export function useRerunAnalysis() {
-	const queryClient = useQueryClient();
+// useRerunAnalysis triggers a backend re-analysis. On success the taskId is
+// passed to onTaskStarted so callers can open the progress drawer and begin
+// polling. Cache invalidation is handled by useAnalysisTask when the task
+// reaches completed status, so this mutation no longer invalidates directly.
+export function useRerunAnalysis(onTaskStarted?: (taskId: string) => void) {
 	return useMutation({
 		mutationFn: () => postRerunAnalysis(),
-		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: DECISION_CARDS_QUERY_KEY });
-			queryClient.invalidateQueries({ queryKey: ["decision-card"] });
+		onSuccess: (data) => {
+			onTaskStarted?.(data.data.taskId);
 		},
 	});
 }
