@@ -41,6 +41,16 @@ describe("formatRelativeTime", () => {
 		expect(result).toMatch(/day/);
 	});
 
+	it("uses week unit for a date 10 days ago", () => {
+		const result = formatRelativeTime(dateSecondsAgo(10 * 86400), "en");
+		expect(result).toMatch(/week/);
+	});
+
+	it("uses month unit for a date 45 days ago", () => {
+		const result = formatRelativeTime(dateSecondsAgo(45 * 86400), "en");
+		expect(result).toMatch(/month/);
+	});
+
 	it("accepts an ISO string date input", () => {
 		const iso = new Date(now - 120 * 1000).toISOString();
 		const result = formatRelativeTime(iso, "en");
