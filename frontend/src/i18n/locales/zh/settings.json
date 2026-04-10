@@ -1,10 +1,10 @@
 {
 	"title": "设置",
 	"tabs": {
-		"account": "账户",
-		"ai": "AI",
+		"account": "账户管理",
+		"ai": "AI 配置",
 		"schedule": "调度策略",
-		"channels": "通知",
+		"channels": "推送通知",
 		"preferences": "偏好设置",
 		"subscription": "我的订阅"
 	},
