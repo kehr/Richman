@@ -132,14 +132,14 @@ export function AnalysisProgressDrawer({ taskId, open, onClose }: AnalysisProgre
 						<div style={{ fontSize: 12, color: "#888", marginTop: 6 }}>
 							{t("analysisProgress.cardCount", {
 								done: doneCount,
-								total: task.holdings.length,
+								total: holdings.length,
 							})}
 						</div>
 					</div>
 
 					{/* Holdings list */}
 					<div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-						{task.holdings.map((h) => (
+						{holdings.map((h) => (
 							<div key={h.symbol} style={{ display: "flex", alignItems: "center", gap: 8 }}>
 								<div
 									style={{
