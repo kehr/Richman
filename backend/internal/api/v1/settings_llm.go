@@ -136,7 +136,7 @@ type LLMSettingsDTO struct {
 type UpsertLLMRequest struct {
 	ProviderType                     string  `json:"providerType" binding:"required"`
 	BaseURL                          *string `json:"baseUrl,omitempty"`
-	APIKey                           string  `json:"apiKey" binding:"required"`
+	APIKey                           string  `json:"apiKey"` // optional for openai_compatible (e.g. Ollama)
 	Model                            string  `json:"model" binding:"required"`
 	FallbackToSystemDefaultOnFailure bool    `json:"fallbackToSystemDefaultOnFailure"`
 	Probe                            bool    `json:"probe"`
@@ -218,9 +218,16 @@ func (h *LLMSettingsHandler) Put(c *gin.Context) {
 		respondError(c, http.StatusBadRequest, "VALIDATION_ERROR", "model is required")
 		return
 	}
+	// openai_compatible providers (e.g. Ollama) do not require an API key.
+	// Use "ollama" as a sentinel so the encryption layer always has a
+	// non-empty value to store; the client sends it as Bearer token and the
+	// local server ignores it.
 	if strings.TrimSpace(req.APIKey) == "" {
-		respondError(c, http.StatusBadRequest, "VALIDATION_ERROR", "apiKey is required")
-		return
+		if providerType != model.ProviderOpenAICompatible {
+			respondError(c, http.StatusBadRequest, "VALIDATION_ERROR", "apiKey is required")
+			return
+		}
+		req.APIKey = "ollama"
 	}
 
 	// openai_compatible: base_url is required and must pass the SSRF

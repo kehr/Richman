@@ -39,6 +39,7 @@ export function LLMConfigForm({ open, mode, initialValue, onClose, onSaved }: LL
 
 	const providerType = Form.useWatch("providerType", form);
 	const requiresBaseUrl = providerType === "openai_compatible";
+	const apiKeyOptional = providerType === "openai_compatible";
 
 	// Reset the form whenever the modal opens or the initial value changes.
 	// This keeps stale values from the previous edit from leaking into a
@@ -80,10 +81,12 @@ export function LLMConfigForm({ open, mode, initialValue, onClose, onSaved }: LL
 					},
 				},
 			],
-			apiKeyCreate: [{ required: true, message: t("llm.configForm.apiKeyRequired") }],
+			apiKeyCreate: apiKeyOptional
+				? []
+				: [{ required: true, message: t("llm.configForm.apiKeyRequired") }],
 			model: [{ required: true, message: t("llm.configForm.modelRequired") }],
 		}),
-		[t],
+		[t, apiKeyOptional],
 	);
 
 	const providerOptions = useMemo(
@@ -178,11 +181,14 @@ export function LLMConfigForm({ open, mode, initialValue, onClose, onSaved }: LL
 					name="apiKey"
 					label={mode === "create" ? t("llm.configForm.apiKey") : t("llm.configForm.apiKeyEdit")}
 					rules={mode === "create" ? rules.apiKeyCreate : []}
+					extra={apiKeyOptional ? t("llm.configForm.apiKeyOptionalHint") : undefined}
 				>
 					<Input.Password
 						placeholder={
 							mode === "create"
-								? t("llm.configForm.apiKeyPlaceholder")
+								? apiKeyOptional
+									? t("llm.configForm.apiKeyOptionalPlaceholder")
+									: t("llm.configForm.apiKeyPlaceholder")
 								: t("llm.configForm.apiKeyEditPlaceholder")
 						}
 						autoComplete="off"

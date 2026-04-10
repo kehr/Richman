@@ -2,7 +2,7 @@
 	"title": "设置",
 	"tabs": {
 		"account": "账户",
-		"ai": "AI 解读",
+		"ai": "AI 配置",
 		"channels": "推送渠道",
 		"preferences": "偏好",
 		"subscription": "订阅与额度"
@@ -203,6 +203,8 @@
 			"apiKeyEdit": "API Key (留空表示不修改)",
 			"apiKeyRequired": "请填写 API Key",
 			"apiKeyPlaceholder": "sk-...",
+			"apiKeyOptionalPlaceholder": "可留空（Ollama 无需 API Key）",
+			"apiKeyOptionalHint": "Ollama 等本地服务无需填写 API Key，留空即可",
 			"apiKeyEditPlaceholder": "留空表示不修改",
 			"model": "模型",
 			"modelRequired": "请填写模型名",

@@ -2,7 +2,7 @@
 	"title": "Settings",
 	"tabs": {
 		"account": "Account",
-		"ai": "AI Interpretation",
+		"ai": "AI Configuration",
 		"channels": "Push Channels",
 		"preferences": "Preferences",
 		"subscription": "Subscription & Quota"
@@ -203,6 +203,8 @@
 			"apiKeyEdit": "API Key (leave blank to keep unchanged)",
 			"apiKeyRequired": "Please fill in API Key",
 			"apiKeyPlaceholder": "sk-...",
+			"apiKeyOptionalPlaceholder": "Optional (Ollama does not require an API key)",
+			"apiKeyOptionalHint": "Self-hosted providers like Ollama do not require an API key",
 			"apiKeyEditPlaceholder": "Leave blank to keep unchanged",
 			"model": "Model",
 			"modelRequired": "Please fill in model name",
