@@ -1,4 +1,4 @@
-import { BADGE_TEXT, ChangeBadge, type DecisionCardDTO } from "@/features/decision-card";
+import { ChangeBadge, type DecisionCardDTO } from "@/features/decision-card";
 import { Card, Space, Typography } from "@/ui-kit/eat";
 import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
@@ -17,14 +17,6 @@ interface ChangeAnchorListProps {
 	// cardRefs is the Map populated by DecisionCardWall so the anchor list can
 	// locate the DOM node for each card without a separate ref collection.
 	cardRefs: Map<number, HTMLDivElement>;
-}
-
-// buildChangeSummary renders the right-hand side of an anchor row. The copy
-// mirrors the badge-state taxonomy from PRD §3.4 and reuses BADGE_TEXT as the
-// single source of truth for the badge label.
-function buildChangeSummary(card: DecisionCardDTO): string {
-	if (card.badgeState === "none") return "";
-	return BADGE_TEXT[card.badgeState];
 }
 
 // ChangeAnchorList is the bottom "变化锚点" region of the Dashboard per PRD
@@ -114,7 +106,14 @@ export function ChangeAnchorList({ cards, cardRefs }: ChangeAnchorListProps) {
 					>
 						<ChangeBadge badgeState={card.badgeState} />
 						<Text strong>{card.assetName}</Text>
-						<Text type="secondary">→ {buildChangeSummary(card)}</Text>
+						{card.badgeState !== "none" && (
+							<Text type="secondary">
+								→{" "}
+								{t(
+									`decisionCard.badge.${card.badgeState as Exclude<typeof card.badgeState, "none">}`,
+								)}
+							</Text>
+						)}
 					</button>
 				))}
 			</Space>
