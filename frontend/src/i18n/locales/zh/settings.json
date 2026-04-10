@@ -152,7 +152,6 @@
 			"apiKeyLabel": "API Key",
 			"baseUrlLabel": "Base URL",
 			"lastProbedAt": "测试于 {{time}}",
-			"notTested": "尚未测试",
 			"fallbackLabel": "失败降级",
 			"fallbackOn": "已开启",
 			"fallbackOff": "已关闭",
@@ -161,9 +160,7 @@
 			"fallbackHint": "开启后，当你的 Provider 失败时，持仓数据将以加密传输方式发给 Richman 的系统默认 AI Provider 做分析。关闭则直接降级到规则引擎。",
 			"fallbackUpdated": "已更新降级偏好",
 			"fallbackUpdateError": "更新失败",
-			"probeButton": "测试连通性",
 			"editButton": "编辑",
-			"deleteButton": "删除",
 			"deleteSuccess": "已删除 Provider 配置",
 			"deleteError": "删除失败",
 			"deleteConfirm": {
@@ -177,7 +174,6 @@
 			"failing": "失效",
 			"connectivityFailed": "LLM Provider 连通性测试失败",
 			"modelLabel": "模型",
-			"apiKeyLabel": "API Key",
 			"baseUrlLabel": "Base URL",
 			"unknown": "未知",
 			"fallback": {
@@ -187,14 +183,8 @@
 			},
 			"retestButton": "重新测试",
 			"editButton": "编辑",
-			"deleteButton": "删除",
 			"deleteSuccess": "已删除 Provider 配置",
-			"deleteConfirm": {
-				"title": "确认删除 LLM Provider 配置？",
-				"description": "删除后分析将降级到系统默认或规则引擎。",
-				"ok": "删除",
-				"cancel": "取消"
-			}
+			"deleteError": "删除失败"
 		},
 		"configForm": {
 			"addTitle": "添加 LLM Provider",
@@ -238,7 +228,6 @@
 		},
 		"probeButton": {
 			"default": "测试连通性",
-			"retest": "重新测试",
 			"success": "测试通过（{{latency}} ms）",
 			"failure": "测试失败：{{error}}",
 			"requestError": "测试请求失败：{{msg}}"

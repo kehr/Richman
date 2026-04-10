@@ -28,7 +28,7 @@ export function LLMFailingCard({ config, systemDefaultAvailable, onEdit }: LLMFa
 			await deleteMutation.mutateAsync();
 			message.success(t("llm.failingCard.deleteSuccess"));
 		} catch (err) {
-			const msg = err instanceof Error ? err.message : t("llm.healthyCard.deleteError");
+			const msg = err instanceof Error ? err.message : t("llm.failingCard.deleteError");
 			message.error(msg);
 		}
 	};

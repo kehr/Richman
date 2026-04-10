@@ -152,7 +152,6 @@
 			"apiKeyLabel": "API Key",
 			"baseUrlLabel": "Base URL",
 			"lastProbedAt": "Tested {{time}}",
-			"notTested": "Not tested yet",
 			"fallbackLabel": "Failure Fallback",
 			"fallbackOn": "Enabled",
 			"fallbackOff": "Disabled",
@@ -161,9 +160,7 @@
 			"fallbackHint": "When enabled, if your provider fails, holdings data will be sent to Richman's system default AI provider for analysis via encrypted transmission. When disabled, it falls back directly to the rules engine.",
 			"fallbackUpdated": "Fallback preference updated",
 			"fallbackUpdateError": "Update failed",
-			"probeButton": "Test connectivity",
 			"editButton": "Edit",
-			"deleteButton": "Delete",
 			"deleteSuccess": "Provider config deleted",
 			"deleteError": "Delete failed",
 			"deleteConfirm": {
@@ -177,7 +174,6 @@
 			"failing": "Failing",
 			"connectivityFailed": "LLM Provider connectivity test failed",
 			"modelLabel": "Model",
-			"apiKeyLabel": "API Key",
 			"baseUrlLabel": "Base URL",
 			"unknown": "Unknown",
 			"fallback": {
@@ -187,14 +183,8 @@
 			},
 			"retestButton": "Retest",
 			"editButton": "Edit",
-			"deleteButton": "Delete",
 			"deleteSuccess": "Provider config deleted",
-			"deleteConfirm": {
-				"title": "Confirm delete LLM Provider config?",
-				"description": "After deletion, analysis will fall back to system default or rules engine.",
-				"ok": "Delete",
-				"cancel": "Cancel"
-			}
+			"deleteError": "Delete failed"
 		},
 		"configForm": {
 			"addTitle": "Add LLM Provider",
@@ -238,7 +228,6 @@
 		},
 		"probeButton": {
 			"default": "Test connectivity",
-			"retest": "Retest",
 			"success": "Test passed ({{latency}} ms)",
 			"failure": "Test failed: {{error}}",
 			"requestError": "Test request failed: {{msg}}"
