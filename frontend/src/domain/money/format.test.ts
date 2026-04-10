@@ -23,6 +23,24 @@ describe("formatAmount", () => {
 	it("formats zero as ¥0", () => {
 		expect(formatAmount(0)).toBe("¥0");
 	});
+
+	it("formats USD amounts with $ symbol", () => {
+		expect(formatAmount(1234, "en", "USD")).toBe("$1,234");
+		expect(formatAmount(1234, "zh", "USD")).toBe("$1,234");
+	});
+
+	it("formats HKD amounts with HK$ symbol", () => {
+		expect(formatAmount(1234, "zh", "HKD")).toBe("HK$1,234");
+		expect(formatAmount(1234, "en", "HKD")).toBe("HK$1,234");
+	});
+
+	it("formats negative USD amounts", () => {
+		expect(formatAmount(-500, "en", "USD")).toBe("-$500");
+	});
+
+	it("formats zero USD as $0", () => {
+		expect(formatAmount(0, "en", "USD")).toBe("$0");
+	});
 });
 
 describe("formatPercentWithAmount", () => {
@@ -79,7 +97,7 @@ describe("edge cases: NaN and negative zero", () => {
 	});
 
 	it("formatAmount renders negative zero without a sign", () => {
-		// -0 < 0 is false in JS, so the positive branch runs.
+		// -0 === 0 is true in JS, so the zero branch runs.
 		expect(formatAmount(-0)).toBe("¥0");
 	});
 
