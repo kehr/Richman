@@ -98,6 +98,7 @@ export {
 	CameraOutlined,
 	LeftOutlined,
 	InboxOutlined,
+	EllipsisOutlined,
 	UploadOutlined,
 	LoadingOutlined,
 	CheckCircleOutlined,
