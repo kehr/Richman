@@ -196,6 +196,7 @@ export default function DashboardPage() {
 							nextAnalysisAt={nextAnalysisAt}
 							onRerun={handleRerun}
 							isRunning={isRunning}
+							taskProgress={taskProgress}
 							hasRecentTask={taskId !== null}
 							onShowHistory={handleShowHistory}
 							onConfigureCapital={handleConfigureCapital}

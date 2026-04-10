@@ -374,7 +374,7 @@
 		"degradedWarning": "{{name}} 本次使用规则模板，不含 AI 深度解读",
 		"updating": "更新中…",
 		"pollError": "无法获取进度",
-		"buttonRunning": "查看进度",
+		"buttonRunning": "查看进度 {{pct}}%",
 		"viewLast": "查看最近分析",
 		"step": {
 			"fetch_data": "获取数据",

@@ -1,4 +1,12 @@
-import { Divider, Modal } from "@/ui-kit/eat";
+import {
+	CheckCircleOutlined,
+	CloseCircleOutlined,
+	Divider,
+	LoadingOutlined,
+	Modal,
+	WarningOutlined,
+} from "@/ui-kit/eat";
+import type React from "react";
 import { useTranslation } from "react-i18next";
 import type { AnalysisTaskStatus, HoldingProgress } from "../types";
 import { useAnalysisTask } from "../use-analysis-task";
@@ -24,7 +32,7 @@ function isDegraded(holdings: HoldingProgress[]): boolean {
 	return holdings.some((h) => h.synthesisSource === "template" || h.synthesisSource === "mixed");
 }
 
-// Derive modal title content from task status
+// Derive modal title node from task status, with an appropriate icon.
 function resolveTitle(
 	status: AnalysisTaskStatus | undefined,
 	holdings: HoldingProgress[],
@@ -32,17 +40,39 @@ function resolveTitle(
 	doneClean: string,
 	doneDegraded: string,
 	failed: string,
-): { label: string; color?: string } {
+): React.ReactNode {
+	const iconStyle: React.CSSProperties = { marginRight: 8, fontSize: 16 };
 	if (status === "completed") {
 		if (isDegraded(holdings)) {
-			return { label: doneDegraded, color: "#fa8c16" };
+			return (
+				<span style={{ color: "#fa8c16" }}>
+					<WarningOutlined style={iconStyle} />
+					{doneDegraded}
+				</span>
+			);
 		}
-		return { label: doneClean, color: "#52c41a" };
+		return (
+			<span style={{ color: "#52c41a" }}>
+				<CheckCircleOutlined style={iconStyle} />
+				{doneClean}
+			</span>
+		);
 	}
 	if (status === "failed") {
-		return { label: failed, color: "#ff4d4f" };
+		return (
+			<span style={{ color: "#ff4d4f" }}>
+				<CloseCircleOutlined style={iconStyle} />
+				{failed}
+			</span>
+		);
 	}
-	return { label: title };
+	// running / pending
+	return (
+		<span>
+			<LoadingOutlined style={{ ...iconStyle, color: "#1677ff" }} spin />
+			{title}
+		</span>
+	);
 }
 
 export function AnalysisProgressDrawer({ taskId, open, onClose }: AnalysisProgressDrawerProps) {
@@ -52,19 +82,13 @@ export function AnalysisProgressDrawer({ taskId, open, onClose }: AnalysisProgre
 	const holdings = task?.holdings ?? [];
 	const doneCount = holdings.filter((h) => h.status === "done" || h.status === "failed").length;
 
-	const titleMeta = resolveTitle(
+	const title = resolveTitle(
 		task?.status,
 		holdings,
 		t("analysisProgress.title"),
 		t("analysisProgress.doneClean"),
 		t("analysisProgress.doneDegraded"),
 		t("analysisProgress.failed"),
-	);
-
-	const title = titleMeta.color ? (
-		<span style={{ color: titleMeta.color }}>{titleMeta.label}</span>
-	) : (
-		titleMeta.label
 	);
 
 	return (

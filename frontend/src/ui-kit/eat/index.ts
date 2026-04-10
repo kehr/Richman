@@ -99,4 +99,8 @@ export {
 	LeftOutlined,
 	InboxOutlined,
 	UploadOutlined,
+	LoadingOutlined,
+	CheckCircleOutlined,
+	WarningOutlined,
+	CloseCircleOutlined,
 } from "@ant-design/icons";
