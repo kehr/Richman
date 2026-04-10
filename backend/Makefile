@@ -1,34 +1,26 @@
-.PHONY: dev dev-run dev-pretty build lint test test-race test-cover sqlc migrate-up migrate-down docker-build check clean
+.PHONY: dev dev-run dev-raw build lint test test-race test-cover sqlc migrate-up migrate-down docker-build check clean
 
-# dev: migrate first, then start with air hot-reload if available, else plain go run.
-# Logs are JSON. For human-readable output run: make dev-pretty
-dev: migrate-up dev-run
+HUMANLOG := $(shell go env GOPATH)/bin/humanlog
+AIR      := $(shell go env GOPATH)/bin/air
 
-dev-run:
-	@AIR=$$(go env GOPATH)/bin/air; \
-	if [ -x "$$AIR" ]; then \
-		$$AIR; \
+# dev: migrate then start with hot-reload, piped through humanlog for readable colored output.
+# Requires: go install github.com/humanlogio/humanlog/cmd/humanlog@latest
+#           go install github.com/air-verse/air@latest
+dev: migrate-up
+	@if [ -x "$(AIR)" ]; then \
+		$(AIR) 2>&1 | $(HUMANLOG) --skip-unknown-fields; \
 	else \
 		echo "air not found, falling back to go run (install: go install github.com/air-verse/air@latest)"; \
-		go run ./cmd/server/main.go; \
+		go run ./cmd/server/main.go 2>&1 | $(HUMANLOG) --skip-unknown-fields; \
 	fi
 
-# dev-pretty: same as dev but routes logs through humanlog for readable colored output.
-# Install humanlog once: go install github.com/humanlogio/humanlog/cmd/humanlog@latest
-dev-pretty: migrate-up
-	@HUMANLOG=$$(go env GOPATH)/bin/humanlog; \
-	if [ ! -x "$$HUMANLOG" ]; then \
-		echo "humanlog not found. Install with:"; \
-		echo "  go install github.com/humanlogio/humanlog/cmd/humanlog@latest"; \
-		echo "Falling back to plain dev output..."; \
-		$(MAKE) dev-run; \
+# dev-raw: same as dev but raw JSON output, no humanlog pipe.
+# Useful when humanlog mangles output or you need to pipe elsewhere (e.g. jq).
+dev-raw: migrate-up
+	@if [ -x "$(AIR)" ]; then \
+		$(AIR); \
 	else \
-		AIR=$$(go env GOPATH)/bin/air; \
-		if [ -x "$$AIR" ]; then \
-			$$AIR 2>&1 | $$HUMANLOG --skip-unknown-fields; \
-		else \
-			go run ./cmd/server/main.go 2>&1 | $$HUMANLOG --skip-unknown-fields; \
-		fi \
+		go run ./cmd/server/main.go; \
 	fi
 
 build:

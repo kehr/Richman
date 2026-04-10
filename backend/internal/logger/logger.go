@@ -12,18 +12,14 @@ import (
 
 // New creates a new zap.Logger based on the given configuration.
 //
-// All environments use the same JSON encoder so that log lines are parseable
-// by tooling (humanlog, jq, lnav) and dev/prod behavior is identical.
+// Dev mode (APP_ENV=development):
+//   - JSON encoder piped through humanlog in `make dev` for colored per-field output
+//   - DEBUG level so LLM request/response bodies are visible
+//   - No global service/env fields (obvious in a single local process)
 //
-// Dev mode differences from prod:
-//   - Level: DEBUG (prod: INFO)
-//   - Output: stdout only, no file rotation
-//   - Global fields: omitted (service/env are obvious in a local dev process)
-//
-// Recommended dev viewing:
-//
-//	make dev-pretty          # auto-routes through humanlog if installed
-//	make dev | jq .          # ad-hoc pretty-print without extra tools
+// Prod mode:
+//   - JSON encoder, INFO level, stdout + rotating file sinks
+//   - Global service/env fields for log aggregation (Loki, Datadog, etc.)
 func New(cfg *config.Config) (*zap.Logger, error) {
 	encoderCfg := zap.NewProductionEncoderConfig()
 	encoderCfg.TimeKey = "ts"
@@ -33,11 +29,8 @@ func New(cfg *config.Config) (*zap.Logger, error) {
 	var cores []zapcore.Core
 
 	if cfg.IsDev() {
-		// Dev: single stdout core at DEBUG level. Global service/env fields are
-		// omitted — they add noise when running a single local process.
 		cores = append(cores, zapcore.NewCore(jsonEncoder, zapcore.AddSync(os.Stdout), zap.DebugLevel))
 	} else {
-		// Prod: stdout at INFO + two rotating file sinks.
 		cores = append(cores, zapcore.NewCore(jsonEncoder, zapcore.AddSync(os.Stdout), zap.InfoLevel))
 
 		appWriter := zapcore.AddSync(&lumberjack.Logger{
@@ -65,8 +58,8 @@ func New(cfg *config.Config) (*zap.Logger, error) {
 		zap.AddCaller(),
 		zap.AddStacktrace(zap.ErrorLevel),
 	}
-	// Global fields are useful in prod log aggregation (Loki, Datadog) but
-	// unnecessary noise in a local dev process.
+	// service/env global fields benefit prod log aggregation but add noise when
+	// running a single local dev process.
 	if !cfg.IsDev() {
 		opts = append(opts,
 			zap.Fields(
