@@ -375,6 +375,7 @@
 		"updating": "Updating…",
 		"pollError": "Unable to fetch progress",
 		"buttonRunning": "Analyzing {{pct}}%",
+		"viewLast": "View Last Analysis",
 		"step": {
 			"fetch_data": "Fetch Data",
 			"calc_indicators": "Trend / Position / Catalyst",

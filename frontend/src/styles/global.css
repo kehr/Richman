@@ -2,6 +2,56 @@ body {
 	margin: 0;
 }
 
+/* Spinning rainbow border animation used by DecisionCardSummary while a
+   holding is being analyzed. The @property declaration enables conic-gradient
+   angle to be animated smoothly (CSS Houdini, supported Chrome 85+,
+   Safari 16.4+, Firefox 128+). */
+@property --ai-shimmer-angle {
+	syntax: "<angle>";
+	initial-value: 0deg;
+	inherits: false;
+}
+
+@keyframes ai-shimmer-spin {
+	to {
+		--ai-shimmer-angle: 360deg;
+	}
+}
+
+@keyframes analysis-pulse {
+	0% {
+		box-shadow: 0 0 0 0 rgba(22, 119, 255, 0.4);
+	}
+	70% {
+		box-shadow: 0 0 0 6px rgba(22, 119, 255, 0);
+	}
+	100% {
+		box-shadow: 0 0 0 0 rgba(22, 119, 255, 0);
+	}
+}
+
+/* Wrapper that renders an AI-shimmer spinning border. Applied to decision
+   cards while their holding is actively being analyzed. overflow:hidden clips
+   the conic gradient to the rounded corner so the inner card needs no extra
+   radius override. */
+.card-glow-wrapper {
+	--ai-shimmer-angle: 0deg;
+	position: relative;
+	border-radius: 8px;
+	overflow: hidden;
+	padding: 2px;
+	background: conic-gradient(
+		from var(--ai-shimmer-angle),
+		#6366f1,
+		#3b82f6,
+		#06b6d4,
+		#10b981,
+		#3b82f6,
+		#6366f1
+	);
+	animation: ai-shimmer-spin 3s linear infinite;
+}
+
 /* ProLayout top-nav: add gap between logo section and the nav menu.
    The menu has flex:1 so it fills remaining space; adding margin-inline-start
    pushes the menu items away from the logo. No token controls this spacing. */

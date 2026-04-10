@@ -375,6 +375,7 @@
 		"updating": "更新中…",
 		"pollError": "无法获取进度",
 		"buttonRunning": "分析中 {{pct}}%",
+		"viewLast": "查看最近分析",
 		"step": {
 			"fetch_data": "获取数据",
 			"calc_indicators": "趋势 / 仓位 / 催化剂",

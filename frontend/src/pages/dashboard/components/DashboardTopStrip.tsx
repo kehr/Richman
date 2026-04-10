@@ -34,10 +34,11 @@ interface DashboardTopStripProps {
 	nextAnalysisAt: Date | null;
 	onRerun: () => void;
 	isRunning: boolean;
-	isDone: boolean;
-	hasDegraded: boolean;
 	taskProgress: number;
-	onOpenDrawer: () => void;
+	// hasRecentTask is true when a taskId is in state (running or completed)
+	// so the "view last analysis" link can be shown.
+	hasRecentTask: boolean;
+	onShowHistory: () => void;
 	onConfigureCapital: () => void;
 }
 
@@ -62,10 +63,9 @@ export function DashboardTopStrip({
 	nextAnalysisAt,
 	onRerun,
 	isRunning,
-	isDone,
-	hasDegraded,
 	taskProgress,
-	onOpenDrawer,
+	hasRecentTask,
+	onShowHistory,
 	onConfigureCapital,
 }: DashboardTopStripProps) {
 	const { t } = useTranslation("app");
@@ -105,31 +105,34 @@ export function DashboardTopStrip({
 					</Flex>
 				</Col>
 				<Col>
-					{isRunning ? (
-						<Button type="primary" onClick={onOpenDrawer} data-testid="dashboard-rerun-button">
-							{t("analysisProgress.buttonRunning", { pct: Math.round(taskProgress * 100) })}
-						</Button>
-					) : isDone ? (
-						<Button
-							type="primary"
-							style={{
-								background: hasDegraded ? "#fa8c16" : "#52c41a",
-								borderColor: hasDegraded ? "#fa8c16" : "#52c41a",
-							}}
-							onClick={onOpenDrawer}
-							data-testid="dashboard-rerun-button"
-						>
-							{t(hasDegraded ? "analysisProgress.doneDegraded" : "analysisProgress.doneClean")}
-						</Button>
-					) : (
-						<Button
-							icon={<ReloadOutlined />}
-							onClick={onRerun}
-							data-testid="dashboard-rerun-button"
-						>
-							{t("dashboard.rerunButton")}
-						</Button>
-					)}
+					<Flex align="center" gap={8}>
+						{/* When running: progress button opens analysis modal */}
+						{isRunning ? (
+							<Button type="primary" onClick={onShowHistory} data-testid="dashboard-rerun-button">
+								{t("analysisProgress.buttonRunning", { pct: Math.round(taskProgress * 100) })}
+							</Button>
+						) : (
+							<Button
+								icon={<ReloadOutlined />}
+								onClick={onRerun}
+								data-testid="dashboard-rerun-button"
+							>
+								{t("dashboard.rerunButton")}
+							</Button>
+						)}
+						{/* Link to view last analysis — only visible when a task exists and is not running */}
+						{hasRecentTask && !isRunning && (
+							<Button
+								type="link"
+								size="small"
+								style={{ padding: 0 }}
+								onClick={onShowHistory}
+								data-testid="dashboard-view-history-button"
+							>
+								{t("analysisProgress.viewLast")} →
+							</Button>
+						)}
+					</Flex>
 				</Col>
 			</Row>
 

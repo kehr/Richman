@@ -44,6 +44,9 @@ export default function DashboardPage() {
 		setDrawerOpen(true);
 	});
 
+	// Open the analysis modal for the current/last task without clearing taskId.
+	const handleShowHistory = () => setDrawerOpen(true);
+
 	// cardRefs is shared between DecisionCardWall (which populates it) and
 	// ChangeAnchorList (which reads from it to scroll + highlight). A ref
 	// instead of state keeps this out of the render cycle.
@@ -52,12 +55,6 @@ export default function DashboardPage() {
 	const { task } = useAnalysisTask(taskId);
 
 	const isRunning = task?.status === "running";
-	const isDone = task?.status === "completed";
-	const hasDegraded = isDone
-		? (task?.holdings ?? []).some(
-				(h) => h.synthesisSource === "template" || h.synthesisSource === "mixed",
-			)
-		: false;
 	const taskProgress = task?.progress ?? 0;
 
 	const holdings = holdingsQuery.data ?? [];
@@ -201,10 +198,9 @@ export default function DashboardPage() {
 							nextAnalysisAt={nextAnalysisAt}
 							onRerun={handleRerun}
 							isRunning={isRunning}
-							isDone={isDone}
-							hasDegraded={hasDegraded}
 							taskProgress={taskProgress}
-							onOpenDrawer={() => setDrawerOpen(true)}
+							hasRecentTask={taskId !== null}
+							onShowHistory={handleShowHistory}
 							onConfigureCapital={handleConfigureCapital}
 						/>
 						<ChangeAnchorList cards={cards} cardRefs={cardRefs} />
@@ -222,10 +218,7 @@ export default function DashboardPage() {
 				<AnalysisProgressDrawer
 					taskId={taskId}
 					open={drawerOpen}
-					onClose={() => {
-						setDrawerOpen(false);
-						setTaskId(null);
-					}}
+					onClose={() => setDrawerOpen(false)}
 				/>
 			</Flex>
 		</PageContainer>

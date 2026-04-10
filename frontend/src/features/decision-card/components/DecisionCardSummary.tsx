@@ -73,13 +73,16 @@ export function DecisionCardSummary({
 		};
 	}, [analysisStatus]);
 
-	// Compute border style based on analysis state.
-	const borderStyle: React.CSSProperties =
-		analysisStatus === "running"
-			? { borderColor: "#91caff", borderWidth: 1.5 }
-			: justUpdated
-				? { borderColor: "#b7eb8f" }
-				: {};
+	// When running, the card is wrapped in .card-glow-wrapper (global.css) which
+	// provides the spinning rainbow border; the Card itself gets border:none so
+	// only the gradient wrapper shows. When just-updated (2 s flash on
+	// completion) the green border takes over briefly.
+	const isRunning = analysisStatus === "running";
+	const borderStyle: React.CSSProperties = isRunning
+		? { border: "none", borderRadius: 6 }
+		: justUpdated
+			? { borderColor: "#b7eb8f" }
+			: {};
 
 	// Card body background flashes green on completion for 2 seconds.
 	const bodyBg = justUpdated ? "#f6ffed" : undefined;
@@ -93,7 +96,7 @@ export function DecisionCardSummary({
 			}
 		: undefined;
 
-	return (
+	const cardNode = (
 		<Card
 			hoverable={interactive}
 			onClick={onClick ? () => onClick(card) : undefined}
@@ -111,7 +114,7 @@ export function DecisionCardSummary({
 			}}
 			data-testid={`decision-card-${card.cardId}`}
 		>
-			{analysisStatus === "running" && (
+			{isRunning && (
 				<span
 					style={{
 						position: "absolute",
@@ -223,7 +226,7 @@ export function DecisionCardSummary({
 				<Text type="secondary">{t("decisionCard.viewFullReasoning")}</Text>
 			</div>
 
-			{analysisStatus === "running" && analysisProgress !== undefined && (
+			{isRunning && analysisProgress !== undefined && (
 				<div
 					style={{
 						height: 2,
@@ -243,4 +246,13 @@ export function DecisionCardSummary({
 			)}
 		</Card>
 	);
+
+	if (isRunning) {
+		return (
+			<div className="card-glow-wrapper" style={{ height: "100%" }}>
+				{cardNode}
+			</div>
+		);
+	}
+	return cardNode;
 }
