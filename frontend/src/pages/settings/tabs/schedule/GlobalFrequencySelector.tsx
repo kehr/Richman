@@ -54,25 +54,28 @@ export function GlobalFrequencySelector({
 				value={value}
 				onChange={(e) => handleRadioChange(e.target.value as NonNullFrequency)}
 			>
-				<Flex gap={16} wrap>
+				<Flex gap={16} wrap align="center">
 					{FREQUENCY_LIST.map((freq) => (
 						<Radio key={freq} value={freq}>
-							{t(`schedule.globalFrequency.${freq}`)}
+							<Flex align="center" gap={6} style={{ display: "inline-flex" }}>
+								<span>{t(`schedule.globalFrequency.${freq}`)}</span>
+								{freq === "custom" && value === "custom" && (
+									<InputNumber
+										min={1}
+										max={30}
+										value={customDays ?? 7}
+										onChange={handleDaysChange}
+										size="small"
+										style={{ width: 80 }}
+										addonAfter="天"
+										onClick={(e) => e.stopPropagation()}
+									/>
+								)}
+							</Flex>
 						</Radio>
 					))}
 				</Flex>
 			</Radio.Group>
-			{value === "custom" && (
-				<InputNumber
-					min={1}
-					max={30}
-					value={customDays ?? 7}
-					onChange={handleDaysChange}
-					size="small"
-					style={{ width: 100 }}
-					addonAfter={t("schedule.globalFrequency.customPlaceholder")}
-				/>
-			)}
 		</Flex>
 	);
 }
