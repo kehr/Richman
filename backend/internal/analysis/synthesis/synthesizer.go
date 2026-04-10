@@ -50,6 +50,7 @@ type SynthesisInput struct {
 	Recommendation analysis.Recommendation
 	CostPrice      float64
 	PositionRatio  float64
+	Language       string // "en" or "zh"; empty defaults to "en"
 }
 
 // SynthesisOutput contains the generated content for a decision card.
@@ -112,9 +113,15 @@ func (s *Synthesizer) Synthesize(
 
 	prompt := buildSynthesisPrompt(input)
 
+	langInstruction := "Respond in English."
+	if input.Language == "zh" {
+		langInstruction = "Respond in Simplified Chinese."
+	}
+
 	resolved, err := s.resolver.ResolvedChatCompletion(ctx, userID, llm.ChatRequest{
 		SystemPrompt: "You are a financial analysis assistant. " +
 			"Generate structured investment analysis summaries. " +
+			langInstruction + " " +
 			"Respond only with valid JSON.",
 		UserPrompt:  prompt,
 		MaxTokens:   2048,

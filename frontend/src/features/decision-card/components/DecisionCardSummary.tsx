@@ -69,6 +69,8 @@ export function DecisionCardSummary({
 					? `${card.assetName} ${card.assetCode} ${t("decisionCard.viewFullReasoning")}`
 					: undefined
 			}
+			style={{ height: "100%" }}
+			styles={{ body: { height: "100%", display: "flex", flexDirection: "column" } }}
 			data-testid={`decision-card-${card.cardId}`}
 		>
 			<div
@@ -151,7 +153,7 @@ export function DecisionCardSummary({
 				</Text>
 			)}
 
-			<Divider style={{ margin: "12px 0" }} />
+			<Divider style={{ margin: "12px 0", marginTop: "auto" }} />
 
 			<div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
 				<Space size={4} align="baseline">

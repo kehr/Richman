@@ -90,6 +90,7 @@ export function DecisionCardWall({
 						}
 					}}
 					data-card-anchor={card.cardId}
+					style={{ height: "100%" }}
 				>
 					<DecisionCardSummary card={card} onClick={onCardClick} />
 				</div>

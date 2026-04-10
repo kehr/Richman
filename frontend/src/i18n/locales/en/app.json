@@ -104,6 +104,15 @@
 			"lotUnit": "lots",
 			"lotUnitShare": "shares",
 			"monitorStepLabel": "Watch",
+			"trigger": {
+				"executeImmediately": "Execute immediately",
+				"op": {
+					"below": "below",
+					"above": "above",
+					"at_or_below": "at or below",
+					"at_or_above": "at or above"
+				}
+			},
 			"rationale": {
 				"triggerReason": "Trigger Reason",
 				"positionReason": "Position Rationale",

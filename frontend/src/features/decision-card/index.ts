@@ -28,6 +28,7 @@ export { ExecutionPlanStrip } from "./components/ExecutionPlanStrip";
 export { DecisionCardSummary } from "./components/DecisionCardSummary";
 export { SourcePill } from "./components/SourcePill";
 
+export { useFormatTriggerValue } from "./format-trigger";
 export { isStructuredRationale } from "./types";
 
 export type {

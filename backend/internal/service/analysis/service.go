@@ -277,6 +277,20 @@ func (s *Service) AnalyzeHolding(
 	}
 	weights = s.weightMgr.ApplyRiskBias(weights, holding.AssetType, riskPref)
 
+	// Load user language preference for localized synthesis output.
+	userLang := model.LanguageEN
+	if s.userRepo != nil {
+		lang, langErr := s.userRepo.GetLanguage(ctx, userID)
+		if langErr != nil {
+			s.logger.Warn("failed to load user language, using default",
+				zap.Int64("user_id", userID),
+				zap.Error(langErr),
+			)
+		} else if lang != "" {
+			userLang = lang
+		}
+	}
+
 	// Step 7: Calculate confidence.
 	conf := s.confCalc.Calculate(confidence.Input{
 		Trend:          &trendResult,
@@ -304,6 +318,7 @@ func (s *Service) AnalyzeHolding(
 		Recommendation: rec,
 		CostPrice:      costPrice,
 		PositionRatio:  posRatio,
+		Language:       userLang,
 	}, userID)
 	if err != nil {
 		return nil, fmt.Errorf("synthesize: %w", err)

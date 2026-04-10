@@ -4,11 +4,14 @@
 
 export type RiskPreference = "conservative" | "neutral" | "aggressive";
 
+export type Language = "en" | "zh";
+
 export interface UserSettings {
 	userId: number;
 	totalCapitalCny?: number | null;
 	riskPreference: RiskPreference;
 	categories: string[];
+	language: Language;
 	onboardingCompleted: boolean;
 	onboardingCompletedAt?: string | null;
 }
@@ -21,6 +24,7 @@ export interface PatchUserSettings {
 	clearTotalCapitalCny?: boolean;
 	riskPreference?: RiskPreference;
 	categories?: string[];
+	language?: Language;
 }
 
 export interface OnboardingStatus {

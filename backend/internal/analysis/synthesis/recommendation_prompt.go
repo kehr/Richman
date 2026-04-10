@@ -81,6 +81,60 @@ func legacyToAction(r analysis.Recommendation) recommendation.Action {
 	return recommendation.Action(string(r))
 }
 
+// localizedFallback holds language-specific strings for template fallback
+// recommendations. Keyed by the two supported language codes ("en", "zh").
+type localizedFallback struct {
+	executeImmediately string
+	aggressiveReason   string
+	smallAddReason     string
+	gradualReduceReason string
+	controlReason      string
+	monitorTrigger     string
+	monitorReason      string
+	monitorPosReason   string
+	monitorPrecondition string
+	monitorFallback    string
+	monitorTimeWindow  string
+}
+
+var fallbackStrings = map[string]localizedFallback{
+	"en": {
+		executeImmediately:  "execute immediately",
+		aggressiveReason:    "Aggressive add per matrix decision.",
+		smallAddReason:      "Small add per matrix decision.",
+		gradualReduceReason: "Gradual reduce per matrix decision.",
+		controlReason:       "Control position per matrix decision.",
+		monitorTrigger:      "price breaks below stop-loss",
+		monitorReason:       "Reduce if price breaks below stop-loss to limit downside.",
+		monitorPosReason:    "Moderate trim to observe before further action.",
+		monitorPrecondition: "Price closes below stop-loss level on consecutive days.",
+		monitorFallback:     "If price recovers above cost, continue holding.",
+		monitorTimeWindow:   "Continuous monitoring.",
+	},
+	"zh": {
+		executeImmediately:  "\u7acb\u5373\u6267\u884c",
+		aggressiveReason:    "\u77e9\u9635\u51b3\u7b56\u5224\u5b9a\u4e3a\u79ef\u6781\u52a0\u4ed3\u3002",
+		smallAddReason:      "\u77e9\u9635\u51b3\u7b56\u5224\u5b9a\u4e3a\u5c0f\u5e45\u52a0\u4ed3\u3002",
+		gradualReduceReason: "\u77e9\u9635\u51b3\u7b56\u5224\u5b9a\u4e3a\u9010\u6b65\u51cf\u4ed3\u3002",
+		controlReason:       "\u77e9\u9635\u51b3\u7b56\u5224\u5b9a\u4e3a\u63a7\u5236\u4ed3\u4f4d\u3002",
+		monitorTrigger:      "\u4ef7\u683c\u8dcc\u7834\u6b62\u635f\u7ebf",
+		monitorReason:       "\u4ef7\u683c\u8dcc\u7834\u6b62\u635f\u4f4d\u65f6\u51cf\u4ed3\uff0c\u9650\u5236\u4e0b\u884c\u98ce\u9669\u3002",
+		monitorPosReason:    "\u9002\u5ea6\u51cf\u4ed3\u540e\u89c2\u5bdf\uff0c\u518d\u51b3\u5b9a\u540e\u7eed\u64cd\u4f5c\u3002",
+		monitorPrecondition: "\u4ef7\u683c\u8fde\u7eed\u591a\u65e5\u6536\u76d8\u4f4e\u4e8e\u6b62\u635f\u4f4d\u3002",
+		monitorFallback:     "\u82e5\u4ef7\u683c\u56de\u5347\u81f3\u6210\u672c\u4ee5\u4e0a\uff0c\u7ee7\u7eed\u6301\u6709\u3002",
+		monitorTimeWindow:   "\u6301\u7eed\u76d1\u63a7\u3002",
+	},
+}
+
+// getFallbackStrings returns the localized fallback strings for the given
+// language code. Falls back to English for unrecognized codes.
+func getFallbackStrings(lang string) localizedFallback {
+	if l, ok := fallbackStrings[lang]; ok {
+		return l
+	}
+	return fallbackStrings["en"]
+}
+
 // fallbackRecommendation builds a deterministic default recommendation when
 // the LLM response is missing or malformed. It uses the matrix-derived action
 // together with the user's current position and cost price to produce a
@@ -88,6 +142,7 @@ func legacyToAction(r analysis.Recommendation) recommendation.Action {
 func fallbackRecommendation(input *SynthesisInput) recommendation.Recommendation {
 	action := legacyToAction(input.Recommendation)
 	currentPct := input.PositionRatio * 100
+	ls := getFallbackStrings(input.Language)
 
 	rec := recommendation.Recommendation{
 		Action:             action,
@@ -108,10 +163,10 @@ func fallbackRecommendation(input *SynthesisInput) recommendation.Recommendation
 		rec.Execution.Steps = []recommendation.Step{{
 			Order:        1,
 			TriggerType:  recommendation.TriggerTime,
-			TriggerValue: "execute immediately",
+			TriggerValue: ls.executeImmediately,
 			DeltaPct:     10,
 			Rationale: recommendation.StructuredRationale{
-				TriggerReason: "Aggressive add per matrix decision.",
+				TriggerReason: ls.aggressiveReason,
 			},
 		}}
 	case recommendation.ActionSmallAdd:
@@ -119,10 +174,10 @@ func fallbackRecommendation(input *SynthesisInput) recommendation.Recommendation
 		rec.Execution.Steps = []recommendation.Step{{
 			Order:        1,
 			TriggerType:  recommendation.TriggerTime,
-			TriggerValue: "execute immediately",
+			TriggerValue: ls.executeImmediately,
 			DeltaPct:     5,
 			Rationale: recommendation.StructuredRationale{
-				TriggerReason: "Small add per matrix decision.",
+				TriggerReason: ls.smallAddReason,
 			},
 		}}
 	case recommendation.ActionHold:
@@ -139,10 +194,10 @@ func fallbackRecommendation(input *SynthesisInput) recommendation.Recommendation
 		rec.Execution.Steps = []recommendation.Step{{
 			Order:        1,
 			TriggerType:  recommendation.TriggerTime,
-			TriggerValue: "execute immediately",
+			TriggerValue: ls.executeImmediately,
 			DeltaPct:     -10,
 			Rationale: recommendation.StructuredRationale{
-				TriggerReason: "Gradual reduce per matrix decision.",
+				TriggerReason: ls.gradualReduceReason,
 			},
 		}}
 	case recommendation.ActionControl:
@@ -150,10 +205,10 @@ func fallbackRecommendation(input *SynthesisInput) recommendation.Recommendation
 		rec.Execution.Steps = []recommendation.Step{{
 			Order:        1,
 			TriggerType:  recommendation.TriggerTime,
-			TriggerValue: "execute immediately",
+			TriggerValue: ls.executeImmediately,
 			DeltaPct:     -15,
 			Rationale: recommendation.StructuredRationale{
-				TriggerReason: "Control position per matrix decision.",
+				TriggerReason: ls.controlReason,
 			},
 		}}
 	default:
@@ -169,22 +224,30 @@ func fallbackRecommendation(input *SynthesisInput) recommendation.Recommendation
 // monitor-type plans when the LLM did not provide steps. The step
 // instructs the user to trim if price drops below the stop-loss level.
 func fallbackMonitorSteps(input *SynthesisInput) []recommendation.Step {
-	triggerValue := "price breaks below stop-loss"
+	ls := getFallbackStrings(input.Language)
+	triggerValue := ls.monitorTrigger
+	var payload recommendation.TriggerPayload
 	if input.CostPrice > 0 {
-		triggerValue = fmt.Sprintf("%.4f below", input.CostPrice*0.95)
+		stopPrice := input.CostPrice * 0.95
+		triggerValue = fmt.Sprintf("%.4f below", stopPrice)
+		payload = recommendation.TriggerPayload{
+			PriceOp:    "below",
+			PriceValue: stopPrice,
+		}
 	}
 	return []recommendation.Step{
 		{
-			Order:        1,
-			TriggerType:  recommendation.TriggerPrice,
-			TriggerValue: triggerValue,
-			DeltaPct:     -5,
+			Order:          1,
+			TriggerType:    recommendation.TriggerPrice,
+			TriggerValue:   triggerValue,
+			TriggerPayload: payload,
+			DeltaPct:       -5,
 			Rationale: recommendation.StructuredRationale{
-				TriggerReason:  "Reduce if price breaks below stop-loss to limit downside.",
-				PositionReason: "Moderate trim to observe before further action.",
-				Precondition:   "Price closes below stop-loss level on consecutive days.",
-				Fallback:       "If price recovers above cost, continue holding.",
-				TimeWindow:     "Continuous monitoring.",
+				TriggerReason:  ls.monitorReason,
+				PositionReason: ls.monitorPosReason,
+				Precondition:   ls.monitorPrecondition,
+				Fallback:       ls.monitorFallback,
+				TimeWindow:     ls.monitorTimeWindow,
 			},
 		},
 	}

@@ -39,6 +39,8 @@
 	},
 	"preferences": {
 		"language": "Language",
+		"languageHint": "After switching language, newly generated analysis reports will use the selected language. Existing reports are unaffected.",
+		"languageSaveError": "Failed to save language preference",
 		"timezone": "Timezone",
 		"timezoneHint": "Timezone selection does not affect push notification windows yet.",
 		"theme": "Theme",

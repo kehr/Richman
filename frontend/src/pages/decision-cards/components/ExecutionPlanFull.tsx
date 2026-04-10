@@ -1,4 +1,4 @@
-import { isStructuredRationale } from "@/features/decision-card";
+import { isStructuredRationale, useFormatTriggerValue } from "@/features/decision-card";
 import type { Execution, Step, StructuredRationale } from "@/features/decision-card";
 import { Alert, Card, Space, Tag, Typography } from "@/ui-kit/eat";
 import type { CSSProperties } from "react";
@@ -99,6 +99,7 @@ function StepRow({
 	isMonitor: boolean;
 }) {
 	const { t } = useTranslation("app");
+	const formatTrigger = useFormatTriggerValue();
 	return (
 		<div
 			data-testid={`plan-full-step-${step.order}`}
@@ -108,7 +109,7 @@ function StepRow({
 			<Space direction="vertical" size={4} style={{ flex: 1 }}>
 				<div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
 					<Space size={4}>
-						<Text strong>{step.triggerValue}</Text>
+						<Text strong>{formatTrigger(step)}</Text>
 						{isMonitor && (
 							<Tag color="default">{t("decisionCard.executionPlan.monitorStepLabel")}</Tag>
 						)}

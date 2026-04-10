@@ -1,6 +1,7 @@
 import { Space, Typography } from "@/ui-kit/eat";
 import type { CSSProperties } from "react";
 import { useTranslation } from "react-i18next";
+import { useFormatTriggerValue } from "../format-trigger";
 import type { Execution, Step } from "../types";
 
 const { Text } = Typography;
@@ -36,10 +37,11 @@ function formatDeltaPct(delta: number): string {
 }
 
 function StepRow({ step, index }: { step: Step; index: number }) {
+	const formatTrigger = useFormatTriggerValue();
 	return (
 		<div style={{ display: "flex", alignItems: "center" }} data-testid={`plan-step-${step.order}`}>
 			<span style={stepCircleStyle(index)}>{step.order}</span>
-			<Text style={{ flex: 1 }}>{step.triggerValue}</Text>
+			<Text style={{ flex: 1 }}>{formatTrigger(step)}</Text>
 			<Text strong style={{ marginLeft: 8 }}>
 				{formatDeltaPct(step.deltaPct)}
 			</Text>

@@ -39,6 +39,8 @@
 	},
 	"preferences": {
 		"language": "语言",
+		"languageHint": "切换语言后，新生成的分析报告将使用所选语言。已有报告不受影响。",
+		"languageSaveError": "语言偏好保存失败",
 		"timezone": "时区",
 		"timezoneHint": "时区选择暂不影响推送窗口。",
 		"theme": "主题",

@@ -104,6 +104,15 @@
 			"lotUnit": "手",
 			"lotUnitShare": "股",
 			"monitorStepLabel": "条件监控",
+			"trigger": {
+				"executeImmediately": "立即执行",
+				"op": {
+					"below": "以下",
+					"above": "以上",
+					"at_or_below": "及以下",
+					"at_or_above": "及以上"
+				}
+			},
 			"rationale": {
 				"triggerReason": "触发原因",
 				"positionReason": "仓位依据",
