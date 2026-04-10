@@ -24,7 +24,8 @@ export function LLMEmptyState({
 	const { t } = useTranslation("settings");
 
 	const calloutCopy = (() => {
-		if (systemDefaultAvailable && useSystemDefaultConsent) {
+		if (!systemDefaultAvailable) return null;
+		if (useSystemDefaultConsent) {
 			return t("llm.emptyState.callout.systemConsentGiven");
 		}
 		return t("llm.emptyState.callout.systemNoConsent");
@@ -39,7 +40,7 @@ export function LLMEmptyState({
 							<Title level={5} style={{ margin: 0 }}>
 								{t("llm.emptyState.title")}
 							</Title>
-							<Text type="secondary">{calloutCopy}</Text>
+							{calloutCopy && <Text type="secondary">{calloutCopy}</Text>}
 						</Space>
 					}
 				>
