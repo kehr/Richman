@@ -305,7 +305,7 @@ func main() {
 		llmProvider != nil,
 		zapLogger,
 	)
-	exchangeRateService := exchangerate.NewService(yahooClient, zapLogger)
+	exchangeRateService := exchangerate.NewService(zapLogger)
 	exchangeRatesHandler := v1.NewExchangeRatesHandler(exchangeRateService)
 	scheduleHandler := v1.NewScheduleHandler(scheduleService, holdingRepo, cardRepo, scheduler, zapLogger)
 

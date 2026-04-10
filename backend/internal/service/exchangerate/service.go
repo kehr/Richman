@@ -2,22 +2,29 @@ package exchangerate
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"sync"
 	"time"
 
-	"github.com/richman/backend/internal/datasource/yahoo"
 	"go.uber.org/zap"
 )
 
 const (
 	defaultTTL = time.Hour
-	// Yahoo tickers: "XYZABC=X" means 1 XYZ = ? ABC
-	// "USDCNY=X" -> 1 USD = ? CNY  -> invert to get 1 CNY = ? USD
-	// "HKDCNY=X" -> 1 HKD = ? CNY  -> invert to get 1 CNY = ? HKD
-	tickerUSD = "USDCNY=X"
-	tickerHKD = "HKDCNY=X"
+	// open.er-api.com returns rates relative to the base currency (CNY).
+	// Response: {"rates": {"USD": 0.146, "HKD": 1.144, ...}}
+	// No API key required; free tier is sufficient for 1-hour TTL usage.
+	erAPIURL = "https://open.er-api.com/v6/latest/CNY"
 )
+
+// erAPIResponse models the open.er-api.com /v6/latest response.
+type erAPIResponse struct {
+	Result string             `json:"result"`
+	Rates  map[string]float64 `json:"rates"`
+}
 
 // Rates holds exchange rates expressed as "1 CNY = X foreign currency".
 // CNY is always present with value 1.0.
@@ -28,8 +35,8 @@ type Rates struct {
 
 // Service fetches and caches forex exchange rates with a TTL-based lazy refresh.
 type Service struct {
-	yahoo  *yahoo.Client
-	logger *zap.Logger
+	httpClient *http.Client
+	logger     *zap.Logger
 
 	mu        sync.RWMutex
 	cached    Rates
@@ -39,17 +46,18 @@ type Service struct {
 
 // NewService constructs a Service with a 1-hour TTL.
 // The initial cache contains only CNY=1.0 until the first GetRates call.
-func NewService(yahooClient *yahoo.Client, logger *zap.Logger) *Service {
+func NewService(logger *zap.Logger) *Service {
 	return &Service{
-		yahoo:  yahooClient,
-		logger: logger,
-		ttl:    defaultTTL,
-		cached: Rates{Values: map[string]float64{"CNY": 1.0}},
+		httpClient: &http.Client{Timeout: 10 * time.Second},
+		logger:     logger,
+		ttl:        defaultTTL,
+		cached:     Rates{Values: map[string]float64{"CNY": 1.0}},
 	}
 }
 
-// GetRates returns cached rates when fresh; otherwise fetches from Yahoo Finance.
-// On fetch failure, returns the last known rates so callers degrade gracefully.
+// GetRates returns cached rates when fresh; otherwise fetches from the exchange
+// rate API. On fetch failure, returns the last known rates so callers degrade
+// gracefully.
 func (s *Service) GetRates(ctx context.Context) Rates {
 	s.mu.RLock()
 	if !s.fetchedAt.IsZero() && time.Since(s.fetchedAt) < s.ttl {
@@ -68,42 +76,53 @@ func (s *Service) GetRates(ctx context.Context) Rates {
 	return s.cached
 }
 
-// refresh fetches USDCNY=X and HKDCNY=X from Yahoo Finance, inverts the
-// pair prices to produce "1 CNY = X foreign" rates, and updates the cache.
+// refresh fetches CNY-based rates from open.er-api.com and updates the cache.
+// Rates are already expressed as "1 CNY = X foreign" so no inversion is needed.
 func (s *Service) refresh(ctx context.Context) error {
-	newValues := map[string]float64{"CNY": 1.0}
-	var firstErr error
-
-	usdcny, err := s.yahoo.FetchForexRate(ctx, tickerUSD)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, erAPIURL, http.NoBody)
 	if err != nil {
-		s.logger.Warn("failed to fetch USD/CNY rate", zap.Error(err))
-		firstErr = err
-	} else if usdcny > 0 {
-		newValues["USD"] = 1.0 / usdcny
+		return fmt.Errorf("build exchange rate request: %w", err)
 	}
 
-	hkdcny, err := s.yahoo.FetchForexRate(ctx, tickerHKD)
+	resp, err := s.httpClient.Do(req)
 	if err != nil {
-		s.logger.Warn("failed to fetch HKD/CNY rate", zap.Error(err))
-		if firstErr == nil {
-			firstErr = err
+		return fmt.Errorf("fetch exchange rates: %w", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("read exchange rate response: %w", err)
+	}
+
+	var parsed erAPIResponse
+	if err := json.Unmarshal(body, &parsed); err != nil {
+		return fmt.Errorf("parse exchange rate response: %w", err)
+	}
+	if parsed.Result != "success" {
+		return fmt.Errorf("exchange rate API returned non-success result: %s", parsed.Result)
+	}
+
+	newValues := map[string]float64{"CNY": 1.0}
+	for _, currency := range []string{"USD", "HKD"} {
+		if rate, ok := parsed.Rates[currency]; ok && rate > 0 {
+			newValues[currency] = rate
+		} else {
+			s.logger.Warn("exchange rate missing or zero", zap.String("currency", currency))
 		}
-	} else if hkdcny > 0 {
-		newValues["HKD"] = 1.0 / hkdcny
 	}
 
 	s.mu.Lock()
-	for k, v := range newValues {
-		s.cached.Values[k] = v
+	s.cached = Rates{
+		Values:    newValues,
+		UpdatedAt: time.Now().UTC(),
 	}
-	if firstErr == nil {
-		s.cached.UpdatedAt = time.Now().UTC()
-		s.fetchedAt = time.Now()
-	}
+	s.fetchedAt = time.Now()
 	s.mu.Unlock()
 
-	if firstErr != nil {
-		return fmt.Errorf("partial refresh failure: %w", firstErr)
-	}
+	s.logger.Info("exchange rates refreshed",
+		zap.Float64("USD", newValues["USD"]),
+		zap.Float64("HKD", newValues["HKD"]),
+	)
 	return nil
 }
