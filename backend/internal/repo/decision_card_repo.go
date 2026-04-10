@@ -41,7 +41,7 @@ func (r *DecisionCardRepo) Pool() *pgxpool.Pool {
 // readable without a backfill round trip.
 const cardColumns = `decision_card_id, user_id, holding_id,
 	asset_code, asset_name, asset_type,
-	cost_price, position_ratio,
+	cost_price, current_price, quantity, position_ratio,
 	trend_direction, trend_summary,
 	position_direction, position_summary,
 	catalyst_direction, catalyst_summary,
@@ -71,7 +71,7 @@ func (r *DecisionCardRepo) scanCardRow(row rowScanner) (*model.DecisionCard, err
 	err := row.Scan(
 		&card.CardID, &card.UserID, &card.HoldingID,
 		&card.AssetCode, &card.AssetName, &card.AssetType,
-		&card.CostPrice, &card.PositionRatio,
+		&card.CostPrice, &card.CurrentPrice, &card.Quantity, &card.PositionRatio,
 		&card.TrendDirection, &card.TrendSummary,
 		&card.PositionDirection, &card.PositionSummary,
 		&card.CatalystDirection, &card.CatalystSummary,
@@ -119,7 +119,7 @@ type insertDecisionCardQuerier interface {
 
 const insertDecisionCardSQL = `INSERT INTO decision_cards
 	 (user_id, holding_id, asset_code, asset_name, asset_type,
-	  cost_price, position_ratio,
+	  cost_price, current_price, quantity, position_ratio,
 	  trend_direction, trend_summary,
 	  position_direction, position_summary,
 	  catalyst_direction, catalyst_summary,
@@ -133,7 +133,7 @@ const insertDecisionCardSQL = `INSERT INTO decision_cards
 	  synthesis_source, provider_used)
 	 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12,
 	         $13, $14, $15, $16, $17, $18, $19, $20, $21, $22,
-	         $23, $24, $25, $26, $27, $28, $29, $30, $31)
+	         $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33)
 	 RETURNING ` + cardColumns
 
 func (r *DecisionCardRepo) insertDecisionCardOn(
@@ -150,7 +150,7 @@ func (r *DecisionCardRepo) insertDecisionCardOn(
 
 	row := q.QueryRow(ctx, insertDecisionCardSQL,
 		card.UserID, card.HoldingID, card.AssetCode, card.AssetName, card.AssetType,
-		card.CostPrice, card.PositionRatio,
+		card.CostPrice, card.CurrentPrice, card.Quantity, card.PositionRatio,
 		card.TrendDirection, card.TrendSummary,
 		card.PositionDirection, card.PositionSummary,
 		card.CatalystDirection, card.CatalystSummary,

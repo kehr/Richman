@@ -53,6 +53,8 @@ type DecisionCardDTO struct {
 	AssetName         string    `json:"assetName"`
 	AssetType         string    `json:"assetType"`
 	CostPrice         float64   `json:"costPrice"`
+	CurrentPrice      float64   `json:"currentPrice"`
+	Quantity          float64   `json:"quantity"`
 	PositionRatio     float64   `json:"positionRatio"`
 	PositionAmount    *float64  `json:"positionAmount,omitempty"`
 	TrendDirection    string    `json:"trendDirection"`
@@ -101,6 +103,8 @@ func toDecisionCardDTO(c *model.DecisionCard) DecisionCardDTO {
 		AssetName:            c.AssetName,
 		AssetType:            c.AssetType,
 		CostPrice:            c.CostPrice,
+		CurrentPrice:         c.CurrentPrice,
+		Quantity:             c.Quantity,
 		PositionRatio:        c.PositionRatio,
 		TrendDirection:       c.TrendDirection,
 		TrendSummary:         c.TrendSummary,

@@ -118,6 +118,8 @@ export interface DecisionCardDTO {
 	assetName: string;
 	assetType: string;
 	costPrice: number;
+	currentPrice: number;
+	quantity: number;
 	positionRatio: number;
 	positionAmount?: number | null;
 	trendDirection: string;

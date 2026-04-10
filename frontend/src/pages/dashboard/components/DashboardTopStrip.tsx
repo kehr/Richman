@@ -28,6 +28,8 @@ interface DashboardTopStripProps {
 	totalPositionRatio: number; // 0..100, sum of all holding position ratios
 	aggregatePnlAmount: number | null | undefined;
 	aggregatePnlPct: number; // 0..100 percent of capital
+	holdingPnlAmount: number | null; // unrealized P&L absolute amount; null when no price data
+	holdingPnlPct: number; // unrealized P&L as % of cost basis
 	lastAnalyzedAt: Date | null;
 	nextAnalysisAt: Date | null;
 	onRerun: () => void;
@@ -54,6 +56,8 @@ export function DashboardTopStrip({
 	totalPositionRatio,
 	aggregatePnlAmount,
 	aggregatePnlPct,
+	holdingPnlAmount,
+	holdingPnlPct,
 	lastAnalyzedAt,
 	nextAnalysisAt,
 	onRerun,
@@ -80,6 +84,10 @@ export function DashboardTopStrip({
 		money.hasCapital && aggregatePnlAmount != null
 			? money.formatAmountOnly(aggregatePnlAmount)
 			: null;
+
+	const holdingPnlColor = holdingPnlPct > 0 ? "#10B981" : holdingPnlPct < 0 ? "#EF4444" : undefined;
+	const holdingPnlAmountStr =
+		holdingPnlAmount != null ? money.formatAmountOnly(holdingPnlAmount) : null;
 
 	return (
 		<Card data-testid="dashboard-top-strip" styles={{ body: { padding: 20 } }}>
@@ -115,7 +123,6 @@ export function DashboardTopStrip({
 						</Button>
 					) : (
 						<Button
-							type="primary"
 							icon={<ReloadOutlined />}
 							onClick={onRerun}
 							data-testid="dashboard-rerun-button"
@@ -156,9 +163,9 @@ export function DashboardTopStrip({
 
 			<Divider style={{ margin: 0 }} />
 
-			{/* Supporting stats: context metrics, visually subordinate */}
-			<Row gutter={[16, 8]} style={{ marginTop: 16 }}>
-				<Col xs={8}>
+			{/* Supporting stats: context metrics, visually subordinate (4-col) */}
+			<Row gutter={[16, 12]} style={{ marginTop: 16 }}>
+				<Col xs={12} md={6}>
 					<Flex vertical gap={3}>
 						<Text type="secondary" style={{ fontSize: 12 }}>
 							{t("dashboard.stat.holdingCount")}
@@ -168,7 +175,7 @@ export function DashboardTopStrip({
 						</Text>
 					</Flex>
 				</Col>
-				<Col xs={8}>
+				<Col xs={12} md={6}>
 					<Flex vertical gap={3}>
 						<Text type="secondary" style={{ fontSize: 12 }}>
 							{t("dashboard.stat.totalCapital")}
@@ -190,7 +197,7 @@ export function DashboardTopStrip({
 						)}
 					</Flex>
 				</Col>
-				<Col xs={8}>
+				<Col xs={12} md={6}>
 					<Flex vertical gap={3}>
 						<Text type="secondary" style={{ fontSize: 12 }}>
 							{t("dashboard.stat.allocatedPosition")}
@@ -198,6 +205,32 @@ export function DashboardTopStrip({
 						<Text strong style={{ fontSize: 20 }} data-testid="stat-allocated-position">
 							{money.format(totalPositionRatio)}
 						</Text>
+					</Flex>
+				</Col>
+				<Col xs={12} md={6}>
+					<Flex vertical gap={3}>
+						<Flex align="center" gap={5}>
+							<Text type="secondary" style={{ fontSize: 12 }}>
+								{t("dashboard.stat.holdingPnl")}
+							</Text>
+							<Tooltip title={t("dashboard.stat.holdingPnlHint")}>
+								<QuestionCircleOutlined
+									style={{ fontSize: 11, color: "#8C8C8C", cursor: "default" }}
+								/>
+							</Tooltip>
+						</Flex>
+						<Text
+							strong
+							style={{ fontSize: 20, color: holdingPnlColor }}
+							data-testid="stat-holding-pnl"
+						>
+							{formatPercent(holdingPnlPct)}
+						</Text>
+						{holdingPnlAmountStr != null && (
+							<Text type="secondary" style={{ fontSize: 12 }}>
+								{holdingPnlAmountStr}
+							</Text>
+						)}
 					</Flex>
 				</Col>
 			</Row>

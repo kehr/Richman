@@ -16,6 +16,8 @@ type DecisionCard struct {
 	AssetName         string    `json:"assetName"`
 	AssetType         string    `json:"assetType"`
 	CostPrice         float64   `json:"costPrice"`
+	CurrentPrice      float64   `json:"currentPrice"`
+	Quantity          float64   `json:"quantity"`
 	PositionRatio     float64   `json:"positionRatio"`
 	TrendDirection    string    `json:"trendDirection"`
 	TrendSummary      string    `json:"trendSummary"`

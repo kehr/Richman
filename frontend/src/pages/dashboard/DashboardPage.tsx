@@ -133,6 +133,27 @@ export default function DashboardPage() {
 		navigate("/portfolio");
 	};
 
+	// Unrealized holding P&L: (currentPrice - costPrice) × quantity per card,
+	// summed across all cards that carry both fields. Percent is relative to
+	// total cost basis so it is cost-basis-relative, not capital-relative.
+	const { holdingPnlAmount, holdingPnlPct } = useMemo(() => {
+		let pnlAmount = 0;
+		let totalCostBasis = 0;
+		for (const card of cards) {
+			if (card.currentPrice > 0 && card.quantity > 0 && card.costPrice > 0) {
+				const costBasis = card.costPrice * card.quantity;
+				const marketValue = card.currentPrice * card.quantity;
+				pnlAmount += marketValue - costBasis;
+				totalCostBasis += costBasis;
+			}
+		}
+		const pct = totalCostBasis > 0 ? (pnlAmount / totalCostBasis) * 100 : 0;
+		return {
+			holdingPnlAmount: totalCostBasis > 0 ? pnlAmount : null,
+			holdingPnlPct: pct,
+		};
+	}, [cards]);
+
 	// staleCardCount counts decision cards with synthesisSource in
 	// (template, mixed) for the LLM degraded-contract banner.
 	const staleCardCount = useMemo(
@@ -174,6 +195,8 @@ export default function DashboardPage() {
 							totalPositionRatio={totalPositionRatio}
 							aggregatePnlAmount={aggregatePnlAmount}
 							aggregatePnlPct={aggregatePnlPct}
+							holdingPnlAmount={holdingPnlAmount}
+							holdingPnlPct={holdingPnlPct}
 							lastAnalyzedAt={lastAnalyzedAt}
 							nextAnalysisAt={nextAnalysisAt}
 							onRerun={handleRerun}

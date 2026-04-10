@@ -11,6 +11,8 @@
 			"totalCapitalCta": "设置以查看 →",
 			"suggestedRebalance": "建议调仓",
 			"suggestedRebalanceHint": "占总资金的建议增减仓幅度，正数为加仓，负数为减仓",
+			"holdingPnl": "持仓收益",
+			"holdingPnlHint": "基于分析时市价计算的未实现盈亏，收益率以持仓成本为基准",
 			"allocatedPosition": "已分配仓位"
 		},
 		"changeAnchor": {

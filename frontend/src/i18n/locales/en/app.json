@@ -11,6 +11,8 @@
 			"totalCapitalCta": "Set to view →",
 			"suggestedRebalance": "Suggested Rebalance",
 			"suggestedRebalanceHint": "Recommended adjustment as % of total capital. Positive = increase, negative = decrease.",
+			"holdingPnl": "Holding P&L",
+			"holdingPnlHint": "Unrealized P&L based on market price at analysis time. Return rate is cost-basis relative.",
 			"allocatedPosition": "Allocated Position"
 		},
 		"changeAnchor": {

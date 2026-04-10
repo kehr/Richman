@@ -361,6 +361,8 @@ func (s *Service) AnalyzeHolding(
 	// Step 9: Synthesize card content.
 	costPrice, _ := holding.CostPrice.Float64()
 	posRatio, _ := holding.PositionRatio.Float64()
+	currentPrice := posResult.Metrics["current_price"]
+	quantity, _ := holding.Quantity.Float64()
 
 	s.tsStart(tID, model.StepKeyLLMSynthesis)
 	synthOutput, synthMeta, err := s.synthesizer.Synthesize(ctx, &synthesis.SynthesisInput{
@@ -416,6 +418,8 @@ func (s *Service) AnalyzeHolding(
 		AssetName:         holding.AssetName,
 		AssetType:         holding.AssetType,
 		CostPrice:         costPrice,
+		CurrentPrice:      currentPrice,
+		Quantity:          quantity,
 		PositionRatio:     posRatio,
 		TrendDirection:    string(trendResult.Direction),
 		TrendSummary:      synthOutput.TrendSummary,
