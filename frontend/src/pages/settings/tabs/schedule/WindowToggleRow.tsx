@@ -1,5 +1,6 @@
-import type { DayjsLike } from "@/domain/datetime/dayjs-like";
 import { Button, Flex, Switch, TimePicker, Tooltip, Typography } from "@/ui-kit/eat";
+import type { Dayjs } from "dayjs";
+import dayjs from "dayjs";
 import { RotateCcw } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
@@ -14,25 +15,6 @@ interface WindowToggleRowProps {
 	onReset: () => void;
 	disabled?: boolean;
 	timeRange: [string, string];
-}
-
-// parseHhmm creates a DayjsLike-compatible object from a "HH:mm" string so
-// the TimePicker can be controlled without importing dayjs directly. antd
-// bundles dayjs transitively but it is not a declared frontend dependency;
-// using a structural alias avoids the tsc "cannot find module" error.
-function parseHhmm(hhmm: string): DayjsLike {
-	const [h, m] = hhmm.split(":").map(Number);
-	const d = new Date(2000, 0, 1, h, m, 0, 0);
-	return {
-		toDate: () => d,
-		format(fmt: string) {
-			const hh = String(d.getHours()).padStart(2, "0");
-			const mm = String(d.getMinutes()).padStart(2, "0");
-			return fmt.replace("HH", hh).replace("mm", mm);
-		},
-		hour: () => d.getHours(),
-		minute: () => d.getMinutes(),
-	};
 }
 
 // WindowToggleRow renders a single market window row: an enable/disable toggle,
@@ -53,12 +35,9 @@ export function WindowToggleRow({
 }: WindowToggleRowProps) {
 	const { t } = useTranslation("settings");
 
-	// antd TimePicker accepts any Dayjs-shaped value; our structural DayjsLike
-	// satisfies that contract at runtime without importing the dayjs package.
-	// biome-ignore lint/suspicious/noExplicitAny: structural compatibility cast
-	const timeValue = time ? (parseHhmm(time) as any) : null;
+	const timeValue = time ? dayjs(`2000-01-01 ${time}`, "YYYY-MM-DD HH:mm") : null;
 
-	const handleTimeChange = (value: DayjsLike | null) => {
+	const handleTimeChange = (value: Dayjs | null) => {
 		if (value) {
 			onTimeChange(value.format("HH:mm"));
 		}
