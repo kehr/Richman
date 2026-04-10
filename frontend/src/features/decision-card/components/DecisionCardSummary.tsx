@@ -67,7 +67,9 @@ export function DecisionCardSummary({
 			timeoutRef.current = setTimeout(() => setJustUpdated(false), 2000);
 		}
 		return () => {
-			clearTimeout(timeoutRef.current ?? 0);
+			if (timeoutRef.current !== null) {
+				clearTimeout(timeoutRef.current);
+			}
 		};
 	}, [analysisStatus]);
 
