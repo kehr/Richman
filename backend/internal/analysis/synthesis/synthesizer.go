@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/richman/backend/internal/analysis"
+	"github.com/richman/backend/internal/analysis/prompts"
 	"github.com/richman/backend/internal/analysis/recommendation"
 	"github.com/richman/backend/internal/llm"
 	"go.uber.org/zap"
@@ -121,29 +122,50 @@ func (s *Synthesizer) Synthesize(
 		}, nil
 	}
 
-	prompt := buildSynthesisPrompt(input)
+	userPrompt, err := buildSynthesisPrompt(input)
+	if err != nil {
+		s.logger.Warn("failed to build synthesis prompt, using template fallback",
+			zap.String("asset", input.AssetCode),
+			zap.Error(err),
+		)
+		return templateFallback(input), &SynthesisMeta{
+			Source:       "template",
+			ProviderUsed: string(llm.LayerNone),
+			LatencyMs:    elapsedMs(start),
+		}, nil
+	}
 
 	langInstruction := "Respond in English."
 	if input.Language == "zh" {
 		langInstruction = "Respond in Simplified Chinese."
 	}
 
-	systemPrompt := "You are a financial analysis assistant. " +
-		"Generate structured investment analysis summaries. " +
-		langInstruction + " " +
-		"Respond only with valid JSON."
+	systemPrompt, err := prompts.SynthesisSystem(prompts.SynthesisSystemData{
+		LangInstruction: langInstruction,
+	})
+	if err != nil {
+		s.logger.Warn("failed to render synthesis system prompt, using template fallback",
+			zap.String("asset", input.AssetCode),
+			zap.Error(err),
+		)
+		return templateFallback(input), &SynthesisMeta{
+			Source:       "template",
+			ProviderUsed: string(llm.LayerNone),
+			LatencyMs:    elapsedMs(start),
+		}, nil
+	}
 
 	s.logger.Debug("llm request",
 		zap.String("asset", input.AssetCode),
 		zap.String("system_prompt", systemPrompt),
-		zap.String("user_prompt", prompt),
+		zap.String("user_prompt", userPrompt),
 		zap.Int("max_tokens", 2048),
 		zap.Float64("temperature", 0.4),
 	)
 
 	resolved, err := s.resolver.ResolvedChatCompletion(ctx, userID, llm.ChatRequest{
 		SystemPrompt: systemPrompt,
-		UserPrompt:   prompt,
+		UserPrompt:   userPrompt,
 		MaxTokens:    2048,
 		Temperature:  0.4,
 	})
@@ -226,57 +248,67 @@ func (s *Synthesizer) Synthesize(
 		LatencyMs:       elapsedMs(start),
 		Model:           resolved.Response.Model,
 		TokensUsed:      resolved.Response.TokensUsed,
-		PromptSnippet:   snippet(prompt, 300),
+		PromptSnippet:   snippet(userPrompt, 300),
 		ResponseSnippet: snippet(resolved.Response.Content, 500),
 	}, nil
 }
 
-// elapsedMs returns milliseconds since start as an int64. Kept as a helper
-// so every meta constructor spells the conversion the same way.
+// elapsedMs returns milliseconds since start as an int64.
 func elapsedMs(start time.Time) int64 {
 	return time.Since(start).Milliseconds()
 }
 
-func buildSynthesisPrompt(input *SynthesisInput) string {
-	var sb strings.Builder
-	fmt.Fprintf(&sb, "Generate a decision card summary for %s (%s, type: %s).\n\n",
-		input.AssetName, input.AssetCode, input.AssetType)
-
-	sb.WriteString("Analysis data:\n")
-	fmt.Fprintf(&sb, "- Trend: direction=%s, strength=%.2f\n",
-		input.Trend.Direction, input.Trend.Strength)
-	fmt.Fprintf(&sb, "- Position: assessment=%s, percentile=%.2f\n",
-		input.Position.Assessment, input.Position.Percentile)
-	fmt.Fprintf(&sb, "- Catalyst: direction=%s, score=%.2f\n",
-		input.Catalyst.Direction, input.Catalyst.Score)
-	fmt.Fprintf(&sb, "- Weights: trend=%.2f, position=%.2f, catalyst=%.2f\n",
-		input.Weights.Trend, input.Weights.Position, input.Weights.Catalyst)
-	fmt.Fprintf(&sb, "- Confidence: %.1f%%\n", input.Confidence)
-	fmt.Fprintf(&sb, "- Recommendation: %s\n", input.Recommendation)
-	fmt.Fprintf(&sb, "- User cost price: %.4f, position ratio: %.2f%%\n",
-		input.CostPrice, input.PositionRatio*100)
-
-	if len(input.Catalyst.Events) > 0 {
-		sb.WriteString("\nCatalyst events:\n")
-		for _, ev := range input.Catalyst.Events {
-			fmt.Fprintf(&sb, "  - %s (prob: %.2f, impact: %s)\n",
-				ev.Title, ev.Probability, ev.Impact)
-		}
+// buildSynthesisPrompt constructs the synthesis user prompt from templates.
+// It populates SynthesisUserData and SynthesisRecommendationData from the
+// input, then concatenates the two rendered sections.
+func buildSynthesisPrompt(input *SynthesisInput) (string, error) {
+	catEvents := make([]prompts.CatalystEventData, 0, len(input.Catalyst.Events))
+	for _, ev := range input.Catalyst.Events {
+		catEvents = append(catEvents, prompts.CatalystEventData{
+			Impact:      ev.Impact,
+			Probability: ev.Probability,
+			Title:       ev.Title,
+		})
 	}
 
-	sb.WriteString("\nReturn a JSON object with these fields:\n")
-	sb.WriteString(`{
-  "trendSummary": "1-2 sentence trend summary",
-  "positionSummary": "1-2 sentence position/valuation summary",
-  "catalystSummary": "1-2 sentence catalyst summary",
-  "actionAdvice": "direction + logic (keep concise)",
-  "detailedAdvice": "price range + trigger conditions",
-  "riskWarnings": ["risk item 1", "risk item 2"],
-  "todayHighlights": "what changed since last analysis",
-  "weightAdjustment": "why weights were adjusted (if any)"
-}`)
-	sb.WriteString(recommendationPromptSection())
-	return sb.String()
+	userSection, err := prompts.SynthesisUser(&prompts.SynthesisUserData{
+		AssetName:   input.AssetName,
+		AssetCode:   input.AssetCode,
+		AssetType:   input.AssetType,
+		CostPrice:   input.CostPrice,
+		PositionPct: input.PositionRatio * 100,
+
+		TrendWeightPct: input.Weights.Trend * 100,
+		TrendDirection: string(input.Trend.Direction),
+		TrendStrength:  input.Trend.Strength,
+		TrendSignals:   prompts.SortedPairs(input.Trend.Signals),
+		TrendSummary:   input.Trend.Summary,
+
+		PosWeightPct:  input.Weights.Position * 100,
+		PosAssessment: string(input.Position.Assessment),
+		PosPercentile: input.Position.Percentile,
+		PosMetrics:    prompts.SortedPairs(input.Position.Metrics),
+		PosSummary:    input.Position.Summary,
+
+		CatWeightPct: input.Weights.Catalyst * 100,
+		CatDirection: string(input.Catalyst.Direction),
+		CatScore:     input.Catalyst.Score,
+		CatEvents:    catEvents,
+		CatSummary:   input.Catalyst.Summary,
+
+		Recommendation: string(input.Recommendation),
+		Confidence:     input.Confidence,
+	})
+	if err != nil {
+		return "", err
+	}
+
+	recSection, err := buildRecommendationSection(input)
+	if err != nil {
+		return "", err
+	}
+
+	return userSection + recSection, nil
 }
 
 func parseSynthesisResponse(content string) (*SynthesisOutput, error) {
@@ -337,7 +369,7 @@ func snippet(s string, n int) string {
 	return string(runes[:n]) + "…"
 }
 
-// extractJSON attempts to find the first JSON object in a string.
+// extractJSON finds the first complete JSON object in a string.
 func extractJSON(s string) string {
 	start := strings.Index(s, "{")
 	if start == -1 {

@@ -1,0 +1,39 @@
+
+Also include a top-level "recommendation" object in the same JSON response.
+CONSTRAINTS (these are HARD REQUIREMENTS, not suggestions):
+  - action MUST be exactly "{{.Action}}" — this is the matrix output, do not change it.
+  - currentPositionPct MUST be exactly {{printf "%.1f" .CurrentPct}} — do not change it.
+  - Delta sizing: {{.DeltaConstraint}}
+  - {{.StopGuidance}}
+  - Every step rationale field must reference a specific signal or price level — no generic text.
+  - triggerValue for price triggers must be a specific price level, e.g., "10.35 below".
+    For immediate execution, use "execute immediately".
+  - validDays: set to 5 (one trading week) unless trend signals justify a longer hold.
+
+"recommendation": {
+  "action": "{{.Action}}",
+  "label": "short human-readable label matching the action",
+  "currentPositionPct": {{printf "%.1f" .CurrentPct}},
+  "targetPositionPct": <currentPositionPct + total_delta>,
+  "execution": {
+    "type": "{{.ExecTypeHint}}",
+    "steps": [
+      {
+        "order": 1,
+        "triggerType": "price|time|event",
+        "triggerValue": "specific price level or 'execute immediately'",
+        "deltaPct": 0.0,
+        "rationale": {
+          "triggerReason": "why this trigger — must reference a signal value",
+          "positionReason": "why this delta size — reference current position and risk",
+          "precondition": "what must be true before acting (1 sentence)",
+          "fallback": "what to do if trigger is not hit (1 sentence)",
+          "timeWindow": "expected timeframe (1 sentence)"
+        }
+      }
+    ],
+    "stopLoss": null,
+    "takeProfit": null,
+    "validDays": 5
+  }
+}

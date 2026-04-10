@@ -1,0 +1,31 @@
+Asset: {{.AssetCode}} (type: {{.AssetType}})
+
+QUANTITATIVE BASELINE (computed by technical rules engine — treat as ground truth):
+  Direction : {{.Direction}}
+  Score     : {{printf "%.2f" .Score}}  (-1.0 = strongly bearish, 0.0 = neutral, +1.0 = strongly bullish)
+
+{{- if .Events}}
+ALREADY IDENTIFIED EVENTS — do NOT repeat or rephrase these:
+{{range .Events}}  [{{printf "%-8s" .Impact}} p={{printf "%.2f" .Probability}}] {{.Title}}
+{{end}}
+{{- else}}
+ALREADY IDENTIFIED EVENTS: none.
+{{end}}
+TASK: identify ADDITIONAL significant events for this specific asset (earnings results, regulatory
+actions, policy changes, index rebalancing, major analyst revisions, or other material events)
+that are NOT already listed above.
+
+STRICT CONSTRAINTS:
+1. Only include events you are specifically confident about from your training data.
+   Uncertain events must have probability <= 0.30.
+2. If no additional events exist, return events=[] and keep the score unchanged.
+3. Adjusted score MUST stay within [{{printf "%.2f" .MinScore}}, {{printf "%.2f" .MaxScore}}].
+   Exceeding this range is only justified by a high-confidence (probability >= 0.70) named event.
+4. Do NOT add generic macro commentary (interest rates, inflation, currency) unless there is a
+   direct, named policy decision specifically affecting this asset.
+5. Event titles must be factual, specific, and concise (<= 15 words).
+6. Do not repeat, rephrase, or contradict the baseline events already listed.
+
+RETURN only valid JSON — no prose outside the JSON block:
+{"events": [{"title": "...", "impact": "positive|negative|neutral", "probability": 0.0}], "score": {{printf "%.2f" .Score}}}
+(If no new events: {"events": [], "score": <same as baseline>})

@@ -7,11 +7,12 @@ import (
 	"strings"
 
 	"github.com/richman/backend/internal/analysis"
+	"github.com/richman/backend/internal/analysis/prompts"
 	"github.com/richman/backend/internal/llm"
 	"go.uber.org/zap"
 )
 
-// LLMEnhancer enhances catalyst analysis with LLM-based web search capabilities.
+// LLMEnhancer enriches catalyst analysis with event knowledge from the LLM.
 type LLMEnhancer struct {
 	provider llm.Provider
 	logger   *zap.Logger
@@ -38,19 +39,27 @@ type llmEvent struct {
 }
 
 // Enhance enriches a base catalyst result with LLM-derived event insights.
-// If the LLM call fails, the base result is returned unchanged (degraded mode).
+// If the LLM call fails or returns unparseable output, the base result is
+// returned unchanged so the analysis pipeline degrades gracefully.
 func (e *LLMEnhancer) Enhance(
 	ctx context.Context,
 	baseResult analysis.CatalystResult,
 	assetCode, assetType string,
 ) (*analysis.CatalystResult, error) {
-	prompt := buildCatalystPrompt(assetCode, assetType, baseResult)
+	userPrompt, err := buildCatalystPrompt(assetCode, assetType, baseResult)
+	if err != nil {
+		e.logger.Warn("failed to build catalyst prompt, using base result",
+			zap.String("asset", assetCode),
+			zap.Error(err),
+		)
+		return &baseResult, nil
+	}
 
 	resp, err := e.provider.ChatCompletion(ctx, llm.ChatRequest{
-		SystemPrompt: "You are a financial analyst assistant. Respond only with valid JSON.",
-		UserPrompt:   prompt,
+		SystemPrompt: prompts.CatalystSystem(),
+		UserPrompt:   userPrompt,
 		MaxTokens:    1024,
-		Temperature:  0.3,
+		Temperature:  0.2,
 	})
 	if err != nil {
 		e.logger.Warn("llm catalyst enhancement failed, using base result",
@@ -77,32 +86,40 @@ func (e *LLMEnhancer) Enhance(
 	return enhanced, nil
 }
 
-func buildCatalystPrompt(assetCode, assetType string, base analysis.CatalystResult) string {
-	var sb strings.Builder
-	fmt.Fprintf(&sb,
-		"Analyze recent events and news that could affect the asset %s (type: %s).\n",
-		assetCode, assetType,
-	)
-	sb.WriteString("The current quantitative catalyst analysis shows:\n")
-	fmt.Fprintf(&sb, "- Direction: %s\n", base.Direction)
-	fmt.Fprintf(&sb, "- Score: %.2f\n", base.Score)
-	if len(base.Events) > 0 {
-		sb.WriteString("- Known events:\n")
-		for _, ev := range base.Events {
-			fmt.Fprintf(&sb, "  - %s (probability: %.2f, impact: %s)\n",
-				ev.Title, ev.Probability, ev.Impact)
-		}
+// buildCatalystPrompt constructs the catalyst user prompt from the template.
+// MinScore / MaxScore clamp the score adjustment the LLM is allowed to make,
+// preventing a hallucinated extreme score from flipping the quantitative signal.
+func buildCatalystPrompt(assetCode, assetType string, base analysis.CatalystResult) (string, error) {
+	minScore := base.Score - 0.25
+	if minScore < -1.0 {
+		minScore = -1.0
 	}
-	sb.WriteString("\nReturn a JSON object with:\n")
-	sb.WriteString(`{"events": [{"title": "...", `)
-	sb.WriteString(`"impact": "positive|negative|neutral", `)
-	sb.WriteString(`"probability": 0.0-1.0}], "score": -1.0 to 1.0}`)
-	sb.WriteString("\nInclude only significant recent events not already listed above.")
-	return sb.String()
+	maxScore := base.Score + 0.25
+	if maxScore > 1.0 {
+		maxScore = 1.0
+	}
+
+	events := make([]prompts.CatalystEventData, 0, len(base.Events))
+	for _, ev := range base.Events {
+		events = append(events, prompts.CatalystEventData{
+			Impact:      ev.Impact,
+			Probability: ev.Probability,
+			Title:       ev.Title,
+		})
+	}
+
+	return prompts.CatalystUser(&prompts.CatalystData{
+		AssetCode: assetCode,
+		AssetType: assetType,
+		Direction: string(base.Direction),
+		Score:     base.Score,
+		MinScore:  minScore,
+		MaxScore:  maxScore,
+		Events:    events,
+	})
 }
 
 func parseCatalystResponse(content string, base analysis.CatalystResult) (*analysis.CatalystResult, error) {
-	// Try to extract JSON from the response.
 	jsonStr := extractJSON(content)
 	if jsonStr == "" {
 		return nil, fmt.Errorf("no JSON found in llm response")
@@ -123,12 +140,23 @@ func parseCatalystResponse(content string, base analysis.CatalystResult) (*analy
 		})
 	}
 
-	// If LLM provided a score, blend it with the base score.
+	// If LLM provided a non-zero score, blend it with the base score.
+	// The LLM score is clamped to ±0.25 of the base before blending so a
+	// hallucinated extreme score cannot flip the quantitative signal direction.
 	if resp.Score != 0 {
-		result.Score = (base.Score + resp.Score) / 2
+		clampedLLM := resp.Score
+		if clampedLLM > base.Score+0.25 {
+			clampedLLM = base.Score + 0.25
+		}
+		if clampedLLM < base.Score-0.25 {
+			clampedLLM = base.Score - 0.25
+		}
+		// Weighted blend: base carries 60% to preserve quantitative signal primacy;
+		// LLM event-derived opinion carries 40%.
+		result.Score = base.Score*0.6 + clampedLLM*0.4
 	}
 
-	// Recalculate direction from blended score.
+	// Recalculate direction from the blended score.
 	switch {
 	case result.Score > 0.2:
 		result.Direction = analysis.DirectionBullish
@@ -141,7 +169,7 @@ func parseCatalystResponse(content string, base analysis.CatalystResult) (*analy
 	return &result, nil
 }
 
-// extractJSON attempts to find the first JSON object in a string.
+// extractJSON finds the first complete JSON object in a string.
 func extractJSON(s string) string {
 	start := strings.Index(s, "{")
 	if start == -1 {

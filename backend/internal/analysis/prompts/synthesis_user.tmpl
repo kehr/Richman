@@ -1,0 +1,55 @@
+ASSET: {{.AssetName}} ({{.AssetCode}}, type: {{.AssetType}})
+USER POSITION: cost price={{printf "%.4f" .CostPrice}}, current position ratio={{printf "%.1f" .PositionPct}}% of total capital
+
+TREND DIMENSION (weight: {{printf "%.0f" .TrendWeightPct}}%):
+  Direction : {{.TrendDirection}}
+  Strength  : {{printf "%.2f" .TrendStrength}}  (0.0=none, 0.5=moderate, 1.0=strong)
+{{- if .TrendSignals}}
+  Technical signals:
+{{range .TrendSignals}}    {{printf "%-22s" .Name}} {{printf "%.4f" .Value}}
+{{end}}
+{{- end}}
+{{- if .TrendSummary}}
+  Rules-engine summary: {{.TrendSummary}}
+{{end}}
+POSITION/VALUATION DIMENSION (weight: {{printf "%.0f" .PosWeightPct}}%):
+  Assessment : {{.PosAssessment}}
+  Percentile : {{printf "%.2f" .PosPercentile}}  (0.0=cheapest in history, 1.0=most expensive)
+{{- if .PosMetrics}}
+  Valuation metrics:
+{{range .PosMetrics}}    {{printf "%-22s" .Name}} {{printf "%.4f" .Value}}
+{{end}}
+{{- end}}
+{{- if .PosSummary}}
+  Rules-engine summary: {{.PosSummary}}
+{{end}}
+CATALYST DIMENSION (weight: {{printf "%.0f" .CatWeightPct}}%):
+  Direction : {{.CatDirection}}
+  Score     : {{printf "%.2f" .CatScore}}  (-1.0=strongly bearish, 0.0=neutral, +1.0=strongly bullish)
+{{- if .CatEvents}}
+  Events:
+{{range .CatEvents}}    [{{printf "%-8s" .Impact}} p={{printf "%.2f" .Probability}}] {{.Title}}
+{{end}}
+{{- else}}
+  Events: none identified.
+{{end}}
+{{- if .CatSummary}}
+  Rules-engine summary: {{.CatSummary}}
+{{end}}
+MATRIX OUTPUT:
+  Recommendation : {{.Recommendation}}
+  Confidence     : {{printf "%.1f" .Confidence}}%
+
+Generate a JSON object with the following fields.
+Each instruction tells you WHAT to include and WHAT to avoid.
+
+{
+  "trendSummary": "1-2 sentences. Describe direction and strength using the provided signals. Quantify where relevant (e.g., 'RSI at 58'). Use hedged language if strength < 0.4.",
+  "positionSummary": "1-2 sentences. Describe the valuation percentile and whether the asset appears cheap/fair/expensive relative to its history. Reference specific metrics if available.",
+  "catalystSummary": "1-2 sentences. Summarize catalyst events and net directional impact. If events list is empty, write exactly: 'No significant catalyst events identified in this analysis period.'",
+  "actionAdvice": "1 sentence. State the recommended action and the single most important signal driving it. Example: 'Hold current position — trend is modestly upward but catalyst is neutral with no near-term driver.'",
+  "detailedAdvice": "2-3 sentences. Describe specific price levels or signal thresholds to watch. Reference the cost price for stop-loss context. Be concrete — avoid generic advice.",
+  "riskWarnings": ["Each item MUST reference a specific signal (e.g., 'RSI at 68 approaching overbought'). Max 3 items. No generic platitudes like 'market volatility'."],
+  "todayHighlights": "1 sentence. What in this analysis is notably different from a neutral baseline. If nothing notable: 'No significant signal changes from baseline.'",
+  "weightAdjustment": "1 sentence. If any weight deviates significantly from equal (33%), explain why. If weights are roughly equal: 'Standard weighting applied.'"
+}

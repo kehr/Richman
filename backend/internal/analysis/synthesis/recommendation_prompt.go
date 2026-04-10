@@ -6,47 +6,69 @@ import (
 	"strings"
 
 	"github.com/richman/backend/internal/analysis"
+	"github.com/richman/backend/internal/analysis/prompts"
 	"github.com/richman/backend/internal/analysis/recommendation"
 )
 
-// recommendationPromptSection returns the prompt fragment that instructs the
-// LLM to emit a structured "recommendation" sub-object alongside the existing
-// natural-language fields. It is appended to the main synthesis prompt.
-func recommendationPromptSection() string {
-	var sb strings.Builder
-	sb.WriteString("\nAlso include a top-level \"recommendation\" sub-object with this shape:\n")
-	sb.WriteString(`{
-  "action": "aggressive_add|small_add|hold|gradual_reduce|control_position",
-  "label": "short human-readable label",
-  "currentPositionPct": 0.0,
-  "targetPositionPct": 0.0,
-  "execution": {
-    "type": "one-shot|staged|monitor",
-    "steps": [
-      {
-        "order": 1,
-        "triggerType": "price|time|event",
-        "triggerValue": "short condition text",
-        "deltaPct": 5.0,
-        "rationale": {
-          "triggerReason": "why this trigger condition (1 sentence)",
-          "positionReason": "why this delta size (1 sentence)",
-          "precondition": "what must be true before acting (1 sentence)",
-          "fallback": "what to do if trigger missed (1 sentence)",
-          "timeWindow": "expected timeframe (1 sentence)"
-        }
-      }
-    ],
-    "stopLoss": null,
-    "takeProfit": null,
-    "validDays": 7
-  }
-}`)
-	sb.WriteString("\nUse stopLoss / takeProfit as numeric price levels when relevant, otherwise omit or set null.\n")
-	sb.WriteString("For hold recommendations: use type=\"monitor\" with 1-2 conditional watch steps ")
-	sb.WriteString("(triggerType=\"price\" or \"event\"). These steps represent conditions to watch, ")
-	sb.WriteString("not immediate actions. Monitor steps should have negative or zero deltaPct.\n")
-	return sb.String()
+// buildRecommendationSection renders the recommendation sub-prompt template
+// with constraints derived from the synthesis input. The action and current
+// position percentage are locked to the matrix output so the LLM cannot
+// override the fundamental recommendation direction.
+func buildRecommendationSection(input *SynthesisInput) (string, error) {
+	currentPct := input.PositionRatio * 100
+	action := string(input.Recommendation)
+
+	deltaConstraint, execTypeHint := recommendationConstraints(input.Recommendation)
+	stopGuidance := stopLossGuidance(input.CostPrice)
+
+	return prompts.SynthesisRecommendation(prompts.SynthesisRecommendationData{
+		Action:          action,
+		CurrentPct:      currentPct,
+		ExecTypeHint:    execTypeHint,
+		DeltaConstraint: deltaConstraint,
+		StopGuidance:    stopGuidance,
+	})
+}
+
+// recommendationConstraints returns the delta-sizing constraint text and the
+// recommended execution type for a given action. These strings are injected
+// into the recommendation template as hard requirements for the LLM.
+func recommendationConstraints(rec analysis.Recommendation) (deltaConstraint, execTypeHint string) {
+	switch rec {
+	case analysis.RecommendAggressiveAdd:
+		return "Total delta across all steps: 8-15%. Single-step max: 10%.", "one-shot"
+	case analysis.RecommendSmallAdd:
+		return "Total delta across all steps: 3-8%. Single-step max: 5%.", "one-shot"
+	case analysis.RecommendHold:
+		return "Use type=monitor. Steps represent WATCH CONDITIONS, not trades. " +
+			"DeltaPct: 0 (pure watch) or -5 (reduce if triggered).", "monitor"
+	case analysis.RecommendGradualReduce:
+		return "Total delta: -8 to -15% (negative). Use staged (2 steps) to reduce market impact.", "staged"
+	case analysis.RecommendControlPosition:
+		return "Total delta: -15 to -20% (negative). Can be one-shot if signal urgency is high.", "one-shot"
+	default:
+		return "Keep delta proportional to signal confidence. Respect risk limits.", "one-shot"
+	}
+}
+
+// stopLossGuidance produces the stop-loss / take-profit guidance string for
+// the recommendation template. When cost price is available, concrete default
+// levels (7% stop, 12% take-profit) are embedded so the LLM has a grounded
+// starting point rather than fabricating arbitrary levels.
+func stopLossGuidance(costPrice float64) string {
+	if costPrice <= 0 {
+		return "Cost price not available. Set stopLoss and takeProfit to null."
+	}
+	defaultStop := costPrice * 0.93
+	defaultTake := costPrice * 1.12
+	return fmt.Sprintf(
+		"stopLoss: derive from cost price (%.4f). A 5-8%% trailing stop is standard risk management. "+
+			"Default suggestion: %.4f (7%% below cost). "+
+			"takeProfit: set at a meaningful resistance or upside target. "+
+			"Default suggestion: %.4f (12%% above cost). "+
+			"Both must be numeric price values. Set null only if fixed levels are inapplicable for this asset class.",
+		costPrice, defaultStop, defaultTake,
+	)
 }
 
 // recommendationEnvelope is the intermediate shape used to decode the
