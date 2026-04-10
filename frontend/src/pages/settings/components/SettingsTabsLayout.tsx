@@ -35,15 +35,15 @@ export function SettingsTabsLayout({ items, activeKey, onChange }: SettingsTabsL
 							data-testid={`settings-tab-${item.key}`}
 							aria-current={isActive ? "page" : undefined}
 							style={{
+								position: "relative",
 								display: "flex",
 								alignItems: "center",
 								gap: 10,
 								width: "100%",
 								textAlign: "left",
-								padding: "10px 16px",
+								padding: "10px 16px 10px 19px",
 								marginBottom: 4,
 								border: "none",
-								borderLeft: `3px solid ${isActive ? "#000" : "transparent"}`,
 								background: isActive ? "#f5f5f5" : "transparent",
 								cursor: "pointer",
 								fontSize: 14,
@@ -51,6 +51,20 @@ export function SettingsTabsLayout({ items, activeKey, onChange }: SettingsTabsL
 								color: isActive ? "#000" : "#5C5C5C",
 							}}
 						>
+							{isActive && (
+								<span
+									style={{
+										position: "absolute",
+										left: 0,
+										top: "50%",
+										transform: "translateY(-50%)",
+										width: 3,
+										height: 16,
+										background: "#000",
+										borderRadius: 2,
+									}}
+								/>
+							)}
 							{item.icon}
 							{item.label}
 						</button>
