@@ -27,10 +27,7 @@ export function LLMEmptyState({
 		if (systemDefaultAvailable && useSystemDefaultConsent) {
 			return t("llm.emptyState.callout.systemConsentGiven");
 		}
-		if (systemDefaultAvailable && !useSystemDefaultConsent) {
-			return t("llm.emptyState.callout.systemNoConsent");
-		}
-		return t("llm.emptyState.callout.noSystem");
+		return t("llm.emptyState.callout.systemNoConsent");
 	})();
 
 	return (

@@ -139,10 +139,10 @@
 		"description": "配置你自己的 LLM Provider 以启用 AI 解读能力。未配置时可选择使用系统默认或规则引擎。",
 		"emptyState": {
 			"title": "尚未配置 AI Provider",
+			"description": "配置你自己的 LLM Provider 以获得 AI 驱动的投资解读。未配置时分析走规则引擎。",
 			"callout": {
-				"systemConsentGiven": "当前分析将走 Richman 的系统默认 AI Provider。你可以配置自己的 Provider 以获得更好的额度和隐私控制。",
-				"systemNoConsent": "系统默认 AI Provider 可用，但你尚未同意使用。当前分析会降级到规则引擎。配置你自己的 Provider 或在 onboarding 中勾选同意可以启用 AI 解读。",
-				"noSystem": "当前分析走规则引擎。配置你自己的 LLM Provider 可以启用 AI 解读能力。"
+				"systemConsentGiven": "当前已开启系统默认 AI Provider，分析将正常运行。",
+				"systemNoConsent": "系统默认 Provider 可用，但未同意使用。当前分析走规则引擎。"
 			},
 			"addButton": "添加 LLM Provider"
 		},
@@ -151,8 +151,11 @@
 			"modelLabel": "模型",
 			"apiKeyLabel": "API Key",
 			"baseUrlLabel": "Base URL",
-			"lastProbed": "最后测试",
+			"lastProbedAt": "测试于 {{time}}",
 			"notTested": "尚未测试",
+			"fallbackOn": "已开启",
+			"fallbackOff": "已关闭",
+			"deleteMenuLabel": "删除 Provider 配置",
 			"fallbackToggle": "调用失败时自动降级到系统默认",
 			"fallbackHint": "开启后，当你的 Provider 失败时，持仓数据将以加密传输方式发给 Richman 的系统默认 AI Provider 做分析。关闭则直接降级到规则引擎。",
 			"fallbackUpdated": "已更新降级偏好",
@@ -175,7 +178,6 @@
 			"modelLabel": "模型",
 			"apiKeyLabel": "API Key",
 			"baseUrlLabel": "Base URL",
-			"lastProbed": "最后测试",
 			"unknown": "未知",
 			"fallback": {
 				"systemAvailable": "你已开启失败降级：调用失败时分析会自动走 Richman 的系统默认 AI Provider。",
@@ -220,6 +222,11 @@
 				"claude": "Claude (Anthropic)",
 				"openai": "OpenAI",
 				"openai_compatible": "OpenAI 兼容 (Ollama / 自建)"
+			},
+			"providerHelp": {
+				"claude": "Claude API（Anthropic）",
+				"openai": "OpenAI 官方 API",
+				"openai_compatible": "Ollama / LM Studio / 自建 OpenAI 兼容服务"
 			},
 			"message": {
 				"savedHealthy": "已保存，连通性测试通过",

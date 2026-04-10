@@ -139,10 +139,10 @@
 		"description": "Configure your own LLM provider to enable AI interpretation. When not configured, you can choose to use the system default or the rules engine.",
 		"emptyState": {
 			"title": "No AI Provider configured",
+			"description": "Configure your own LLM Provider for AI-powered investment insights. Without one, analysis uses the rule engine.",
 			"callout": {
-				"systemConsentGiven": "Current analysis uses Richman's system default AI provider. You can configure your own provider for better quota and privacy control.",
-				"systemNoConsent": "System default AI provider is available, but you haven't agreed to use it. Current analysis falls back to the rules engine. Configure your own provider or agree during onboarding to enable AI interpretation.",
-				"noSystem": "Current analysis uses the rules engine. Configure your own LLM provider to enable AI interpretation."
+				"systemConsentGiven": "System default AI Provider is active. Analysis will continue normally.",
+				"systemNoConsent": "System default Provider is available but consent not given. Analysis uses rule engine."
 			},
 			"addButton": "Add LLM Provider"
 		},
@@ -151,8 +151,11 @@
 			"modelLabel": "Model",
 			"apiKeyLabel": "API Key",
 			"baseUrlLabel": "Base URL",
-			"lastProbed": "Last tested",
+			"lastProbedAt": "Tested {{time}}",
 			"notTested": "Not tested yet",
+			"fallbackOn": "Enabled",
+			"fallbackOff": "Disabled",
+			"deleteMenuLabel": "Delete Provider",
 			"fallbackToggle": "Auto fallback to system default on failure",
 			"fallbackHint": "When enabled, if your provider fails, holdings data will be sent to Richman's system default AI provider for analysis via encrypted transmission. When disabled, it falls back directly to the rules engine.",
 			"fallbackUpdated": "Fallback preference updated",
@@ -175,7 +178,6 @@
 			"modelLabel": "Model",
 			"apiKeyLabel": "API Key",
 			"baseUrlLabel": "Base URL",
-			"lastProbed": "Last tested",
 			"unknown": "Unknown",
 			"fallback": {
 				"systemAvailable": "You have enabled failure fallback: on failure, analysis will automatically use Richman's system default AI provider.",
@@ -220,6 +222,11 @@
 				"claude": "Claude (Anthropic)",
 				"openai": "OpenAI",
 				"openai_compatible": "OpenAI Compatible (Ollama / self-hosted)"
+			},
+			"providerHelp": {
+				"claude": "Claude API (Anthropic)",
+				"openai": "OpenAI official API",
+				"openai_compatible": "Ollama / LM Studio / self-hosted OpenAI-compatible service"
 			},
 			"message": {
 				"savedHealthy": "Saved — connectivity test passed",

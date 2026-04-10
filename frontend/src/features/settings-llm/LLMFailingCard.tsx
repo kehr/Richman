@@ -92,7 +92,7 @@ export function LLMFailingCard({ config, systemDefaultAvailable, onEdit }: LLMFa
 						</Text>
 					)}
 					<Text type="secondary" style={{ fontSize: 12 }}>
-						{t("llm.failingCard.lastProbed")}: {probeTime}
+						{probeTime}
 					</Text>
 				</Space>
 

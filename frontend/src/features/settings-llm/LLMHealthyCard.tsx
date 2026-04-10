@@ -94,7 +94,9 @@ export function LLMHealthyCard({ config, onEdit }: LLMHealthyCardProps) {
 						</Text>
 					)}
 					<Text type="secondary" style={{ fontSize: 12 }}>
-						{t("llm.healthyCard.lastProbed")}: {probeTime}
+						{config.lastProbeAt
+							? t("llm.healthyCard.lastProbedAt", { time: probeTime })
+							: t("llm.healthyCard.notTested")}
 					</Text>
 				</Space>
 
