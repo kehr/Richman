@@ -78,11 +78,14 @@ export function DecisionCardSummary({
 	// only the gradient wrapper shows. When just-updated (2 s flash on
 	// completion) the green border takes over briefly.
 	const isRunning = analysisStatus === "running";
+	// overflow:hidden is always set so the ant-card-body white background never
+	// bleeds past border-radius — this fixes both the shimmer-border corner clip
+	// and the change-anchor highlight box-shadow corner clip.
 	const borderStyle: React.CSSProperties = isRunning
 		? { border: "none", borderRadius: 6, overflow: "hidden" }
 		: justUpdated
-			? { borderColor: "#b7eb8f" }
-			: {};
+			? { borderColor: "#b7eb8f", overflow: "hidden" }
+			: { overflow: "hidden" };
 
 	// Card body background flashes green on completion for 2 seconds.
 	const bodyBg = justUpdated ? "#f6ffed" : undefined;
