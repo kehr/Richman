@@ -387,6 +387,8 @@
 			"llm": "LLM",
 			"template": "Rule Template",
 			"mixed": "Mixed"
-		}
+		},
+		"abandon": "Stop Tracking",
+		"interrupted": "Task interrupted (server restarted)"
 	}
 }

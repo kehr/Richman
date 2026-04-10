@@ -22,7 +22,8 @@ type TaskStore struct {
 	logger          *zap.Logger
 }
 
-// NewTaskStore creates a new TaskStore.
+// NewTaskStore creates a new TaskStore and immediately recovers any orphaned
+// running/pending tasks left over from a previous server instance.
 func NewTaskStore(taskRepo *repo.AnalysisTaskRepo, ttl time.Duration, logger *zap.Logger) *TaskStore {
 	interval := time.Hour
 	if ttl > 0 && ttl < interval {
@@ -38,10 +39,31 @@ func NewTaskStore(taskRepo *repo.AnalysisTaskRepo, ttl time.Duration, logger *za
 		stopCh:          make(chan struct{}),
 		logger:          logger,
 	}
+	s.recoverOrphaned()
 	if ttl > 0 {
 		go s.cleanupLoop()
 	}
 	return s
+}
+
+// recoverOrphaned marks tasks that were left in running/pending state by a
+// previous server process as failed. Called once at startup before serving
+// traffic so that frontend polls immediately see a terminal state rather than
+// polling forever against a goroutine that no longer exists.
+func (s *TaskStore) recoverOrphaned() {
+	if s.repo == nil {
+		return
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	n, err := s.repo.FailOrphaned(ctx)
+	if err != nil {
+		s.logger.Warn("failed to recover orphaned tasks", zap.Error(err))
+		return
+	}
+	if n > 0 {
+		s.logger.Info("recovered orphaned tasks on startup", zap.Int64("count", n))
+	}
 }
 
 // Stop terminates the background cleanup loop.

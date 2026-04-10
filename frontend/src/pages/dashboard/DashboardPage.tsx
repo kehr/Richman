@@ -223,6 +223,10 @@ export default function DashboardPage() {
 					taskId={taskId}
 					open={drawerOpen}
 					onClose={() => setDrawerOpen(false)}
+					onClear={() => {
+						setTaskId(null);
+						setDrawerOpen(false);
+					}}
 				/>
 			</Flex>
 		</PageContainer>

@@ -387,6 +387,8 @@
 			"llm": "LLM",
 			"template": "规则模板",
 			"mixed": "混合"
-		}
+		},
+		"abandon": "放弃追踪",
+		"interrupted": "任务已中断（服务重启）"
 	}
 }

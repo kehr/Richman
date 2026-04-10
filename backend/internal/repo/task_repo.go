@@ -70,6 +70,25 @@ func (r *AnalysisTaskRepo) GetByID(ctx context.Context, taskID string) (*model.T
 	return &task, nil
 }
 
+// FailOrphaned marks all running/pending tasks as failed. Called on server
+// startup to recover tasks whose goroutines were killed by a restart.
+// Returns the number of rows updated.
+func (r *AnalysisTaskRepo) FailOrphaned(ctx context.Context) (int64, error) {
+	now := time.Now()
+	tag, err := r.pool.Exec(ctx,
+		`UPDATE analysis_tasks
+		 SET status = 'failed',
+		     error  = 'interrupted: server restarted',
+		     done_at = $1
+		 WHERE status IN ('running', 'pending')`,
+		now,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return tag.RowsAffected(), nil
+}
+
 // DeleteOlderThan removes persisted tasks older than the cutoff (only completed/failed).
 func (r *AnalysisTaskRepo) DeleteOlderThan(ctx context.Context, cutoff time.Time) error {
 	_, err := r.pool.Exec(ctx,
