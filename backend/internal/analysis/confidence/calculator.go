@@ -1,6 +1,10 @@
 package confidence
 
-import "github.com/richman/backend/internal/analysis"
+import (
+	"math"
+
+	"github.com/richman/backend/internal/analysis"
+)
 
 // Calculator computes the confidence score for an analysis result.
 type Calculator struct{}
@@ -15,67 +19,108 @@ type Input struct {
 	Trend          *analysis.TrendResult
 	Position       *analysis.PositionResult
 	Catalyst       *analysis.CatalystResult
-	HasLLMCatalyst bool // whether LLM enhancement was available
+	HasLLMCatalyst bool                  // whether LLM enhancement was available
+	Weights        analysis.WeightConfig // per-asset-type dimension weights
 }
 
 // Calculate returns a confidence score from 0 to 100.
 //
-// Scoring rules (per PRD 3.2.5):
-//   - 3 dimensions aligned: base 80-100
-//   - 2 aligned, 1 conflict: base 50-70
-//   - All different directions: base 20-40
-//   - Missing dimension: -20 per missing
-//   - No LLM catalyst enhancement: -10
+// Formula: C = round(Coherence×70 + Quality×20 + Strength×10)
+//
+// The three components are:
+//
+// Coherence (0-1): weighted agreement of each dimension with the final
+// recommendation direction, derived from multi-factor signal aggregation
+// theory. For each present dimension i with signal sᵢ ∈ {-1, 0, +1}:
+//   - Weighted direction D = sign(Σ wᵢ·sᵢ)
+//   - agreementᵢ = (1 + sᵢ·D) / 2  → 1.0 (aligned), 0.5 (neutral), 0.0 (opposing)
+//   - When D=0 (pure deadlock): agreementᵢ = 0.5 for all
+//   - Coherence = Σᵢ (wᵢ·agreementᵢ) / Σᵢ wᵢ  (normalised over present dims)
+//
+// Quality (0-1): data completeness × LLM availability.
+//   - 3 dimensions: 1.0,  2: 0.6,  1: 0.2
+//   - LLM catalyst available: ×1.0,  missing: ×0.9
+//
+// Strength (0-1): fraction of present dimensions with a non-neutral signal.
+// Neutral signals carry less information (Shannon); rewarding decisiveness
+// with a modest 10-point weight prevents all-neutral deadlocks from scoring
+// the same as decisive but split signals.
+//
+// The 70:20:10 split ensures coherence dominates — no combination of quality
+// and strength bonuses can compensate for fundamentally disagreeing signals.
 func (c *Calculator) Calculate(input Input) float64 {
-	missingCount := 0
-	if input.Trend == nil {
-		missingCount++
+	// Collect present dimensions: direction + weight.
+	type dim struct {
+		signal float64 // -1, 0, +1
+		weight float64
 	}
-	if input.Position == nil {
-		missingCount++
+	dims := make([]dim, 0, 3)
+	if input.Trend != nil {
+		dims = append(dims, dim{normalizeDirection(input.Trend.Direction), input.Weights.Trend})
 	}
-	if input.Catalyst == nil {
-		missingCount++
+	if input.Position != nil {
+		dims = append(dims, dim{normalizeDirection(input.Position.Assessment), input.Weights.Position})
+	}
+	if input.Catalyst != nil {
+		dims = append(dims, dim{normalizeDirection(input.Catalyst.Direction), input.Weights.Catalyst})
 	}
 
-	// If all missing, return minimum
-	if missingCount == 3 {
+	n := len(dims)
+	if n == 0 {
 		return 0
 	}
 
-	// Normalize directions to a common scale: bullish/upward = +1, bearish/downward = -1, neutral/sideways = 0
-	directions := make([]int, 0, 3)
-	if input.Trend != nil {
-		directions = append(directions, normalizeDirection(input.Trend.Direction))
+	// Compute weighted recommendation direction.
+	var weightedSum, totalWeight float64
+	for _, d := range dims {
+		weightedSum += d.weight * d.signal
+		totalWeight += d.weight
 	}
-	if input.Position != nil {
-		directions = append(directions, normalizeDirection(input.Position.Assessment))
-	}
-	if input.Catalyst != nil {
-		directions = append(directions, normalizeDirection(input.Catalyst.Direction))
+	D := math.Copysign(1, weightedSum) // +1 or -1
+	if weightedSum == 0 {
+		D = 0 // pure deadlock
 	}
 
-	base := calcBaseConfidence(directions)
+	// Coherence: weighted agreement with D.
+	var coherenceSum float64
+	for _, d := range dims {
+		var agreement float64
+		if D == 0 {
+			agreement = 0.5
+		} else {
+			agreement = (1 + d.signal*D) / 2 // 1.0 aligned, 0.5 neutral, 0.0 opposing
+		}
+		coherenceSum += d.weight * agreement
+	}
+	coherence := coherenceSum / totalWeight // normalised
 
-	// Deductions
-	penalty := float64(missingCount) * 20
+	// Quality: data completeness × LLM factor.
+	completeness := map[int]float64{1: 0.2, 2: 0.6, 3: 1.0}[n]
+	llmFactor := 1.0
 	if !input.HasLLMCatalyst {
-		penalty += 10
+		llmFactor = 0.9
 	}
+	quality := completeness * llmFactor
 
-	result := base - penalty
-	if result < 0 {
-		result = 0
+	// Strength: fraction of non-neutral signals.
+	var nonNeutral float64
+	for _, d := range dims {
+		if d.signal != 0 {
+			nonNeutral++
+		}
 	}
-	if result > 100 {
-		result = 100
-	}
+	strength := nonNeutral / float64(n)
 
-	return result
+	score := coherence*70 + quality*20 + strength*10
+	return math.Round(math.Max(0, math.Min(100, score)))
 }
 
-// normalizeDirection maps various direction types to a common scale.
-func normalizeDirection(d analysis.Direction) int {
+// normalizeDirection maps a Direction value to a numeric signal.
+//
+//	upward / bullish  → +1
+//	downward / bearish → -1
+//	sideways / neutral / anything else → 0
+func normalizeDirection(d analysis.Direction) float64 {
 	switch d {
 	case analysis.DirectionUpward, analysis.DirectionBullish:
 		return 1
@@ -84,52 +129,4 @@ func normalizeDirection(d analysis.Direction) int {
 	default:
 		return 0
 	}
-}
-
-// calcBaseConfidence determines the base confidence from direction alignment.
-func calcBaseConfidence(directions []int) float64 {
-	if len(directions) <= 1 {
-		return 50 // single dimension, moderate confidence
-	}
-
-	if len(directions) == 2 {
-		if directions[0] == directions[1] {
-			return 70 // two aligned (missing third)
-		}
-		if directions[0] == -directions[1] && directions[0] != 0 {
-			return 40 // two conflicting
-		}
-		return 55 // one neutral
-	}
-
-	// 3 directions
-	a, b, d := directions[0], directions[1], directions[2]
-
-	allSame := a == b && b == d
-	if allSame && a != 0 {
-		return 90 // all aligned non-neutral
-	}
-	if allSame && a == 0 {
-		return 60 // all neutral
-	}
-
-	// Count alignment
-	matches := 0
-	if a == b {
-		matches++
-	}
-	if b == d {
-		matches++
-	}
-	if a == d {
-		matches++
-	}
-
-	if matches >= 1 {
-		// At least 2 aligned, 1 different
-		return 60
-	}
-
-	// All different
-	return 30
 }

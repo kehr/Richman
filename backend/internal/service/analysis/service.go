@@ -380,12 +380,13 @@ func (s *Service) analyzeHolding(
 		Position:       &posResult,
 		Catalyst:       &catResult,
 		HasLLMCatalyst: hasLLM,
+		Weights:        weights,
 	})
 
 	// Step 8: Decide recommendation.
 	rec := s.matrix.Decide(trendResult, posResult, catResult, weights)
 	s.tsLog(tID, model.LogLevelInfo, fmt.Sprintf(
-		"%s conf=%.0f%% rec=%s", holding.AssetCode, conf*100, rec,
+		"%s conf=%.0f%% rec=%s", holding.AssetCode, conf, rec,
 	))
 	s.tsComplete(tID, model.StepKeyRecommendation)
 
