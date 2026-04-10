@@ -1,4 +1,5 @@
 import { Badge, Button, Card, Dropdown, EllipsisOutlined, Popconfirm, theme } from "@/ui-kit/eat";
+import type { MenuProps } from "@/ui-kit/eat";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import type { LLMSettingsDTO } from "./types";
@@ -93,7 +94,7 @@ export function ProviderCardLayout({
 		return t("llm.failingCard.unknown");
 	})();
 
-	const dropdownItems = [
+	const dropdownItems: MenuProps["items"] = [
 		{
 			key: "delete",
 			danger: true,
