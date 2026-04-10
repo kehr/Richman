@@ -7,7 +7,7 @@
 ```sql
 CREATE TABLE user_schedule_settings (
     id                      BIGSERIAL PRIMARY KEY,
-    user_id                 BIGINT NOT NULL REFERENCES users(id),
+    user_id                 BIGINT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
 
     -- global
     global_frequency        TEXT NOT NULL DEFAULT 'daily',
@@ -38,9 +38,17 @@ CREATE TABLE user_schedule_settings (
 
     created_at              TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at              TIMESTAMPTZ NOT NULL DEFAULT now(),
-    is_deleted              BOOLEAN NOT NULL DEFAULT FALSE,
-    UNIQUE (user_id)
+    creator                 VARCHAR(64)  NOT NULL DEFAULT 'system',
+    modifier                VARCHAR(64)  NOT NULL DEFAULT 'system',
+    is_deleted              SMALLINT     NOT NULL DEFAULT 0
 );
+
+-- Partial unique index: at most one active schedule setting per user
+CREATE UNIQUE INDEX uq_user_schedule_settings_active_user
+    ON user_schedule_settings (user_id) WHERE is_deleted = 0;
+
+CREATE INDEX idx_user_schedule_settings_user
+    ON user_schedule_settings (is_deleted, user_id);
 ```
 
 ### holding_schedule_overrides
@@ -48,16 +56,24 @@ CREATE TABLE user_schedule_settings (
 ```sql
 CREATE TABLE holding_schedule_overrides (
     id              BIGSERIAL PRIMARY KEY,
-    user_id         BIGINT NOT NULL REFERENCES users(id),
-    holding_id      BIGINT NOT NULL REFERENCES holdings(id),
+    user_id         BIGINT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    holding_id      BIGINT NOT NULL REFERENCES holdings(holding_id) ON DELETE CASCADE,
     frequency       TEXT,    -- null = follow market; same values as global_frequency
     frequency_days  INT,
-    window          TEXT,    -- null = follow market; values: pre | post | both
+    "window"        TEXT,    -- null = follow market; values: pre | post | both
     created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
-    is_deleted      BOOLEAN NOT NULL DEFAULT FALSE,
-    UNIQUE (user_id, holding_id)
+    creator         VARCHAR(64)  NOT NULL DEFAULT 'system',
+    modifier        VARCHAR(64)  NOT NULL DEFAULT 'system',
+    is_deleted      SMALLINT     NOT NULL DEFAULT 0
 );
+
+-- Partial unique index: one active override per (user, holding) pair
+CREATE UNIQUE INDEX uq_holding_schedule_overrides_active
+    ON holding_schedule_overrides (user_id, holding_id) WHERE is_deleted = 0;
+
+CREATE INDEX idx_holding_schedule_overrides_holding
+    ON holding_schedule_overrides (is_deleted, holding_id);
 ```
 
 ## API 设计
