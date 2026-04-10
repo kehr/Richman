@@ -25,17 +25,17 @@ const (
 
 	// EDT (summer) US window defaults.
 	defaultUSPreEnabled  = false
-	defaultUSPreTime     = "20:30" // NYSE 09:30 EDT = 21:30+8; stored as Asia/Shanghai
+	defaultUSPreTime     = "20:30" // NYSE 09:30 EDT - 1h = 08:30 EDT = 20:30+8 (Asia/Shanghai)
 	defaultUSPreCustom   = false
 	defaultUSPostEnabled = true
-	defaultUSPostTime    = "04:05" // NYSE 16:00 EDT + 5min = 04:05+8
+	defaultUSPostTime    = "04:05" // NYSE 16:00 EDT + 5min = 16:05 EDT = 04:05+8 (Asia/Shanghai)
 	defaultUSPostCustom  = false
 
 	// EST (winter) US window defaults. Exported for use by the DST logic layer
 	// (Step 4) which selects between EDT and EST windows based on the current
 	// US clock change date.
-	DefaultUSPreTimeEST  = "21:30" // NYSE 09:30 EST = 22:30+8; stored as Asia/Shanghai
-	DefaultUSPostTimeEST = "05:05" // NYSE 16:00 EST + 5min = 05:05+8
+	DefaultUSPreTimeEST  = "21:30" // NYSE 09:30 EST - 1h = 08:30 EST = 21:30+8 (Asia/Shanghai)
+	DefaultUSPostTimeEST = "05:05" // NYSE 16:00 EST + 5min = 16:05 EST = 05:05+8 (Asia/Shanghai)
 )
 
 // DefaultScheduleSettings returns a UserScheduleSettings populated with

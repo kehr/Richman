@@ -143,6 +143,10 @@ func buildCandidatesForDay(day time.Time, specs []windowSpec) ([]time.Time, erro
 // ComputeNextAnalysisAt determines when the next analysis should be triggered
 // for the given (user, holding, market) combination.
 //
+// now must be in Asia/Shanghai timezone. All window times (e.g. "08:30",
+// "20:30") are interpreted as Asia/Shanghai local time; passing a UTC or other
+// timezone value will produce incorrect next-trigger calculations.
+//
 // Priority for frequency resolution:
 //  1. Holding-level override frequency (if set)
 //  2. Market-level frequency from UserScheduleSettings (if set)
