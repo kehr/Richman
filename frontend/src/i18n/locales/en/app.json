@@ -217,6 +217,12 @@
 			"deleteSuccess": "Holding deleted",
 			"deleteError": "Failed to delete holding"
 		},
+		"assetTypes": {
+			"gold_etf": "Gold ETF",
+			"a_share_broad": "A-Share Broad",
+			"a_share_industry": "A-Share Industry",
+			"us_stock": "US Stock"
+		},
 		"totalCapital": {
 			"label": "Total Capital",
 			"notSet": "Total capital not set",

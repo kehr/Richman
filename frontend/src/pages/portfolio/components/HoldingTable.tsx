@@ -67,7 +67,9 @@ export function HoldingTable({
 				dataIndex: "assetType",
 				key: "assetType",
 				width: 120,
-				render: (value: string) => <Tag>{value}</Tag>,
+				render: (value: string) => (
+					<Tag>{t(`portfolio.assetTypes.${value}`, { defaultValue: value })}</Tag>
+				),
 			},
 			{
 				title: t("portfolio.holdingTable.cost"),

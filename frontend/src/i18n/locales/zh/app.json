@@ -217,6 +217,12 @@
 			"deleteSuccess": "持仓已删除",
 			"deleteError": "删除持仓失败"
 		},
+		"assetTypes": {
+			"gold_etf": "黄金 ETF",
+			"a_share_broad": "A 股宽基",
+			"a_share_industry": "A 股行业",
+			"us_stock": "美股"
+		},
 		"totalCapital": {
 			"label": "总资金",
 			"notSet": "未设置总资金",
