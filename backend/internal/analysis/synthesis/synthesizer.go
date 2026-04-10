@@ -84,6 +84,10 @@ type SynthesisMeta struct {
 	Source       string // "llm" | "template" | "mixed"
 	ProviderUsed string // "user" | "system_default" | "none"
 	LatencyMs    int64
+	// Model and TokensUsed are populated only when Source is "llm" or "mixed"
+	// (i.e. when the LLM was reached). They are empty/zero for template-only paths.
+	Model      string
+	TokensUsed int
 }
 
 // Synthesize generates structured decision card content and reports how it
@@ -195,6 +199,8 @@ func (s *Synthesizer) Synthesize(
 		Source:       source,
 		ProviderUsed: layer,
 		LatencyMs:    elapsedMs(start),
+		Model:        resolved.Response.Model,
+		TokensUsed:   resolved.Response.TokensUsed,
 	}, nil
 }
 

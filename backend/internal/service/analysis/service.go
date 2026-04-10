@@ -234,7 +234,10 @@ func (s *Service) AnalyzeHolding(
 		return nil, fmt.Errorf("fetch data: %w", err)
 	}
 	s.tsComplete(tID, model.StepKeyFetchData)
-	s.tsLog(tID, model.LogLevelInfo, holding.AssetCode+" data fetched")
+	s.tsLog(tID, model.LogLevelInfo, fmt.Sprintf(
+		"%s fetched: %d price bars, %d events",
+		holding.AssetCode, len(data.Prices), len(data.Events),
+	))
 
 	// Step 2: Calculate trend.
 	s.tsStart(tID, model.StepKeyCalcIndicators)
@@ -329,6 +332,21 @@ func (s *Service) AnalyzeHolding(
 		}
 	}
 	weights = s.weightMgr.ApplyRiskBias(weights, holding.AssetType, riskPref)
+
+	// Log dimension results for task progress display.
+	s.tsLog(tID, model.LogLevelInfo, fmt.Sprintf(
+		"%s trend=%s strength=%.2f", holding.AssetCode, trendResult.Direction, trendResult.Strength,
+	))
+	s.tsLog(tID, model.LogLevelInfo, fmt.Sprintf(
+		"%s position=%s pctl=%.0f%%", holding.AssetCode, posResult.Assessment, posResult.Percentile*100,
+	))
+	s.tsLog(tID, model.LogLevelInfo, fmt.Sprintf(
+		"%s catalyst=%s llm_enhanced=%v", holding.AssetCode, catResult.Direction, hasLLM,
+	))
+	s.tsLog(tID, model.LogLevelInfo, fmt.Sprintf(
+		"%s weights: trend=%.2f pos=%.2f cat=%.2f risk=%s",
+		holding.AssetCode, weights.Trend, weights.Position, weights.Catalyst, riskPref,
+	))
 	s.tsComplete(tID, model.StepKeyCalcIndicators)
 
 	// Load user language preference for localized synthesis output.
@@ -356,6 +374,9 @@ func (s *Service) AnalyzeHolding(
 
 	// Step 8: Decide recommendation.
 	rec := s.matrix.Decide(trendResult, posResult, catResult, weights)
+	s.tsLog(tID, model.LogLevelInfo, fmt.Sprintf(
+		"%s conf=%.0f%% rec=%s", holding.AssetCode, conf*100, rec,
+	))
 	s.tsComplete(tID, model.StepKeyRecommendation)
 
 	// Step 9: Synthesize card content.
@@ -385,9 +406,14 @@ func (s *Service) AnalyzeHolding(
 	}
 	if synthMeta != nil {
 		if synthMeta.Source == "template" || synthMeta.Source == "mixed" {
-			s.tsLog(tID, model.LogLevelWarn, holding.AssetCode+" LLM fallback → "+synthMeta.Source)
+			s.tsLog(tID, model.LogLevelWarn, fmt.Sprintf(
+				"%s LLM fallback → source=%s latency=%dms", holding.AssetCode, synthMeta.Source, synthMeta.LatencyMs,
+			))
 		} else {
-			s.tsLog(tID, model.LogLevelInfo, holding.AssetCode+" LLM ok · provider="+synthMeta.ProviderUsed)
+			s.tsLog(tID, model.LogLevelInfo, fmt.Sprintf(
+				"%s LLM ok · provider=%s model=%s tokens=%d latency=%dms",
+				holding.AssetCode, synthMeta.ProviderUsed, synthMeta.Model, synthMeta.TokensUsed, synthMeta.LatencyMs,
+			))
 		}
 	}
 	s.tsComplete(tID, model.StepKeyLLMSynthesis)
@@ -482,6 +508,9 @@ func (s *Service) AnalyzeHolding(
 		s.tsFail(tID, model.StepKeyPersist)
 		return nil, fmt.Errorf("save decision card: %w", err)
 	}
+	s.tsLog(tID, model.LogLevelInfo, fmt.Sprintf(
+		"%s saved: card_id=%d badge=%s", holding.AssetCode, saved.CardID, saved.BadgeState,
+	))
 	s.tsComplete(tID, model.StepKeyPersist)
 
 	s.logger.Info("analysis completed",
