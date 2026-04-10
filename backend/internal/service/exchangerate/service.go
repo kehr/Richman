@@ -12,18 +12,64 @@ import (
 	"go.uber.org/zap"
 )
 
-const (
-	defaultTTL = time.Hour
-	// open.er-api.com returns rates relative to the base currency (CNY).
-	// Response: {"rates": {"USD": 0.146, "HKD": 1.144, ...}}
-	// No API key required; free tier is sufficient for 1-hour TTL usage.
-	erAPIURL = "https://open.er-api.com/v6/latest/CNY"
-)
+const defaultTTL = time.Hour
 
-// erAPIResponse models the open.er-api.com /v6/latest response.
-type erAPIResponse struct {
-	Result string             `json:"result"`
-	Rates  map[string]float64 `json:"rates"`
+// provider defines one exchange rate data source.
+type provider struct {
+	name string
+	url  string
+	// parse extracts USD and HKD rates (expressed as "1 CNY = X foreign")
+	// from the raw API response body.
+	parse func(body []byte) (usd, hkd float64, err error)
+}
+
+// providers is the ordered fallback chain. Sources are tried in sequence;
+// the first successful response wins.
+var providers = []provider{
+	{
+		name: "open.er-api.com",
+		url:  "https://open.er-api.com/v6/latest/CNY",
+		parse: func(body []byte) (float64, float64, error) {
+			var r struct {
+				Result string             `json:"result"`
+				Rates  map[string]float64 `json:"rates"`
+			}
+			if err := json.Unmarshal(body, &r); err != nil {
+				return 0, 0, err
+			}
+			if r.Result != "success" {
+				return 0, 0, fmt.Errorf("result: %s", r.Result)
+			}
+			return r.Rates["USD"], r.Rates["HKD"], nil
+		},
+	},
+	{
+		name: "exchangerate-api.com",
+		url:  "https://api.exchangerate-api.com/v4/latest/CNY",
+		parse: func(body []byte) (float64, float64, error) {
+			var r struct {
+				Rates map[string]float64 `json:"rates"`
+			}
+			if err := json.Unmarshal(body, &r); err != nil {
+				return 0, 0, err
+			}
+			return r.Rates["USD"], r.Rates["HKD"], nil
+		},
+	},
+	{
+		// jsdelivr mirrors @fawazahmed0/currency-api — keys are lowercase.
+		name: "jsdelivr/fawazahmed0",
+		url:  "https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/cny.json",
+		parse: func(body []byte) (float64, float64, error) {
+			var r struct {
+				CNY map[string]float64 `json:"cny"`
+			}
+			if err := json.Unmarshal(body, &r); err != nil {
+				return 0, 0, err
+			}
+			return r.CNY["usd"], r.CNY["hkd"], nil
+		},
+	},
 }
 
 // Rates holds exchange rates expressed as "1 CNY = X foreign currency".
@@ -55,8 +101,8 @@ func NewService(logger *zap.Logger) *Service {
 	}
 }
 
-// GetRates returns cached rates when fresh; otherwise fetches from the exchange
-// rate API. On fetch failure, returns the last known rates so callers degrade
+// GetRates returns cached rates when fresh; otherwise fetches from the provider
+// chain. On total failure, returns the last known rates so callers degrade
 // gracefully.
 func (s *Service) GetRates(ctx context.Context) Rates {
 	s.mu.RLock()
@@ -68,7 +114,7 @@ func (s *Service) GetRates(ctx context.Context) Rates {
 	s.mu.RUnlock()
 
 	if err := s.refresh(ctx); err != nil {
-		s.logger.Warn("exchange rate refresh failed, using cached rates", zap.Error(err))
+		s.logger.Warn("all exchange rate providers failed, using cached rates", zap.Error(err))
 	}
 
 	s.mu.RLock()
@@ -76,53 +122,60 @@ func (s *Service) GetRates(ctx context.Context) Rates {
 	return s.cached
 }
 
-// refresh fetches CNY-based rates from open.er-api.com and updates the cache.
-// Rates are already expressed as "1 CNY = X foreign" so no inversion is needed.
+// refresh tries each provider in order and stops at the first success.
 func (s *Service) refresh(ctx context.Context) error {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, erAPIURL, http.NoBody)
+	for _, p := range providers {
+		usd, hkd, err := s.fetchFrom(ctx, p)
+		if err != nil {
+			s.logger.Warn("exchange rate provider failed", zap.String("provider", p.name), zap.Error(err))
+			continue
+		}
+		if usd <= 0 || hkd <= 0 {
+			s.logger.Warn("exchange rate provider returned zero rates", zap.String("provider", p.name))
+			continue
+		}
+
+		newValues := map[string]float64{
+			"CNY": 1.0,
+			"USD": usd,
+			"HKD": hkd,
+		}
+		s.mu.Lock()
+		s.cached = Rates{Values: newValues, UpdatedAt: time.Now().UTC()}
+		s.fetchedAt = time.Now()
+		s.mu.Unlock()
+
+		s.logger.Info("exchange rates refreshed",
+			zap.String("provider", p.name),
+			zap.Float64("USD", usd),
+			zap.Float64("HKD", hkd),
+		)
+		return nil
+	}
+	return fmt.Errorf("all %d providers exhausted", len(providers))
+}
+
+// fetchFrom fetches and parses rates from a single provider.
+func (s *Service) fetchFrom(ctx context.Context, p provider) (usd, hkd float64, err error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, p.url, http.NoBody)
 	if err != nil {
-		return fmt.Errorf("build exchange rate request: %w", err)
+		return 0, 0, fmt.Errorf("build request: %w", err)
 	}
 
 	resp, err := s.httpClient.Do(req)
 	if err != nil {
-		return fmt.Errorf("fetch exchange rates: %w", err)
+		return 0, 0, fmt.Errorf("http: %w", err)
 	}
 	defer func() { _ = resp.Body.Close() }()
 
+	if resp.StatusCode != http.StatusOK {
+		return 0, 0, fmt.Errorf("http %d", resp.StatusCode)
+	}
+
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return fmt.Errorf("read exchange rate response: %w", err)
+		return 0, 0, fmt.Errorf("read body: %w", err)
 	}
 
-	var parsed erAPIResponse
-	if err := json.Unmarshal(body, &parsed); err != nil {
-		return fmt.Errorf("parse exchange rate response: %w", err)
-	}
-	if parsed.Result != "success" {
-		return fmt.Errorf("exchange rate API returned non-success result: %s", parsed.Result)
-	}
-
-	newValues := map[string]float64{"CNY": 1.0}
-	for _, currency := range []string{"USD", "HKD"} {
-		if rate, ok := parsed.Rates[currency]; ok && rate > 0 {
-			newValues[currency] = rate
-		} else {
-			s.logger.Warn("exchange rate missing or zero", zap.String("currency", currency))
-		}
-	}
-
-	s.mu.Lock()
-	s.cached = Rates{
-		Values:    newValues,
-		UpdatedAt: time.Now().UTC(),
-	}
-	s.fetchedAt = time.Now()
-	s.mu.Unlock()
-
-	s.logger.Info("exchange rates refreshed",
-		zap.Float64("USD", newValues["USD"]),
-		zap.Float64("HKD", newValues["HKD"]),
-	)
-	return nil
+	return p.parse(body)
 }
