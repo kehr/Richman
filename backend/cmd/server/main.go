@@ -38,6 +38,7 @@ import (
 	"github.com/richman/backend/internal/repo"
 	"github.com/richman/backend/internal/service/auth"
 	"github.com/richman/backend/internal/service/portfolio"
+	scheduleSvc "github.com/richman/backend/internal/service/schedule"
 	"go.uber.org/zap"
 
 	// Note: claude and openai packages register provider factories via
@@ -110,6 +111,7 @@ func main() {
 	notifChannelRepo := repo.NewNotificationChannelRepo(dbPool)
 	notifLogRepo := repo.NewNotificationLogRepo(dbPool)
 	llmConfigRepo := repo.NewLLMConfigRepo(dbPool)
+	scheduleRepo := repo.NewScheduleRepo(dbPool)
 
 	// Initialize services
 	authService := auth.NewService(userRepo, planRepo, inviteRepo, cfg)
@@ -249,6 +251,7 @@ func main() {
 	})
 
 	cardService := decisioncard.NewService(cardRepo)
+	scheduleService := scheduleSvc.NewService(scheduleRepo, zapLogger)
 
 	// Initialize notification system
 	dispatcher := notification.NewDispatcher(zapLogger)
@@ -272,7 +275,9 @@ func main() {
 	notifService := notificationSvc.NewService(notifChannelRepo, notifLogRepo, dispatcher, zapLogger)
 
 	// Initialize scheduler
-	scheduler := analysisService.NewScheduler(analysisSvc, notifService, holdingRepo, userRepo, zapLogger)
+	scheduler := analysisService.NewScheduler(
+		analysisSvc, notifService, holdingRepo, cardRepo, userRepo, scheduleService, zapLogger,
+	)
 
 	// Initialize handlers
 	authHandler := v1.NewAuthHandler(authService)
@@ -302,6 +307,7 @@ func main() {
 	)
 	exchangeRateService := exchangerate.NewService(yahooClient, zapLogger)
 	exchangeRatesHandler := v1.NewExchangeRatesHandler(exchangeRateService)
+	scheduleHandler := v1.NewScheduleHandler(scheduleService, holdingRepo, cardRepo, scheduler)
 
 	// Setup Gin
 	if !cfg.IsDev() {
@@ -336,6 +342,7 @@ func main() {
 	llmSettingsHandler.RegisterRoutes(apiV1, authMiddleware)
 	dashboardHandler.RegisterRoutes(apiV1, authMiddleware)
 	exchangeRatesHandler.RegisterRoutes(apiV1, authMiddleware)
+	scheduleHandler.RegisterRoutes(apiV1, authMiddleware)
 
 	// Start scheduler
 	scheduler.Start()

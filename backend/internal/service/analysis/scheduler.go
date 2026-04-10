@@ -4,24 +4,66 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/richman/backend/internal/model"
 	"github.com/richman/backend/internal/notification/adapter"
 	"github.com/richman/backend/internal/repo"
 	notificationSvc "github.com/richman/backend/internal/service/notification"
+	scheduleSvc "github.com/richman/backend/internal/service/schedule"
 	"github.com/robfig/cron/v3"
 	"go.uber.org/zap"
 )
+
+// scheduleServiceDep is the subset of schedule.Service used by the Scheduler.
+// Defined as a local interface to avoid forcing callers to import the schedule
+// package, and to simplify testing.
+type scheduleServiceDep interface {
+	ListActiveUserScheduleSettings(ctx context.Context) ([]model.UserScheduleSettings, error)
+	GetUserScheduleSettings(ctx context.Context, userID int64) (*model.UserScheduleSettings, error)
+	ComputeNextAnalysisAt(
+		ctx context.Context,
+		userID, holdingID int64,
+		market string,
+		lastAnalyzedAt *time.Time,
+		now time.Time,
+	) (time.Time, error)
+}
+
+// windowKind identifies a trading window within a market.
+type windowKind string
+
+const (
+	windowPre  windowKind = "pre"
+	windowPost windowKind = "post"
+)
+
+// userEntryKey uniquely identifies a cron entry registered for a user.
+type userEntryKey struct {
+	userID int64
+	market string
+	window windowKind
+}
 
 // Scheduler runs periodic analysis jobs and pushes notifications to users.
 type Scheduler struct {
 	analysisSvc *Service
 	notifSvc    *notificationSvc.Service
 	holdingRepo *repo.HoldingRepo
+	cardRepo    *repo.DecisionCardRepo
 	userRepo    *repo.UserRepo
+	schedSvc    scheduleServiceDep
 	logger      *zap.Logger
 	cron        *cron.Cron
+	loc         *time.Location
+
+	// mu guards entryIDs.
+	mu       sync.Mutex
+	entryIDs map[userEntryKey]cron.EntryID
+
+	// dstEntryID tracks the active one-shot DST callback entry.
+	dstEntryID cron.EntryID
 }
 
 // NewScheduler creates a new analysis Scheduler.
@@ -29,58 +71,49 @@ func NewScheduler(
 	analysisSvc *Service,
 	notifSvc *notificationSvc.Service,
 	holdingRepo *repo.HoldingRepo,
+	cardRepo *repo.DecisionCardRepo,
 	userRepo *repo.UserRepo,
+	schedSvc scheduleServiceDep,
 	logger *zap.Logger,
 ) *Scheduler {
-	// Use Asia/Shanghai timezone for all cron schedules.
 	loc, err := time.LoadLocation("Asia/Shanghai")
 	if err != nil {
 		logger.Warn("failed to load Asia/Shanghai timezone, using UTC", zap.Error(err))
-		return &Scheduler{
-			analysisSvc: analysisSvc,
-			notifSvc:    notifSvc,
-			holdingRepo: holdingRepo,
-			userRepo:    userRepo,
-			logger:      logger,
-			cron:        cron.New(),
-		}
+		loc = time.UTC
 	}
 
 	return &Scheduler{
 		analysisSvc: analysisSvc,
 		notifSvc:    notifSvc,
 		holdingRepo: holdingRepo,
+		cardRepo:    cardRepo,
 		userRepo:    userRepo,
+		schedSvc:    schedSvc,
 		logger:      logger,
+		loc:         loc,
 		cron:        cron.New(cron.WithLocation(loc)),
+		entryIDs:    make(map[userEntryKey]cron.EntryID),
 	}
 }
 
-// Start registers cron jobs and starts the scheduler.
+// Start loads all user schedule configs, registers per-user cron entries, and
+// starts the scheduler.
 func (s *Scheduler) Start() {
-	// 08:30 CST: A-share AM brief (broad + industry)
-	if _, err := s.cron.AddFunc("30 8 * * 1-5", func() {
-		s.runJob("am_brief", []string{"a_share_broad", "a_share_industry"})
-	}); err != nil {
-		s.logger.Error("failed to register am_brief cron job", zap.Error(err))
+	ctx := context.Background()
+
+	settings, err := s.schedSvc.ListActiveUserScheduleSettings(ctx)
+	if err != nil {
+		s.logger.Error("failed to load user schedule settings on startup", zap.Error(err))
 	}
 
-	// 15:30 CST: A-share + gold PM digest
-	if _, err := s.cron.AddFunc("30 15 * * 1-5", func() {
-		s.runJob("pm_digest", []string{"a_share_broad", "a_share_industry", "gold_etf"})
-	}); err != nil {
-		s.logger.Error("failed to register pm_digest cron job", zap.Error(err))
+	for i := range settings {
+		s.registerUserEntries(&settings[i])
 	}
 
-	// 06:00 CST: US stock digest (Tue-Sat because US markets trade Mon-Fri)
-	if _, err := s.cron.AddFunc("0 6 * * 2-6", func() {
-		s.runJob("us_digest", []string{"us_stock"})
-	}); err != nil {
-		s.logger.Error("failed to register us_digest cron job", zap.Error(err))
-	}
+	s.scheduleDSTCallback()
 
 	s.cron.Start()
-	s.logger.Info("analysis scheduler started")
+	s.logger.Info("analysis scheduler started", zap.Int("configured_users", len(settings)))
 }
 
 // Stop gracefully stops the scheduler.
@@ -90,48 +123,381 @@ func (s *Scheduler) Stop() {
 	s.logger.Info("analysis scheduler stopped")
 }
 
-// runJob executes an analysis job for all users with holdings matching the given asset types.
-func (s *Scheduler) runJob(messageType string, assetTypes []string) {
-	ctx := context.Background()
+// ReloadUser removes all existing cron entries for the given user and
+// re-registers them from current schedule settings. Implements the
+// v1.ScheduleReloader interface so the schedule HTTP handler can trigger a
+// live reload after a settings save.
+func (s *Scheduler) ReloadUser(ctx context.Context, userID int64) error {
+	s.removeUserEntries(userID)
 
-	s.logger.Info("cron job started",
-		zap.String("message_type", messageType),
-		zap.Strings("asset_types", assetTypes),
+	settings, err := s.schedSvc.GetUserScheduleSettings(ctx, userID)
+	if err != nil {
+		s.logger.Error("failed to reload user schedule settings",
+			zap.Int64("user_id", userID),
+			zap.Error(err),
+		)
+		return err
+	}
+
+	s.registerUserEntries(settings)
+	s.logger.Info("reloaded schedule entries for user", zap.Int64("user_id", userID))
+	return nil
+}
+
+// removeUserEntries removes all cron entries for a user.
+func (s *Scheduler) removeUserEntries(userID int64) {
+	s.mu.Lock()
+	var toRemove []cron.EntryID
+	for key, id := range s.entryIDs {
+		if key.userID == userID {
+			toRemove = append(toRemove, id)
+			delete(s.entryIDs, key)
+		}
+	}
+	s.mu.Unlock()
+
+	for _, id := range toRemove {
+		s.cron.Remove(id)
+	}
+}
+
+// removeUserUSEntries removes only the US-market entries for a user.
+func (s *Scheduler) removeUserUSEntries(userID int64) {
+	s.mu.Lock()
+	var toRemove []cron.EntryID
+	for key, id := range s.entryIDs {
+		if key.userID == userID && key.market == "us" {
+			toRemove = append(toRemove, id)
+			delete(s.entryIDs, key)
+		}
+	}
+	s.mu.Unlock()
+
+	for _, id := range toRemove {
+		s.cron.Remove(id)
+	}
+}
+
+// registerUserEntries creates cron entries for each enabled window in the
+// user's settings.
+func (s *Scheduler) registerUserEntries(settings *model.UserScheduleSettings) {
+	userID := settings.UserID
+
+	if settings.ASharePreEnabled {
+		s.registerWindowEntry(userID, "a_share", windowPre, settings.ASharePreTime,
+			"1-5",
+			[]string{model.AssetTypeAShareBroad, model.AssetTypeAShareIndustry},
+			"am_brief",
+		)
+	}
+
+	// Post-market A-share window also covers gold_etf.
+	if settings.ASharePostEnabled {
+		s.registerWindowEntry(userID, "a_share", windowPost, settings.ASharePostTime,
+			"1-5",
+			[]string{model.AssetTypeAShareBroad, model.AssetTypeAShareIndustry, model.AssetTypeGoldETF},
+			"pm_digest",
+		)
+	}
+
+	// US pre-market (disabled by default, honored when user enables it).
+	// Tue-Sat because US Mon-Fri translates to Tue-Sat in Asia/Shanghai.
+	if settings.USPreEnabled {
+		s.registerWindowEntry(userID, "us", windowPre, settings.USPreTime,
+			"2-6",
+			[]string{model.AssetTypeUSStock},
+			"us_pre_brief",
+		)
+	}
+
+	if settings.USPostEnabled {
+		s.registerWindowEntry(userID, "us", windowPost, settings.USPostTime,
+			"2-6",
+			[]string{model.AssetTypeUSStock},
+			"us_digest",
+		)
+	}
+}
+
+// registerUserUSEntries re-registers only the US-market window entries.
+func (s *Scheduler) registerUserUSEntries(settings *model.UserScheduleSettings) {
+	if settings.USPreEnabled {
+		s.registerWindowEntry(settings.UserID, "us", windowPre, settings.USPreTime,
+			"2-6", []string{model.AssetTypeUSStock}, "us_pre_brief",
+		)
+	}
+	if settings.USPostEnabled {
+		s.registerWindowEntry(settings.UserID, "us", windowPost, settings.USPostTime,
+			"2-6", []string{model.AssetTypeUSStock}, "us_digest",
+		)
+	}
+}
+
+// registerWindowEntry parses "HH:MM", builds a cron spec, and registers the
+// entry, recording its EntryID.
+func (s *Scheduler) registerWindowEntry(
+	userID int64,
+	market string,
+	window windowKind,
+	timeStr string,
+	weekdays string,
+	assetTypes []string,
+	messageType string,
+) {
+	hour, minute, ok := parseHHMM(timeStr)
+	if !ok {
+		s.logger.Error("invalid window time, skipping entry",
+			zap.Int64("user_id", userID),
+			zap.String("market", market),
+			zap.String("window", string(window)),
+			zap.String("time", timeStr),
+		)
+		return
+	}
+
+	spec := fmt.Sprintf("%d %d * * %s", minute, hour, weekdays)
+
+	id, err := s.cron.AddFunc(spec, func() {
+		s.runJobForUser(userID, assetTypes, messageType)
+	})
+	if err != nil {
+		s.logger.Error("failed to register cron entry",
+			zap.Int64("user_id", userID),
+			zap.String("spec", spec),
+			zap.Error(err),
+		)
+		return
+	}
+
+	key := userEntryKey{userID: userID, market: market, window: window}
+
+	s.mu.Lock()
+	if oldID, exists := s.entryIDs[key]; exists {
+		s.mu.Unlock()
+		s.cron.Remove(oldID)
+		s.mu.Lock()
+	}
+	s.entryIDs[key] = id
+	s.mu.Unlock()
+
+	s.logger.Debug("registered cron entry",
+		zap.Int64("user_id", userID),
+		zap.String("market", market),
+		zap.String("window", string(window)),
+		zap.String("spec", spec),
+		zap.Int("entry_id", int(id)),
+	)
+}
+
+// parseHHMM parses "HH:MM" into (hour, minute, ok).
+func parseHHMM(t string) (hour, minute int, ok bool) {
+	if len(t) != 5 || t[2] != ':' {
+		return 0, 0, false
+	}
+	var h, m int
+	if _, err := fmt.Sscanf(t, "%d:%d", &h, &m); err != nil {
+		return 0, 0, false
+	}
+	if h > 23 || m > 59 {
+		return 0, 0, false
+	}
+	return h, m, true
+}
+
+// oneShotSchedule implements cron.Schedule to fire exactly once at a specific
+// UTC instant and never repeat (Next returns zero time after the instant).
+type oneShotSchedule struct {
+	at time.Time
+}
+
+func (o oneShotSchedule) Next(now time.Time) time.Time {
+	if now.Before(o.at) {
+		return o.at
+	}
+	return time.Time{}
+}
+
+// scheduleDSTCallback registers (or replaces) a one-shot cron entry that fires
+// at the next EDT/EST transition.
+func (s *Scheduler) scheduleDSTCallback() {
+	now := time.Now().UTC()
+	next := scheduleSvc.NextDSTTransition(now)
+
+	if s.dstEntryID != 0 {
+		s.cron.Remove(s.dstEntryID)
+	}
+
+	id := s.cron.Schedule(oneShotSchedule{at: next}, cron.FuncJob(func() {
+		s.onDSTTransition()
+	}))
+	s.dstEntryID = id
+
+	s.logger.Info("DST transition callback scheduled",
+		zap.Time("fires_at", next),
+		zap.Int("entry_id", int(id)),
+	)
+}
+
+// onDSTTransition is invoked at each EDT/EST boundary. It updates non-custom
+// US window times for all configured users and reschedules itself.
+func (s *Scheduler) onDSTTransition() {
+	now := time.Now()
+	isEDT := scheduleSvc.IsEDT(now)
+
+	s.logger.Info("DST transition fired",
+		zap.Bool("is_edt", isEDT),
+		zap.Time("at", now),
 	)
 
-	// Collect all users who have holdings of relevant types.
-	userHoldings := make(map[int64][]model.Holding)
+	ctx := context.Background()
+	settings, err := s.schedSvc.ListActiveUserScheduleSettings(ctx)
+	if err != nil {
+		s.logger.Error("DST transition: failed to list user settings", zap.Error(err))
+	} else {
+		for i := range settings {
+			st := &settings[i]
+			updated := false
 
-	for _, assetType := range assetTypes {
-		holdings, err := s.holdingRepo.ListHoldingsByAssetType(ctx, assetType)
-		if err != nil {
-			s.logger.Error("failed to list holdings by asset type",
-				zap.String("asset_type", assetType),
-				zap.Error(err),
-			)
-			continue
-		}
-		for i := range holdings {
-			h := holdings[i]
-			userHoldings[h.UserID] = append(userHoldings[h.UserID], h)
+			if !st.USPreCustom {
+				if isEDT {
+					st.USPreTime = scheduleSvc.DefaultUSPreTimeEDT
+				} else {
+					st.USPreTime = scheduleSvc.DefaultUSPreTimeEST
+				}
+				updated = true
+			}
+			if !st.USPostCustom {
+				if isEDT {
+					st.USPostTime = scheduleSvc.DefaultUSPostTimeEDT
+				} else {
+					st.USPostTime = scheduleSvc.DefaultUSPostTimeEST
+				}
+				updated = true
+			}
+
+			if updated {
+				s.removeUserUSEntries(st.UserID)
+				s.registerUserUSEntries(st)
+				s.logger.Info("DST transition: updated US window times",
+					zap.Int64("user_id", st.UserID),
+					zap.Bool("is_edt", isEDT),
+				)
+			}
 		}
 	}
 
-	if len(userHoldings) == 0 {
-		s.logger.Info("no users with relevant holdings, skipping",
+	s.scheduleDSTCallback()
+}
+
+// runJobForUser executes an analysis job for a single user's holdings of the
+// given asset types, applying a frequency gate before running analysis.
+func (s *Scheduler) runJobForUser(userID int64, assetTypes []string, messageType string) {
+	ctx := context.Background()
+
+	s.logger.Info("cron job triggered for user",
+		zap.Int64("user_id", userID),
+		zap.String("message_type", messageType),
+	)
+
+	// Fetch all user holdings and filter to the relevant asset types.
+	allHoldings, err := s.holdingRepo.ListHoldingsByUser(ctx, userID)
+	if err != nil {
+		s.logger.Error("failed to list holdings for user",
+			zap.Int64("user_id", userID),
+			zap.Error(err),
+		)
+		return
+	}
+
+	assetTypeSet := make(map[string]struct{}, len(assetTypes))
+	for _, at := range assetTypes {
+		assetTypeSet[at] = struct{}{}
+	}
+
+	var holdings []model.Holding
+	for i := range allHoldings {
+		if _, ok := assetTypeSet[allHoldings[i].AssetType]; ok {
+			holdings = append(holdings, allHoldings[i])
+		}
+	}
+
+	if len(holdings) == 0 {
+		s.logger.Debug("no holdings of relevant asset types for user, skipping",
+			zap.Int64("user_id", userID),
 			zap.String("message_type", messageType),
 		)
 		return
 	}
 
-	for userID, holdings := range userHoldings {
-		s.processUserJob(ctx, userID, holdings, messageType)
+	now := time.Now().In(s.loc)
+	eligible := s.filterEligibleHoldings(ctx, userID, holdings, now)
+	if len(eligible) == 0 {
+		s.logger.Debug("all holdings within frequency gate, skipping",
+			zap.Int64("user_id", userID),
+			zap.String("message_type", messageType),
+		)
+		return
 	}
 
-	s.logger.Info("cron job completed",
-		zap.String("message_type", messageType),
-		zap.Int("user_count", len(userHoldings)),
-	)
+	s.processUserJob(ctx, userID, eligible, messageType)
+}
+
+// filterEligibleHoldings returns only holdings for which the frequency minimum
+// interval has elapsed since the last analysis.
+func (s *Scheduler) filterEligibleHoldings(
+	ctx context.Context,
+	userID int64,
+	holdings []model.Holding,
+	now time.Time,
+) []model.Holding {
+	var eligible []model.Holding
+
+	for i := range holdings {
+		h := &holdings[i]
+		market := assetTypeToMarket(h.AssetType)
+
+		card, err := s.cardRepo.GetLatestByHolding(ctx, h.HoldingID)
+		if err != nil {
+			s.logger.Warn("failed to fetch latest card for frequency check, including holding",
+				zap.Int64("user_id", userID),
+				zap.Int64("holding_id", h.HoldingID),
+				zap.Error(err),
+			)
+			eligible = append(eligible, *h)
+			continue
+		}
+
+		var lastAnalyzedAt *time.Time
+		if card != nil {
+			t := card.AnalyzedAt
+			lastAnalyzedAt = &t
+		}
+
+		nextAt, err := s.schedSvc.ComputeNextAnalysisAt(ctx, userID, h.HoldingID, market, lastAnalyzedAt, now)
+		if err != nil {
+			s.logger.Warn("failed to compute next analysis time, including holding",
+				zap.Int64("user_id", userID),
+				zap.Int64("holding_id", h.HoldingID),
+				zap.Error(err),
+			)
+			eligible = append(eligible, *h)
+			continue
+		}
+
+		if !nextAt.After(now) {
+			eligible = append(eligible, *h)
+		}
+	}
+
+	return eligible
+}
+
+// assetTypeToMarket maps asset type strings to schedule market identifiers.
+func assetTypeToMarket(assetType string) string {
+	if assetType == model.AssetTypeUSStock {
+		return scheduleSvc.MarketUSStock
+	}
+	return scheduleSvc.MarketAShare
 }
 
 // processUserJob runs analysis on a user's holdings and sends a notification.
@@ -169,7 +535,6 @@ func (s *Scheduler) processUserJob(
 		cardSummary = fmt.Sprintf("%s (and %d more)", cardSummaries[0], len(cardSummaries)-1)
 	}
 
-	// Get user email for email channel.
 	user, err := s.userRepo.GetUserByID(ctx, userID)
 	var email string
 	if err == nil && user != nil {
@@ -199,6 +564,8 @@ func buildSubject(messageType string) string {
 		return "Morning Market Brief"
 	case "pm_digest":
 		return "Afternoon Market Digest"
+	case "us_pre_brief":
+		return "US Pre-Market Brief"
 	case "us_digest":
 		return "US Market Digest"
 	default:

@@ -31,9 +31,11 @@ const (
 	defaultUSPostTime    = "04:05" // NYSE 16:00 EDT + 5min = 16:05 EDT = 04:05+8 (Asia/Shanghai)
 	defaultUSPostCustom  = false
 
-	// EST (winter) US window defaults. Exported for use by the DST logic layer
-	// (Step 4) which selects between EDT and EST windows based on the current
-	// US clock change date.
+	// EDT (summer) and EST (winter) US window defaults. Exported for use by the
+	// DST logic layer which selects between them based on the current US clock
+	// change date.
+	DefaultUSPreTimeEDT  = "20:30" // NYSE 09:30 EDT - 1h = 08:30 EDT = 20:30+8 (Asia/Shanghai)
+	DefaultUSPostTimeEDT = "04:05" // NYSE 16:00 EDT + 5min = 16:05 EDT = 04:05+8 (Asia/Shanghai)
 	DefaultUSPreTimeEST  = "21:30" // NYSE 09:30 EST - 1h = 08:30 EST = 21:30+8 (Asia/Shanghai)
 	DefaultUSPostTimeEST = "05:05" // NYSE 16:00 EST + 5min = 16:05 EST = 05:05+8 (Asia/Shanghai)
 )
