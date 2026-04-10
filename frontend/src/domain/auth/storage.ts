@@ -1,39 +1,26 @@
-const TOKEN_KEY = "auth_token";
-const USER_KEY = "auth_user";
+import { StorageKeys, storageGet, storageRemove, storageSet } from "@/domain/storage/local-storage";
 
 export function setToken(token: string): void {
-	if (typeof window === "undefined") return;
-	localStorage.setItem(TOKEN_KEY, token);
+	storageSet(StorageKeys.authToken, token);
 }
 
 export function getToken(): string | null {
-	if (typeof window === "undefined") return null;
-	return localStorage.getItem(TOKEN_KEY);
+	return storageGet<string>(StorageKeys.authToken);
 }
 
 export function removeToken(): void {
-	if (typeof window === "undefined") return;
-	localStorage.removeItem(TOKEN_KEY);
+	storageRemove(StorageKeys.authToken);
 }
 
 export function setUser(user: unknown): void {
-	if (typeof window === "undefined") return;
-	localStorage.setItem(USER_KEY, JSON.stringify(user));
+	storageSet(StorageKeys.authUser, user);
 }
 
 export function getUser(): unknown | null {
-	if (typeof window === "undefined") return null;
-	const raw = localStorage.getItem(USER_KEY);
-	if (!raw) return null;
-	try {
-		return JSON.parse(raw);
-	} catch {
-		return null;
-	}
+	return storageGet<unknown>(StorageKeys.authUser);
 }
 
 export function clearAuth(): void {
-	removeToken();
-	if (typeof window === "undefined") return;
-	localStorage.removeItem(USER_KEY);
+	storageRemove(StorageKeys.authToken);
+	storageRemove(StorageKeys.authUser);
 }

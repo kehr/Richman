@@ -1,3 +1,4 @@
+import { StorageKeys, storageRemove } from "@/domain/storage/local-storage";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { resetOnboarding } from "./api";
 import { ONBOARDING_STATUS_QUERY_KEY } from "./use-onboarding-status";
@@ -31,11 +32,7 @@ export function useResetOnboarding() {
 			} catch {
 				// sessionStorage may be disabled (private mode); fail silent.
 			}
-			try {
-				localStorage.removeItem("richman_onboarding_nudge_dismissed");
-			} catch {
-				// localStorage may be disabled (private mode); fail silent.
-			}
+			storageRemove(StorageKeys.onboardingNudgeDismissed);
 			await queryClient.invalidateQueries({ queryKey: ONBOARDING_STATUS_QUERY_KEY });
 			await queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
 			await queryClient.invalidateQueries({ queryKey: USER_SETTINGS_QUERY_KEY });

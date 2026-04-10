@@ -1,3 +1,5 @@
+import { StorageKeys } from "@/domain/storage/local-storage";
+import { useLocalStorage } from "@/domain/storage/use-local-storage";
 import { LLMStatusBanner } from "@/features/dashboard-llm-status";
 import { useDashboardSummary } from "@/features/dashboard-summary";
 import {
@@ -11,7 +13,8 @@ import {
 import { useHoldings } from "@/features/portfolio";
 import { useUserSettings } from "@/features/user-settings";
 import { App, Flex, PageContainer, Space } from "@/ui-kit/eat";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
+
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router";
 import { ChangeAnchorList } from "./components/ChangeAnchorList";
@@ -32,19 +35,11 @@ export default function DashboardPage() {
 	const cardsQuery = useDecisionCards();
 	const settingsQuery = useUserSettings();
 	const summaryQuery = useDashboardSummary();
-	// Persist taskId in localStorage so "查看最近分析" survives a page refresh
-	// and an in-progress task can be re-attached after reload. The backend TTL
-	// evicts old tasks, so a stale key just resolves to task=undefined naturally.
-	const [taskId, setTaskId] = useState<string | null>(() =>
-		localStorage.getItem("richman_last_task_id"),
-	);
+	// Persist taskId so "查看最近分析" and in-progress state survive a page
+	// refresh. Backend TTL evicts old tasks; a stale key resolves to
+	// task=undefined naturally, hiding the link without explicit cleanup.
+	const [taskId, setTaskId] = useLocalStorage<string | null>(StorageKeys.lastAnalysisTaskId, null);
 	const [drawerOpen, setDrawerOpen] = useState(false);
-
-	useEffect(() => {
-		if (taskId !== null) {
-			localStorage.setItem("richman_last_task_id", taskId);
-		}
-	}, [taskId]);
 
 	const rerun = useRerunAnalysis((id) => {
 		setTaskId(id);
