@@ -145,3 +145,18 @@ func (c *Client) FetchQuote(ctx context.Context, symbol string) (*datasource.Pri
 	latest := prices[len(prices)-1]
 	return &latest, nil
 }
+
+// FetchForexRate fetches the latest exchange rate for a forex pair ticker.
+// ticker uses Yahoo Finance format, e.g. "USDCNY=X" returns how many CNY
+// equals 1 USD (the Close price of the pair). Callers that need the inverse
+// rate (1 CNY = X USD) must compute 1/result themselves.
+func (c *Client) FetchForexRate(ctx context.Context, ticker string) (float64, error) {
+	quote, err := c.FetchQuote(ctx, ticker)
+	if err != nil {
+		return 0, fmt.Errorf("fetch forex rate for %s: %w", ticker, err)
+	}
+	if quote.Close <= 0 {
+		return 0, fmt.Errorf("invalid forex rate %.6f for %s", quote.Close, ticker)
+	}
+	return quote.Close, nil
+}
