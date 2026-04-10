@@ -1,4 +1,4 @@
-import { formatAmount } from "@/domain/money/format";
+import { useMoney } from "@/domain/money/useMoney";
 import { useUserSettings } from "@/features/user-settings";
 import { Flex, Typography } from "@/ui-kit/eat";
 import { useTranslation } from "react-i18next";
@@ -10,7 +10,8 @@ import { Link } from "react-router";
 // capital so amount columns can be displayed (PRD §4.1).
 export function TotalCapitalRow() {
 	const { data: settings, isLoading } = useUserSettings();
-	const { t, i18n } = useTranslation("app");
+	const { t } = useTranslation("app");
+	const money = useMoney();
 
 	if (isLoading) {
 		return null;
@@ -25,7 +26,7 @@ export function TotalCapitalRow() {
 				<>
 					<Typography.Text type="secondary">{t("portfolio.totalCapital.label")}</Typography.Text>
 					<Typography.Text strong data-testid="total-capital-amount">
-						{formatAmount(totalCapital, i18n.language)}
+						{money.formatAmountOnly(totalCapital) ?? ""}
 					</Typography.Text>
 					<Link to="/settings" data-testid="total-capital-edit">
 						{t("portfolio.totalCapital.editLink")}
