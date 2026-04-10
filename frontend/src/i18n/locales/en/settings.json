@@ -2,9 +2,9 @@
 	"title": "Settings",
 	"tabs": {
 		"account": "Account",
-		"ai": "AI Configuration",
+		"ai": "AI",
 		"schedule": "Schedule",
-		"channels": "Push Channels",
+		"channels": "Alerts",
 		"preferences": "Preferences",
 		"subscription": "Subscriptions"
 	},
@@ -148,7 +148,7 @@
 		"description": "Configure analysis time windows and trigger frequency per market. Individual holdings can override in the detail page.",
 		"globalFrequency": {
 			"label": "Global Default Frequency",
-			"every_window": "Every Window",
+			"every_window": "Always",
 			"every_windowHint": "Triggers at all enabled time slots, multiple times per day",
 			"daily": "Daily",
 			"dailyHint": "At most once per day",
@@ -162,14 +162,14 @@
 			"customHint": "Set interval in days",
 			"customDays": "Every {{n}} days",
 			"customPlaceholder": "Days (1–30)",
-			"followGlobal": "Follow Global",
+			"followGlobal": "Default",
 			"followMarket": "Follow Market Default"
 		},
 		"window": {
 			"pre": "Pre-market",
 			"post": "Post-market",
-			"preHint": "Pre-open analysis + information delta",
-			"postHint": "Full post-close analysis",
+			"preHint": "Pre-market update",
+			"postHint": "Post-market analysis",
 			"defaultLabel": "Default",
 			"customLabel": "Modified",
 			"resetTooltip": "Reset to default time"
@@ -180,7 +180,7 @@
 			"hk_stock": "HK Stocks",
 			"hkComingSoon": "Coming soon",
 			"frequency": "Frequency",
-			"windows": "Time Windows"
+			"windows": "Windows"
 		},
 		"holdingOverride": {
 			"title": "Auto Analysis Override",

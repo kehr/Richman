@@ -2,9 +2,9 @@
 	"title": "设置",
 	"tabs": {
 		"account": "账户",
-		"ai": "AI 配置",
+		"ai": "AI",
 		"schedule": "调度策略",
-		"channels": "推送渠道",
+		"channels": "通知",
 		"preferences": "偏好设置",
 		"subscription": "我的订阅"
 	},
@@ -148,7 +148,7 @@
 		"description": "配置各市场的分析时间窗口和触发频率。单个持仓可在详情页单独覆盖。",
 		"globalFrequency": {
 			"label": "全局默认频率",
-			"every_window": "每个窗口",
+			"every_window": "每次",
 			"every_windowHint": "所有已启用触发点都执行，同一天可多次",
 			"daily": "每日",
 			"dailyHint": "每天最多 1 次",
@@ -162,14 +162,14 @@
 			"customHint": "设置间隔天数",
 			"customDays": "每 {{n}} 天",
 			"customPlaceholder": "天数（1–30）",
-			"followGlobal": "跟随全局",
+			"followGlobal": "默认",
 			"followMarket": "跟随市场默认"
 		},
 		"window": {
 			"pre": "盘前",
 			"post": "盘后",
-			"preHint": "开盘前研判 + 信息增量",
-			"postHint": "收盘后完整分析",
+			"preHint": "盘前更新",
+			"postHint": "盘后分析",
 			"defaultLabel": "默认",
 			"customLabel": "已修改",
 			"resetTooltip": "重置为默认时间"
@@ -180,7 +180,7 @@
 			"hk_stock": "港股",
 			"hkComingSoon": "规划中",
 			"frequency": "频率",
-			"windows": "时间窗口"
+			"windows": "窗口"
 		},
 		"holdingOverride": {
 			"title": "自动分析覆盖",
