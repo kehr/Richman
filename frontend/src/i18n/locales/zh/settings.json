@@ -153,6 +153,7 @@
 			"baseUrlLabel": "Base URL",
 			"lastProbedAt": "测试于 {{time}}",
 			"notTested": "尚未测试",
+			"fallbackLabel": "失败降级",
 			"fallbackOn": "已开启",
 			"fallbackOff": "已关闭",
 			"deleteMenuLabel": "删除 Provider 配置",

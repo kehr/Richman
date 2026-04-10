@@ -153,6 +153,7 @@
 			"baseUrlLabel": "Base URL",
 			"lastProbedAt": "Tested {{time}}",
 			"notTested": "Not tested yet",
+			"fallbackLabel": "Failure Fallback",
 			"fallbackOn": "Enabled",
 			"fallbackOff": "Disabled",
 			"deleteMenuLabel": "Delete Provider",

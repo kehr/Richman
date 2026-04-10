@@ -1,36 +1,21 @@
-import { App, Button, Card, Popconfirm, Space, Switch, Tag, Typography } from "@/ui-kit/eat";
+import { App, Button, Divider, Space, Switch, theme } from "@/ui-kit/eat";
+import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { LLMProbeButton } from "./LLMProbeButton";
+import { ProviderCardLayout } from "./ProviderCardLayout";
 import { useDeleteLLMSettings, useUpsertLLMSettings } from "./hooks";
 import type { LLMSettingsDTO } from "./types";
-
-const { Text, Title } = Typography;
 
 interface LLMHealthyCardProps {
 	config: LLMSettingsDTO;
 	onEdit: () => void;
 }
 
-// providerLabel maps the provider enum to a human-readable brand label.
-// These are proper nouns / brand names and intentionally not translated.
-function providerLabel(providerType: LLMSettingsDTO["providerType"]): string {
-	switch (providerType) {
-		case "claude":
-			return "Claude (Anthropic)";
-		case "openai":
-			return "OpenAI";
-		case "openai_compatible":
-			return "OpenAI Compatible";
-		default:
-			return "Unknown";
-	}
-}
-
-// LLMHealthyCard is the "configured + healthy" variant. It shows the
-// provider brand, model, masked key hint, health tag, fallback toggle and
-// the three standard action buttons.
+// LLMHealthyCard is the "configured + healthy" variant. It delegates layout
+// to ProviderCardLayout and provides body/footer slot content.
 export function LLMHealthyCard({ config, onEdit }: LLMHealthyCardProps) {
 	const { t } = useTranslation("settings");
+	const { token } = theme.useToken();
 	const { message } = App.useApp();
 	const upsertMutation = useUpsertLLMSettings();
 	const deleteMutation = useDeleteLLMSettings();
@@ -65,73 +50,103 @@ export function LLMHealthyCard({ config, onEdit }: LLMHealthyCardProps) {
 		}
 	};
 
-	const probeTime = config.lastProbeAt
-		? new Date(config.lastProbeAt).toLocaleString()
-		: t("llm.healthyCard.notTested");
+	const fallbackText = config.fallbackToSystemDefaultOnFailure
+		? t("llm.healthyCard.fallbackOn")
+		: t("llm.healthyCard.fallbackOff");
+
+	// Info grid items: filter out baseUrl row if empty
+	const infoItems: { label: string; value: string; muted?: boolean }[] = [
+		{ label: t("llm.healthyCard.modelLabel"), value: config.model ?? "-" },
+		{ label: t("llm.healthyCard.apiKeyLabel"), value: config.apiKeyHint ?? "..****", muted: true },
+		...(config.baseUrl
+			? [{ label: t("llm.healthyCard.baseUrlLabel"), value: config.baseUrl }]
+			: []),
+		{
+			label: t("llm.healthyCard.fallbackLabel"),
+			value: fallbackText,
+			muted: true,
+		},
+	];
+
+	const bodyContent: ReactNode = (
+		<>
+			<div
+				style={{
+					display: "grid",
+					gridTemplateColumns: "1fr 1fr",
+					gap: "12px 24px",
+					marginBottom: 14,
+				}}
+			>
+				{infoItems.map(({ label, value, muted }) => (
+					<div key={label} style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+						<span
+							style={{
+								fontSize: 11,
+								color: token.colorTextQuaternary,
+								textTransform: "uppercase",
+								letterSpacing: "0.4px",
+							}}
+						>
+							{label}
+						</span>
+						<span
+							style={{
+								fontSize: 13,
+								color: muted ? token.colorTextTertiary : token.colorText,
+							}}
+						>
+							{value}
+						</span>
+					</div>
+				))}
+			</div>
+			<Divider style={{ margin: "14px 0" }} />
+			<div
+				style={{
+					display: "flex",
+					alignItems: "flex-start",
+					justifyContent: "space-between",
+					gap: 12,
+				}}
+			>
+				<div>
+					<div style={{ fontSize: 13, color: token.colorText }}>
+						{t("llm.healthyCard.fallbackToggle")}
+					</div>
+					<div style={{ fontSize: 12, color: token.colorTextSecondary, marginTop: 3 }}>
+						{t("llm.healthyCard.fallbackHint")}
+					</div>
+				</div>
+				<Switch
+					checked={config.fallbackToSystemDefaultOnFailure}
+					loading={upsertMutation.isPending}
+					onChange={handleToggleFallback}
+					data-testid="llm-fallback-switch"
+				/>
+			</div>
+		</>
+	);
+
+	const footerContent: ReactNode = (
+		<Space>
+			<LLMProbeButton />
+			<Button onClick={onEdit} data-testid="llm-edit-button">
+				{t("llm.healthyCard.editButton")}
+			</Button>
+		</Space>
+	);
 
 	return (
-		<Card data-testid="llm-healthy-card">
-			<Space direction="vertical" size={16} style={{ width: "100%" }}>
-				<Space align="center" wrap>
-					<Title level={5} style={{ margin: 0 }}>
-						{providerLabel(config.providerType)}
-					</Title>
-					<Tag color="success" data-testid="llm-health-tag">
-						{t("llm.healthyCard.healthy")}
-					</Tag>
-				</Space>
-
-				<Space direction="vertical" size={4}>
-					<Text>
-						{t("llm.healthyCard.modelLabel")}: <Text code>{config.model ?? "-"}</Text>
-					</Text>
-					<Text>
-						{t("llm.healthyCard.apiKeyLabel")}: <Text code>{config.apiKeyHint ?? "..****"}</Text>
-					</Text>
-					{config.baseUrl && (
-						<Text>
-							{t("llm.healthyCard.baseUrlLabel")}: <Text code>{config.baseUrl}</Text>
-						</Text>
-					)}
-					<Text type="secondary" style={{ fontSize: 12 }}>
-						{config.lastProbeAt
-							? t("llm.healthyCard.lastProbedAt", { time: probeTime })
-							: t("llm.healthyCard.notTested")}
-					</Text>
-				</Space>
-
-				<Space align="center">
-					<Switch
-						checked={config.fallbackToSystemDefaultOnFailure}
-						loading={upsertMutation.isPending}
-						onChange={handleToggleFallback}
-						data-testid="llm-fallback-switch"
-					/>
-					<Text>{t("llm.healthyCard.fallbackToggle")}</Text>
-				</Space>
-				<Text type="secondary" style={{ fontSize: 12 }}>
-					{t("llm.healthyCard.fallbackHint")}
-				</Text>
-
-				<Space wrap>
-					<LLMProbeButton />
-					<Button onClick={onEdit} data-testid="llm-edit-button">
-						{t("llm.healthyCard.editButton")}
-					</Button>
-					<Popconfirm
-						title={t("llm.healthyCard.deleteConfirm.title")}
-						description={t("llm.healthyCard.deleteConfirm.description")}
-						okText={t("llm.healthyCard.deleteConfirm.ok")}
-						cancelText={t("llm.healthyCard.deleteConfirm.cancel")}
-						okButtonProps={{ danger: true }}
-						onConfirm={handleDelete}
-					>
-						<Button danger loading={deleteMutation.isPending} data-testid="llm-delete-button">
-							{t("llm.healthyCard.deleteButton")}
-						</Button>
-					</Popconfirm>
-				</Space>
-			</Space>
-		</Card>
+		<ProviderCardLayout
+			providerType={config.providerType}
+			lastProbeAt={config.lastProbeAt}
+			healthStatus="healthy"
+			onDelete={handleDelete}
+			isDeleting={deleteMutation.isPending}
+			bodyContent={bodyContent}
+			footerContent={footerContent}
+			data-testid="llm-healthy-card"
+		/>
 	);
 }
