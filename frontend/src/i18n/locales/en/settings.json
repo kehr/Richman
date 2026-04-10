@@ -34,6 +34,7 @@
 		"message": {
 			"capitalSaved": "Total capital saved",
 			"capitalSaveError": "Failed to save total capital",
+			"rateUnavailable": "Exchange rate unavailable, please save in CNY",
 			"riskUpdated": "Risk preference updated",
 			"riskUpdateError": "Failed to update risk preference",
 			"resetError": "Reset failed, please try again later"

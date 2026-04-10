@@ -1,7 +1,9 @@
 import { gravatarUrl } from "@/domain/auth/gravatar";
 import { useCurrentUser } from "@/domain/auth/use-current-user";
+import { useExchangeRates } from "@/domain/money/useExchangeRates";
 import { useLogout } from "@/features/auth";
 import {
+	type DisplayCurrency,
 	type RiskPreference,
 	usePatchUserSettings,
 	useResetOnboarding,
@@ -16,18 +18,19 @@ import {
 	InputNumber,
 	Popconfirm,
 	Radio,
+	Select,
 	Space,
 	Tooltip,
 	Typography,
 	UserOutlined,
 	message,
 } from "@/ui-kit/eat";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router";
 
 interface CapitalFormValues {
-	totalCapitalCny?: number | null;
+	amount?: number | null;
 }
 
 // AccountTab renders the PRD §6.2 fields: read-only email, password reset
@@ -44,8 +47,13 @@ export function AccountTab() {
 	const logout = useLogout();
 	const currentUser = useCurrentUser();
 	const navigate = useNavigate();
+	const { rates } = useExchangeRates();
 
 	const [capitalForm] = Form.useForm<CapitalFormValues>();
+	// inputCurrency controls the unit shown next to the capital input.
+	// Defaults to the user's displayCurrency preference; falls back to CNY when
+	// the required exchange rate is unavailable.
+	const [inputCurrency, setInputCurrency] = useState<DisplayCurrency>("CNY");
 
 	const settings = settingsQuery.data;
 	const email = currentUser.data?.email ?? "";
@@ -60,23 +68,55 @@ export function AccountTab() {
 		[t],
 	);
 
-	// Sync form initial value with the loaded settings snapshot. We rely on
-	// setFieldsValue rather than initialValues so the form picks up the
-	// current capital after the query resolves.
+	// Sync inputCurrency to the user's displayCurrency preference on first load.
+	const displayCurrencyPref = settings?.displayCurrency;
 	useEffect(() => {
-		if (settings) {
-			capitalForm.setFieldsValue({ totalCapitalCny: settings.totalCapitalCny ?? undefined });
+		if (displayCurrencyPref) {
+			setInputCurrency(displayCurrencyPref);
 		}
-	}, [capitalForm, settings]);
+	}, [displayCurrencyPref]);
+
+	// Re-derive form value whenever inputCurrency, rates, or stored capital changes.
+	// Converts the stored CNY amount to the currently selected input unit.
+	useEffect(() => {
+		const cny = settings?.totalCapitalCny;
+		let displayValue: number | undefined;
+		if (cny != null) {
+			if (inputCurrency === "CNY") {
+				displayValue = Math.round(cny);
+			} else {
+				const rate = rates[inputCurrency];
+				displayValue = rate ? Math.round(cny * rate) : Math.round(cny);
+			}
+		}
+		capitalForm.setFieldsValue({ amount: displayValue });
+	}, [capitalForm, settings?.totalCapitalCny, inputCurrency, rates]);
+
+	const handleCurrencyChange = (currency: DisplayCurrency) => {
+		setInputCurrency(currency);
+		// The effect above will update the form value from the stored CNY amount.
+	};
 
 	const handleSaveCapital = async () => {
 		try {
 			const values = await capitalForm.validateFields();
-			const raw = values.totalCapitalCny;
+			const raw = values.amount;
 			if (raw == null) {
 				await patchMutation.mutateAsync({ clearTotalCapitalCny: true });
 			} else {
-				await patchMutation.mutateAsync({ totalCapitalCny: raw });
+				let cnyValue: number;
+				if (inputCurrency === "CNY") {
+					cnyValue = raw;
+				} else {
+					const rate = rates[inputCurrency];
+					if (!rate) {
+						message.error(t("account.message.rateUnavailable"));
+						return;
+					}
+					// rate = "1 CNY = X foreign", so foreign → CNY = amount / rate
+					cnyValue = Math.round(raw / rate);
+				}
+				await patchMutation.mutateAsync({ totalCapitalCny: cnyValue });
 			}
 			message.success(t("account.message.capitalSaved"));
 		} catch (err) {
@@ -109,6 +149,19 @@ export function AccountTab() {
 		}
 	};
 
+	const currencySelector = (
+		<Select
+			value={inputCurrency}
+			onChange={handleCurrencyChange}
+			options={[
+				{ label: "CNY", value: "CNY" },
+				{ label: "USD", value: "USD", disabled: !rates.USD },
+				{ label: "HKD", value: "HKD", disabled: !rates.HKD },
+			]}
+			style={{ width: 70 }}
+		/>
+	);
+
 	return (
 		<Flex vertical gap={24} data-testid="account-tab">
 			<Flex align="center" gap={16} data-testid="account-avatar-section">
@@ -140,12 +193,12 @@ export function AccountTab() {
 			<Flex vertical gap={8}>
 				<Typography.Text type="secondary">{t("account.totalCapital")}</Typography.Text>
 				<Form<CapitalFormValues> form={capitalForm} layout="inline">
-					<Form.Item name="totalCapitalCny" style={{ marginBottom: 0 }}>
+					<Form.Item name="amount" style={{ marginBottom: 0 }}>
 						<InputNumber
 							min={0}
-							step={1000}
+							step={inputCurrency === "CNY" ? 1000 : 100}
 							style={{ width: 240 }}
-							addonAfter="CNY"
+							addonAfter={currencySelector}
 							placeholder={t("account.totalCapitalPlaceholder")}
 							data-testid="account-total-capital-input"
 						/>

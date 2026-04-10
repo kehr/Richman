@@ -34,6 +34,7 @@
 		"message": {
 			"capitalSaved": "总资金已保存",
 			"capitalSaveError": "保存总资金失败",
+			"rateUnavailable": "当前汇率不可用，请选择 CNY 保存",
 			"riskUpdated": "风险偏好已更新",
 			"riskUpdateError": "更新风险偏好失败",
 			"resetError": "重置失败，请稍后重试"
