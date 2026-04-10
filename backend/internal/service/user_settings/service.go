@@ -36,7 +36,7 @@ var allowedLanguages = map[string]struct{}{
 }
 
 // allowedDisplayCurrencies mirrors the CHECK constraint
-// chk_users_display_currency in migration 016_user_display_currency.
+// chk_users_display_currency in migration 019_user_display_currency.
 var allowedDisplayCurrencies = map[string]struct{}{
 	model.DisplayCurrencyCNY: {},
 	model.DisplayCurrencyUSD: {},

@@ -18,7 +18,7 @@ const (
 )
 
 // DisplayCurrency preference values. These must stay in sync with the CHECK
-// constraint chk_users_display_currency defined in migration 016_user_display_currency.
+// constraint chk_users_display_currency defined in migration 019_user_display_currency.
 const (
 	DisplayCurrencyCNY = "CNY"
 	DisplayCurrencyUSD = "USD"

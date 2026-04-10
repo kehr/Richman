@@ -41,19 +41,9 @@ function formatDeltaPct(delta: number): string {
 function StepRow({
 	step,
 	index,
-	totalCapitalCny,
-}: { step: Step; index: number; totalCapitalCny?: number | null }) {
+	amountStr,
+}: { step: Step; index: number; amountStr?: string | null }) {
 	const formatTrigger = useFormatTriggerValue();
-	const { i18n } = useTranslation();
-
-	// Derive the change amount from total capital and deltaPct.
-	// Only shown when totalCapitalCny is known and the step actually moves position.
-	// totalCapitalCny is already null-gated by hasCapital in ExecutionPlanStrip.
-	const amountCny =
-		totalCapitalCny != null && totalCapitalCny > 0 && step.deltaPct !== 0
-			? Math.round(Math.abs((totalCapitalCny * step.deltaPct) / 100))
-			: null;
-	const amountStr = amountCny != null ? formatAmount(amountCny, i18n.language) : null;
 
 	return (
 		<div style={{ display: "flex", alignItems: "center" }} data-testid={`plan-step-${step.order}`}>
@@ -83,7 +73,7 @@ interface ExecutionPlanStripProps {
 	maxSteps?: number;
 	onShowAll?: () => void;
 	// positionAmountCny and positionRatioPct are used together to derive total
-	// capital so each step can show the CNY change amount alongside the percent.
+	// capital so each step can show the change amount alongside the percent.
 	// Both must be non-null and positionRatioPct must be > 0 to enable display.
 	positionAmountCny?: number | null;
 	positionRatioPct?: number;
@@ -108,7 +98,7 @@ export function ExecutionPlanStrip({
 	positionAmountCny,
 	positionRatioPct,
 }: ExecutionPlanStripProps) {
-	const { t } = useTranslation("app");
+	const { t, i18n } = useTranslation("app");
 	const money = useMoney();
 
 	const steps = execution.steps ?? [];
@@ -124,6 +114,14 @@ export function ExecutionPlanStrip({
 		positionRatioPct > 0
 			? positionAmountCny / (positionRatioPct / 100)
 			: null;
+
+	// Format a step's absolute change amount in the user's display currency.
+	// Returns null when totalCapitalCny is unknown or the step has no delta.
+	function stepAmountStr(step: Step): string | null {
+		if (totalCapitalCny == null || totalCapitalCny <= 0 || step.deltaPct === 0) return null;
+		const amountCny = Math.round(Math.abs((totalCapitalCny * step.deltaPct) / 100));
+		return formatAmount(amountCny, i18n.language, money.currency);
+	}
 
 	// Legacy monitor cards without steps: render stop-loss / take-profit only.
 	if (execution.type === "monitor" && steps.length === 0) {
@@ -151,7 +149,7 @@ export function ExecutionPlanStrip({
 	return (
 		<Space direction="vertical" size={4} style={{ width: "100%" }}>
 			{visible.map((step, idx) => (
-				<StepRow key={step.order} step={step} index={idx} totalCapitalCny={totalCapitalCny} />
+				<StepRow key={step.order} step={step} index={idx} amountStr={stepAmountStr(step)} />
 			))}
 			{hidden > 0 && (
 				<Text
