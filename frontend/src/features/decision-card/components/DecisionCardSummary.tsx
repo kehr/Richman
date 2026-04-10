@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from "react";
 import { useMoney } from "@/domain/money/useMoney";
 import { Card, Divider, Space, Tag, Typography } from "@/ui-kit/eat";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { DecisionCardDTO, HoldingAnalysisStatus } from "../types";
 import { ChangeBadge } from "./ChangeBadge";
@@ -106,7 +106,9 @@ export function DecisionCardSummary({
 					: undefined
 			}
 			style={{ height: "100%", position: "relative", ...borderStyle }}
-			styles={{ body: { height: "100%", display: "flex", flexDirection: "column", background: bodyBg } }}
+			styles={{
+				body: { height: "100%", display: "flex", flexDirection: "column", background: bodyBg },
+			}}
 			data-testid={`decision-card-${card.cardId}`}
 		>
 			{analysisStatus === "running" && (

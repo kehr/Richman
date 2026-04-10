@@ -19,7 +19,11 @@ interface DashboardTopStripProps {
 	lastAnalyzedAt: Date | null;
 	nextAnalysisAt: Date | null;
 	onRerun: () => void;
-	rerunLoading: boolean;
+	isRunning: boolean;
+	isDone: boolean;
+	hasDegraded: boolean;
+	taskProgress: number;
+	onOpenDrawer: () => void;
 	onConfigureCapital: () => void;
 }
 
@@ -36,7 +40,11 @@ export function DashboardTopStrip({
 	lastAnalyzedAt,
 	nextAnalysisAt,
 	onRerun,
-	rerunLoading,
+	isRunning,
+	isDone,
+	hasDegraded,
+	taskProgress,
+	onOpenDrawer,
 	onConfigureCapital,
 }: DashboardTopStripProps) {
 	const { t } = useTranslation("app");
@@ -61,15 +69,32 @@ export function DashboardTopStrip({
 					</Space>
 				</Col>
 				<Col>
-					<Button
-						type="primary"
-						icon={<ReloadOutlined />}
-						loading={rerunLoading}
-						onClick={onRerun}
-						data-testid="dashboard-rerun-button"
-					>
-						{t("dashboard.rerunButton")}
-					</Button>
+					{isRunning ? (
+						<Button type="primary" onClick={onOpenDrawer} data-testid="dashboard-rerun-button">
+							{t("analysisProgress.buttonRunning", { pct: Math.round(taskProgress * 100) })}
+						</Button>
+					) : isDone ? (
+						<Button
+							type="primary"
+							style={{
+								background: hasDegraded ? "#fa8c16" : "#52c41a",
+								borderColor: hasDegraded ? "#fa8c16" : "#52c41a",
+							}}
+							onClick={onOpenDrawer}
+							data-testid="dashboard-rerun-button"
+						>
+							{t(hasDegraded ? "analysisProgress.doneDegraded" : "analysisProgress.doneClean")}
+						</Button>
+					) : (
+						<Button
+							type="primary"
+							icon={<ReloadOutlined />}
+							onClick={onRerun}
+							data-testid="dashboard-rerun-button"
+						>
+							{t("dashboard.rerunButton")}
+						</Button>
+					)}
 				</Col>
 			</Row>
 

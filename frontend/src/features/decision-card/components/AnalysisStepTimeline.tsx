@@ -80,10 +80,9 @@ export function AnalysisStepTimeline({ steps, currentHolding }: AnalysisStepTime
 						<span style={{ fontSize: 12, flex: 1, color: "#333" }}>
 							{t(`analysisProgress.step.${step.key}`)}
 						</span>
-						{(step.status === "done" || step.status === "failed") &&
-							step.durationMs !== null && (
-								<span style={{ fontSize: 11, color: "#bbb" }}>{step.durationMs}ms</span>
-							)}
+						{(step.status === "done" || step.status === "failed") && step.durationMs !== null && (
+							<span style={{ fontSize: 11, color: "#bbb" }}>{step.durationMs}ms</span>
+						)}
 					</div>
 				))}
 			</div>

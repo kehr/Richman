@@ -1,7 +1,9 @@
 import { LLMStatusBanner } from "@/features/dashboard-llm-status";
 import { useDashboardSummary } from "@/features/dashboard-summary";
 import {
+	AnalysisProgressDrawer,
 	type DecisionCardDTO,
+	useAnalysisTask,
 	useDecisionCards,
 	useReanalyzeAll,
 	useRerunAnalysis,
@@ -9,7 +11,7 @@ import {
 import { useHoldings } from "@/features/portfolio";
 import { useUserSettings } from "@/features/user-settings";
 import { App, Flex, PageContainer, Space } from "@/ui-kit/eat";
-import { useMemo, useRef } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router";
 import { ChangeAnchorList } from "./components/ChangeAnchorList";
@@ -30,13 +32,33 @@ export default function DashboardPage() {
 	const cardsQuery = useDecisionCards();
 	const settingsQuery = useUserSettings();
 	const summaryQuery = useDashboardSummary();
-	const rerun = useRerunAnalysis();
-	const reanalyzeAll = useReanalyzeAll();
+	const [taskId, setTaskId] = useState<string | null>(null);
+	const [drawerOpen, setDrawerOpen] = useState(false);
+
+	const rerun = useRerunAnalysis((id) => {
+		setTaskId(id);
+		setDrawerOpen(true);
+	});
+	const reanalyzeAll = useReanalyzeAll((id) => {
+		setTaskId(id);
+		setDrawerOpen(true);
+	});
 
 	// cardRefs is shared between DecisionCardWall (which populates it) and
 	// ChangeAnchorList (which reads from it to scroll + highlight). A ref
 	// instead of state keeps this out of the render cycle.
 	const cardRefs = useRef(new Map<number, HTMLDivElement>()).current;
+
+	const { task } = useAnalysisTask(taskId);
+
+	const isRunning = task?.status === "running";
+	const isDone = task?.status === "completed";
+	const hasDegraded = isDone
+		? (task?.holdings ?? []).some(
+				(h) => h.synthesisSource === "template" || h.synthesisSource === "mixed",
+			)
+		: false;
+	const taskProgress = task?.progress ?? 0;
 
 	const holdings = holdingsQuery.data ?? [];
 	const cards: DecisionCardDTO[] = cardsQuery.data ?? [];
@@ -90,7 +112,6 @@ export default function DashboardPage() {
 	const handleRerun = async () => {
 		try {
 			await rerun.mutateAsync();
-			message.success(t("dashboard.message.rerunSuccess"));
 		} catch {
 			message.error(t("dashboard.message.rerunError"));
 		}
@@ -156,7 +177,11 @@ export default function DashboardPage() {
 							lastAnalyzedAt={lastAnalyzedAt}
 							nextAnalysisAt={nextAnalysisAt}
 							onRerun={handleRerun}
-							rerunLoading={rerun.isPending}
+							isRunning={isRunning}
+							isDone={isDone}
+							hasDegraded={hasDegraded}
+							taskProgress={taskProgress}
+							onOpenDrawer={() => setDrawerOpen(true)}
 							onConfigureCapital={handleConfigureCapital}
 						/>
 						<ChangeAnchorList cards={cards} cardRefs={cardRefs} />
@@ -167,9 +192,18 @@ export default function DashboardPage() {
 							onCardClick={handleCardClick}
 							onRetry={() => cardsQuery.refetch()}
 							cardRefs={cardRefs}
+							holdingsProgress={task?.holdings}
 						/>
 					</Space>
 				)}
+				<AnalysisProgressDrawer
+					taskId={taskId}
+					open={drawerOpen}
+					onClose={() => {
+						setDrawerOpen(false);
+						setTaskId(null);
+					}}
+				/>
 			</Flex>
 		</PageContainer>
 	);

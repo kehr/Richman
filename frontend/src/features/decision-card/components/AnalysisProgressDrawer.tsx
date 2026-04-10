@@ -1,9 +1,9 @@
-import { useTranslation } from "react-i18next";
 import { Drawer } from "@/ui-kit/eat";
-import { useAnalysisTask } from "../use-analysis-task";
+import { useTranslation } from "react-i18next";
 import type { AnalysisTaskStatus, HoldingProgress } from "../types";
-import { AnalysisStepTimeline } from "./AnalysisStepTimeline";
+import { useAnalysisTask } from "../use-analysis-task";
 import { AnalysisLogPanel } from "./AnalysisLogPanel";
+import { AnalysisStepTimeline } from "./AnalysisStepTimeline";
 
 interface AnalysisProgressDrawerProps {
 	taskId: string | null;
@@ -21,9 +21,7 @@ function holdingDotColor(status: HoldingProgress["status"]): string {
 
 // Determine whether a completed task has any degraded holdings
 function isDegraded(holdings: HoldingProgress[]): boolean {
-	return holdings.some(
-		(h) => h.synthesisSource === "template" || h.synthesisSource === "mixed",
-	);
+	return holdings.some((h) => h.synthesisSource === "template" || h.synthesisSource === "mixed");
 }
 
 // Header bar rendered for running/pending state
@@ -154,18 +152,12 @@ function resolveHeaderVariant(
 	return { kind: "running", label: title };
 }
 
-export function AnalysisProgressDrawer({
-	taskId,
-	open,
-	onClose,
-}: AnalysisProgressDrawerProps) {
+export function AnalysisProgressDrawer({ taskId, open, onClose }: AnalysisProgressDrawerProps) {
 	const { t } = useTranslation("app");
 	const { task } = useAnalysisTask(taskId);
 
 	const holdings = task?.holdings ?? [];
-	const doneCount = holdings.filter(
-		(h) => h.status === "done" || h.status === "failed",
-	).length;
+	const doneCount = holdings.filter((h) => h.status === "done" || h.status === "failed").length;
 
 	const headerVariant = resolveHeaderVariant(
 		task?.status,
@@ -299,10 +291,7 @@ export function AnalysisProgressDrawer({
 			{/* Region 3: Step timeline */}
 			{task && task.steps.length > 0 && (
 				<div style={{ flex: "0 0 auto" }}>
-					<AnalysisStepTimeline
-						steps={task.steps}
-						currentHolding={task.currentHolding}
-					/>
+					<AnalysisStepTimeline steps={task.steps} currentHolding={task.currentHolding} />
 				</div>
 			)}
 

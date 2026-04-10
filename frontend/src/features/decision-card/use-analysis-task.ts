@@ -1,8 +1,8 @@
-import { useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { getAnalysisTask } from "./api";
-import { DECISION_CARDS_QUERY_KEY } from "./use-decision-cards";
 import type { AnalysisTask } from "./types";
+import { DECISION_CARDS_QUERY_KEY } from "./use-decision-cards";
 
 export function useAnalysisTask(taskId: string | null): {
 	task: AnalysisTask | undefined;

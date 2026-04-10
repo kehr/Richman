@@ -1,4 +1,5 @@
 import { type DecisionCardDTO, DecisionCardSummary } from "@/features/decision-card";
+import type { HoldingProgress } from "@/features/decision-card";
 import { Alert, Button, Empty, Skeleton } from "@/ui-kit/eat";
 import type { CSSProperties } from "react";
 import { useTranslation } from "react-i18next";
@@ -14,6 +15,7 @@ interface DecisionCardWallProps {
 	// matching card via data-testid lookup. Passing a Map makes the wiring
 	// explicit without prop drilling refs into DecisionCardSummary.
 	cardRefs?: Map<number, HTMLDivElement>;
+	holdingsProgress?: HoldingProgress[];
 }
 
 // DecisionCardWall renders the middle region of the Dashboard: a responsive
@@ -30,6 +32,7 @@ export function DecisionCardWall({
 	onCardClick,
 	onRetry,
 	cardRefs,
+	holdingsProgress,
 }: DecisionCardWallProps) {
 	const { t } = useTranslation("app");
 
@@ -92,7 +95,17 @@ export function DecisionCardWall({
 					data-card-anchor={card.cardId}
 					style={{ height: "100%" }}
 				>
-					<DecisionCardSummary card={card} onClick={onCardClick} />
+					{(() => {
+						const holding = holdingsProgress?.find((h) => h.symbol === card.assetCode);
+						return (
+							<DecisionCardSummary
+								card={card}
+								onClick={onCardClick}
+								analysisStatus={holding?.status}
+								analysisProgress={holding?.progress}
+							/>
+						);
+					})()}
 				</div>
 			))}
 		</div>

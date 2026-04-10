@@ -19,6 +19,8 @@ export {
 } from "./use-decision-card-detail";
 export { useRerunAnalysis } from "./use-rerun-analysis";
 export { useReanalyzeAll } from "./use-reanalyze-all";
+export { useAnalysisTask } from "./use-analysis-task";
+export { AnalysisProgressDrawer } from "./components/AnalysisProgressDrawer";
 
 export { computeNextAnalysisTime, formatHm } from "./analysis-schedule";
 
@@ -46,4 +48,12 @@ export type {
 	ProviderUsed,
 	RerunAnalysisResponse,
 	ReanalyzeAllResponse,
+	AnalysisTask,
+	HoldingProgress,
+	AnalysisTaskStep,
+	AnalysisTaskLog,
+	HoldingAnalysisStatus,
+	AnalysisTaskStatus,
+	TaskStepKey,
+	TaskStepStatus,
 } from "./types";

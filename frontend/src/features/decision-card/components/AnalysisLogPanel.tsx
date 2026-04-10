@@ -22,6 +22,7 @@ function levelColor(level: AnalysisTaskLog["level"]): string {
 export function AnalysisLogPanel({ logs }: AnalysisLogPanelProps) {
 	const containerRef = useRef<HTMLDivElement>(null);
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies: logs triggers scroll-to-bottom on new entries; containerRef.current mutation is intentional
 	useEffect(() => {
 		if (containerRef.current) {
 			containerRef.current.scrollTop = containerRef.current.scrollHeight;
