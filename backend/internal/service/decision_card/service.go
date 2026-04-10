@@ -47,3 +47,14 @@ func (s *Service) ListHistory(ctx context.Context, userID int64, limit int) ([]m
 	}
 	return cards, nil
 }
+
+// ListHistoryByHolding returns recent decision cards for a specific holding.
+func (s *Service) ListHistoryByHolding(
+	ctx context.Context, userID, holdingID int64, limit int,
+) ([]model.DecisionCard, error) {
+	cards, err := s.cardRepo.ListHistoryByHolding(ctx, userID, holdingID, limit)
+	if err != nil {
+		return nil, fmt.Errorf("list card history by holding: %w", err)
+	}
+	return cards, nil
+}

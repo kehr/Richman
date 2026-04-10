@@ -74,6 +74,19 @@ export function postReanalyzeAll() {
 	});
 }
 
+// getHoldingHistory loads the recent decision cards for a specific holding.
+// Returns up to `limit` cards ordered newest-first. This endpoint is used
+// by the MetaSidebar history strip on the card detail page.
+export async function getHoldingHistory(
+	holdingId: number,
+	limit = 10,
+): Promise<ApiResponse<DecisionCardDTO[]>> {
+	const res = await request<ApiResponse<WireDecisionCard[]>>(
+		`/decision-cards/history?holding_id=${holdingId}&limit=${limit}`,
+	);
+	return { data: res.data.map(normalizeCard) };
+}
+
 // getAnalysisTask fetches the current status of an analysis task by ID.
 export function getAnalysisTask(taskId: string): Promise<ApiResponse<AnalysisTask>> {
 	return request<ApiResponse<AnalysisTask>>(`/analysis/tasks/${taskId}`);

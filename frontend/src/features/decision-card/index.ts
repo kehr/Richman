@@ -6,6 +6,7 @@
 export {
 	getDecisionCards,
 	getDecisionCardById,
+	getHoldingHistory,
 	postRerunAnalysis,
 	postReanalyzeAll,
 } from "./api";
@@ -13,6 +14,7 @@ export {
 	useDecisionCards,
 	DECISION_CARDS_QUERY_KEY,
 } from "./use-decision-cards";
+export { useHoldingHistory } from "./use-holding-history";
 export {
 	useDecisionCardDetail,
 	decisionCardDetailQueryKey,

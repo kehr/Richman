@@ -1,4 +1,4 @@
-import { useDecisionCardDetail, useDecisionCards } from "@/features/decision-card";
+import { useDecisionCardDetail, useHoldingHistory } from "@/features/decision-card";
 import { Alert, Col, PageContainer, Row, Skeleton, Space } from "@/ui-kit/eat";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate, useParams } from "react-router";
@@ -63,14 +63,10 @@ export default function DecisionCardDetailPage() {
 	const prevQuery = useDecisionCardDetail(prevCardId);
 	const prevCard = prevQuery.data;
 
-	// History strip on the sidebar filters the latest list down to the same
-	// holding so the user sees their own asset's recent analyses, not other
-	// holdings'. The list query is shared with the dashboard so the cache is
-	// hot in the common case.
-	const cardsQuery = useDecisionCards();
-	const historicalCards = (cardsQuery.data ?? []).filter(
-		(c) => card != null && c.holdingId === card.holdingId,
-	);
+	// History strip: load recent cards for this holding specifically.
+	// The hook is disabled until card is loaded (holdingId 0 is sentinel).
+	const historyQuery = useHoldingHistory(card?.holdingId ?? 0);
+	const historicalCards = historyQuery.data ?? [];
 
 	// Invalid id parsed to 0 — short-circuit to the not-found branch before
 	// the hooks resolve. The detailQuery is disabled in this case so it

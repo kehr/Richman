@@ -230,17 +230,41 @@ func (h *DecisionCardHandler) GetByID(c *gin.Context) {
 }
 
 // ListHistory handles GET /api/v1/decision-cards/history.
+// Optional query params:
+//   - holding_id: when provided, scopes results to that holding only
+//   - limit: max number of records (default 20 global / 10 per-holding)
 func (h *DecisionCardHandler) ListHistory(c *gin.Context) {
 	userID := middleware.GetUserID(c)
 
-	limit := 20
+	limit := 0 // 0 signals "use service default"
 	if v := c.Query("limit"); v != "" {
 		if parsed, err := strconv.Atoi(v); err == nil && parsed > 0 {
 			limit = parsed
 		}
 	}
 
-	cards, err := h.cardSvc.ListHistory(c.Request.Context(), userID, limit)
+	var (
+		cards []model.DecisionCard
+		err   error
+	)
+	if holdingStr := c.Query("holding_id"); holdingStr != "" {
+		holdingID, parseErr := strconv.ParseInt(holdingStr, 10, 64)
+		if parseErr != nil || holdingID <= 0 {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": gin.H{"code": "VALIDATION_ERROR", "message": "invalid holding_id"},
+			})
+			return
+		}
+		if limit == 0 {
+			limit = 10
+		}
+		cards, err = h.cardSvc.ListHistoryByHolding(c.Request.Context(), userID, holdingID, limit)
+	} else {
+		if limit == 0 {
+			limit = 20
+		}
+		cards, err = h.cardSvc.ListHistory(c.Request.Context(), userID, limit)
+	}
 	if err != nil {
 		handleServiceError(c, err)
 		return

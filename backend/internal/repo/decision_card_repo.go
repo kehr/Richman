@@ -330,3 +330,35 @@ func (r *DecisionCardRepo) ListHistory(ctx context.Context, userID int64, limit 
 	}
 	return cards, nil
 }
+
+// ListHistoryByHolding returns the N most recent decision cards for a specific
+// holding, verifying the holding belongs to the given user via user_id.
+func (r *DecisionCardRepo) ListHistoryByHolding(
+	ctx context.Context, userID, holdingID int64, limit int,
+) ([]model.DecisionCard, error) {
+	if limit <= 0 {
+		limit = 10
+	}
+	rows, err := r.pool.Query(ctx,
+		`SELECT `+cardColumns+`
+		 FROM decision_cards
+		 WHERE user_id = $1 AND holding_id = $2 AND is_deleted = 0
+		 ORDER BY created_at DESC
+		 LIMIT $3`,
+		userID, holdingID, limit,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("list decision card history by holding: %w", err)
+	}
+	defer rows.Close()
+
+	var cards []model.DecisionCard
+	for rows.Next() {
+		card, scanErr := r.scanCardRow(rows)
+		if scanErr != nil {
+			return nil, fmt.Errorf("scan decision card: %w", scanErr)
+		}
+		cards = append(cards, *card)
+	}
+	return cards, nil
+}
