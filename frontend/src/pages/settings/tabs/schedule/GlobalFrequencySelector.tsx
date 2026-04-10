@@ -1,5 +1,5 @@
 import type { Frequency } from "@/features/schedule";
-import { Flex, InputNumber, Radio, Typography } from "@/ui-kit/eat";
+import { Flex, InputNumber, Radio, Tooltip, Typography } from "@/ui-kit/eat";
 import { useTranslation } from "react-i18next";
 
 type NonNullFrequency = Exclude<Frequency, null>;
@@ -56,23 +56,25 @@ export function GlobalFrequencySelector({
 			>
 				<Flex gap={16} wrap align="center">
 					{FREQUENCY_LIST.map((freq) => (
-						<Radio key={freq} value={freq}>
-							<Flex align="center" gap={6} style={{ display: "inline-flex" }}>
-								<span>{t(`schedule.globalFrequency.${freq}`)}</span>
-								{freq === "custom" && value === "custom" && (
-									<InputNumber
-										min={1}
-										max={30}
-										value={customDays ?? 7}
-										onChange={handleDaysChange}
-										size="small"
-										style={{ width: 80 }}
-										addonAfter="天"
-										onClick={(e) => e.stopPropagation()}
-									/>
-								)}
-							</Flex>
-						</Radio>
+						<Tooltip key={freq} title={t(`schedule.globalFrequency.${freq}Hint`)}>
+							<Radio value={freq}>
+								<Flex align="center" gap={6} style={{ display: "inline-flex" }}>
+									<span>{t(`schedule.globalFrequency.${freq}`)}</span>
+									{freq === "custom" && value === "custom" && (
+										<InputNumber
+											min={1}
+											max={30}
+											value={customDays ?? 7}
+											onChange={handleDaysChange}
+											size="small"
+											style={{ width: 80 }}
+											addonAfter="天"
+											onClick={(e) => e.stopPropagation()}
+										/>
+									)}
+								</Flex>
+							</Radio>
+						</Tooltip>
 					))}
 				</Flex>
 			</Radio.Group>
