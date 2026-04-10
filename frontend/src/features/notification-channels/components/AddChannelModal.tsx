@@ -143,9 +143,9 @@ export function AddChannelModal({ open, onClose }: AddChannelModalProps) {
 					onChange={(e) => setChannelType(e.target.value as ChannelType)}
 					data-testid="channel-type-picker"
 				>
-					<Radio.Button value="email">{t("channels.drawer.email")}</Radio.Button>
-					<Radio.Button value="feishu">{t("channels.drawer.feishu")}</Radio.Button>
-					<Radio.Button value="wechat">{t("channels.drawer.wechat")}</Radio.Button>
+					<Radio value="email">{t("channels.drawer.email")}</Radio>
+					<Radio value="feishu">{t("channels.drawer.feishu")}</Radio>
+					<Radio value="wechat">{t("channels.drawer.wechat")}</Radio>
 				</Radio.Group>
 			</Form.Item>
 
