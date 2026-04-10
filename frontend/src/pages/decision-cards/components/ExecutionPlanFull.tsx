@@ -39,6 +39,14 @@ function formatDeltaPct(delta: number): string {
 	return `${sign}${delta.toFixed(0)}%`;
 }
 
+// deltaPctColor follows A-share convention: red = increase (涨/加仓),
+// green = decrease (跌/减仓), gray = neutral (0%).
+function deltaPctColor(delta: number): string {
+	if (delta > 0) return "#f5222d";
+	if (delta < 0) return "#52c41a";
+	return "#8c8c8c";
+}
+
 // RATIONALE_KEYS is the display order for StructuredRationale fields.
 const RATIONALE_KEYS: (keyof StructuredRationale)[] = [
 	"triggerReason",
@@ -152,7 +160,14 @@ function StepRow({
 						)}
 					</Space>
 					<div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
-						<Text strong style={{ color: "#1677ff" }}>
+						<Text
+							strong
+							style={{
+								fontSize: 18,
+								lineHeight: 1.2,
+								color: deltaPctColor(step.deltaPct),
+							}}
+						>
 							{formatDeltaPct(step.deltaPct)}
 						</Text>
 						{amountStr != null && (

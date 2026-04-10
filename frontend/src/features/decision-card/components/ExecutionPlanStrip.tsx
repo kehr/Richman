@@ -37,6 +37,14 @@ function formatDeltaPct(delta: number): string {
 	return `${sign}${delta.toFixed(0)}%`;
 }
 
+// deltaPctColor follows A-share convention: red = increase (涨/加仓),
+// green = decrease (跌/减仓), gray = neutral (0%).
+function deltaPctColor(delta: number): string {
+	if (delta > 0) return "#f5222d";
+	if (delta < 0) return "#52c41a";
+	return "#8c8c8c";
+}
+
 function StepRow({
 	step,
 	index,
@@ -56,7 +64,9 @@ function StepRow({
 					marginLeft: 8,
 				}}
 			>
-				<Text strong>{formatDeltaPct(step.deltaPct)}</Text>
+				<Text strong style={{ color: deltaPctColor(step.deltaPct) }}>
+					{formatDeltaPct(step.deltaPct)}
+				</Text>
 				{amountStr != null && (
 					<Text type="secondary" style={{ fontSize: 11, lineHeight: 1.3 }}>
 						{amountStr}
