@@ -168,3 +168,51 @@ export interface ReanalyzeAllResponse {
 	taskId: string;
 	message?: string;
 }
+
+// Analysis task progress types — used by the progress drawer and polling hook.
+
+export type TaskStepKey =
+	| "fetch_data"
+	| "calc_indicators"
+	| "recommendation"
+	| "llm_synthesis"
+	| "persist";
+
+export type TaskStepStatus = "pending" | "running" | "done" | "failed";
+
+export interface AnalysisTaskStep {
+	key: TaskStepKey;
+	status: TaskStepStatus;
+	durationMs: number | null;
+}
+
+export type HoldingAnalysisStatus = "pending" | "running" | "done" | "failed";
+
+export interface HoldingProgress {
+	symbol: string;
+	name: string;
+	status: HoldingAnalysisStatus;
+	progress: number;
+	synthesisSource: "llm" | "template" | "mixed" | null;
+	providerUsed: "user" | "system_default" | "none" | null;
+	durationMs: number | null;
+}
+
+export interface AnalysisTaskLog {
+	ts: string;
+	level: "info" | "warn" | "error";
+	msg: string;
+}
+
+export type AnalysisTaskStatus = "running" | "done" | "failed";
+
+export interface AnalysisTask {
+	taskId: string;
+	status: AnalysisTaskStatus;
+	progress: number;
+	currentHolding: string;
+	holdings: HoldingProgress[];
+	steps: AnalysisTaskStep[];
+	logs: AnalysisTaskLog[];
+	error?: string;
+}

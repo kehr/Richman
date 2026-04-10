@@ -1,6 +1,7 @@
 import { request } from "@/domain/http/client";
 import type { ApiResponse } from "@/domain/http/types";
 import type {
+	AnalysisTask,
 	DecisionCardDTO,
 	ProviderUsed,
 	ReanalyzeAllResponse,
@@ -71,4 +72,9 @@ export function postReanalyzeAll() {
 	return request<ApiResponse<ReanalyzeAllResponse>>("/analysis/reanalyze-all", {
 		method: "POST",
 	});
+}
+
+// getAnalysisTask fetches the current status of an analysis task by ID.
+export function getAnalysisTask(taskId: string): Promise<ApiResponse<AnalysisTask>> {
+	return request<ApiResponse<AnalysisTask>>(`/analysis/tasks/${taskId}`);
 }

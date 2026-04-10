@@ -356,5 +356,33 @@
 			"position": "Position",
 			"removeRow": "Remove this row"
 		}
+	},
+	"analysisProgress": {
+		"title": "Analysis Progress",
+		"overall": "Overall",
+		"cardCount": "{{done}} / {{total}} cards",
+		"collapse": "Collapse",
+		"close": "Close",
+		"currentSteps": "{{name}} · Steps",
+		"logs": "Execution Logs",
+		"doneClean": "Analysis Complete",
+		"doneDegraded": "Analysis Complete (with fallback)",
+		"failed": "Analysis Failed",
+		"degradedWarning": "{{name}} used rule template this time — no AI deep analysis",
+		"updating": "Updating…",
+		"pollError": "Unable to fetch progress",
+		"buttonRunning": "Analyzing {{pct}}%",
+		"step": {
+			"fetch_data": "Fetch Data",
+			"calc_indicators": "Trend / Position / Catalyst",
+			"recommendation": "Recommendation",
+			"llm_synthesis": "LLM Synthesis",
+			"persist": "Save Results"
+		},
+		"source": {
+			"llm": "LLM",
+			"template": "Rule Template",
+			"mixed": "Mixed"
+		}
 	}
 }

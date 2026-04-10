@@ -356,5 +356,33 @@
 			"position": "仓位",
 			"removeRow": "移除该行"
 		}
+	},
+	"analysisProgress": {
+		"title": "分析进度",
+		"overall": "总进度",
+		"cardCount": "{{done}} / {{total}} 张",
+		"collapse": "收起",
+		"close": "关闭",
+		"currentSteps": "{{name}} · 当前步骤",
+		"logs": "执行日志",
+		"doneClean": "分析完成",
+		"doneDegraded": "分析完成（含降级）",
+		"failed": "分析失败",
+		"degradedWarning": "{{name}} 本次使用规则模板，不含 AI 深度解读",
+		"updating": "更新中…",
+		"pollError": "无法获取进度",
+		"buttonRunning": "分析中 {{pct}}%",
+		"step": {
+			"fetch_data": "获取数据",
+			"calc_indicators": "趋势 / 仓位 / 催化剂",
+			"recommendation": "推荐决策",
+			"llm_synthesis": "LLM 合成内容",
+			"persist": "保存结果"
+		},
+		"source": {
+			"llm": "LLM",
+			"template": "规则模板",
+			"mixed": "混合"
+		}
 	}
 }
