@@ -1,5 +1,11 @@
-import { useDecisionCardDetail, useHoldingHistory } from "@/features/decision-card";
-import { Alert, Col, PageContainer, Row, Skeleton, Space } from "@/ui-kit/eat";
+import {
+	AnalysisProgressDrawer,
+	useDecisionCardDetail,
+	useHoldingHistory,
+	useRerunSingle,
+} from "@/features/decision-card";
+import { Alert, Button, Col, PageContainer, Row, Skeleton, Space } from "@/ui-kit/eat";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate, useParams } from "react-router";
 import { CardHero } from "./components/CardHero";
@@ -68,6 +74,10 @@ export default function DecisionCardDetailPage() {
 	const historyQuery = useHoldingHistory(card?.holdingId ?? 0);
 	const historicalCards = historyQuery.data ?? [];
 
+	// Single-card reanalysis: taskId drives the progress drawer; null means closed.
+	const [reanalysisTaskId, setReanalysisTaskId] = useState<string | null>(null);
+	const rerunMutation = useRerunSingle((taskId) => setReanalysisTaskId(taskId));
+
 	// Invalid id parsed to 0 — short-circuit to the not-found branch before
 	// the hooks resolve. The detailQuery is disabled in this case so it
 	// will never produce data.
@@ -122,39 +132,56 @@ export default function DecisionCardDetailPage() {
 	}
 
 	return (
-		<PageContainer
-			title={card.assetName}
-			subTitle={formatAnalysisTime(card.analyzedAt)}
-			breadcrumb={{
-				items: [
-					{ title: <Link to="/briefing">{t("nav.briefing", { ns: "common" })}</Link> },
-					{ title: card.assetName },
-				],
-			}}
-			data-testid="decision-card-detail"
-		>
-			<Row gutter={[16, 16]}>
-				<Col xs={24} lg={18}>
-					<Space direction="vertical" size={16} style={{ width: "100%" }}>
-						<CardHero card={card} />
-						<ConclusionBanner card={card} prevCard={prevCard} />
-						<ExecutionPlanFull
-							execution={card.recommendation.execution}
-							positionAmountCny={card.positionAmount}
-							positionRatioPct={card.positionRatio}
+		<>
+			<PageContainer
+				title={card.assetName}
+				subTitle={formatAnalysisTime(card.analyzedAt)}
+				breadcrumb={{
+					items: [
+						{ title: <Link to="/briefing">{t("nav.briefing", { ns: "common" })}</Link> },
+						{ title: card.assetName },
+					],
+				}}
+				extra={[
+					<Button
+						key="reanalyze"
+						loading={rerunMutation.isPending}
+						onClick={() => rerunMutation.mutate(card.holdingId)}
+					>
+						{t("decisionCard.reanalyze")}
+					</Button>,
+				]}
+				data-testid="decision-card-detail"
+			>
+				<Row gutter={[16, 16]}>
+					<Col xs={24} lg={18}>
+						<Space direction="vertical" size={16} style={{ width: "100%" }}>
+							<CardHero card={card} />
+							<ConclusionBanner card={card} prevCard={prevCard} />
+							<ExecutionPlanFull
+								execution={card.recommendation.execution}
+								positionAmountCny={card.positionAmount}
+								positionRatioPct={card.positionRatio}
+							/>
+							<DimensionReasoning card={card} prevCard={prevCard} />
+							<MainRisks riskWarnings={card.riskWarnings} />
+						</Space>
+					</Col>
+					<Col xs={24} lg={6}>
+						<MetaSidebar
+							card={card}
+							historicalCards={historicalCards}
+							onSelectHistory={(historyCardId) => navigate(`/decision-cards/${historyCardId}`)}
 						/>
-						<DimensionReasoning card={card} prevCard={prevCard} />
-						<MainRisks riskWarnings={card.riskWarnings} />
-					</Space>
-				</Col>
-				<Col xs={24} lg={6}>
-					<MetaSidebar
-						card={card}
-						historicalCards={historicalCards}
-						onSelectHistory={(historyCardId) => navigate(`/decision-cards/${historyCardId}`)}
-					/>
-				</Col>
-			</Row>
-		</PageContainer>
+					</Col>
+				</Row>
+			</PageContainer>
+			<AnalysisProgressDrawer
+				taskId={reanalysisTaskId}
+				open={reanalysisTaskId !== null}
+				onClose={() => setReanalysisTaskId(null)}
+				onClear={() => setReanalysisTaskId(null)}
+			/>
+		</>
 	);
 }

@@ -196,7 +196,8 @@
 		"confidenceLabel": "Confidence",
 		"costLabel": "Cost",
 		"positionLabel": "Position",
-		"marketValueLabel": "Market Value"
+		"marketValueLabel": "Market Value",
+		"reanalyze": "Re-analyze"
 	},
 	"portfolio": {
 		"title": "My Holdings",

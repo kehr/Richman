@@ -2,6 +2,7 @@ package v1
 
 import (
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -34,6 +35,7 @@ func (h *AnalysisHandler) RegisterRoutes(rg *gin.RouterGroup, authMiddleware gin
 	group := rg.Group("/analysis", authMiddleware)
 	group.POST("/trigger", h.Trigger)
 	group.POST("/reanalyze-all", middleware.PerUserRateLimit(reanalyzeAllWindow), h.ReanalyzeAll)
+	group.POST("/reanalyze/:holdingId", h.ReanalyzeSingle)
 	group.GET("/tasks/:taskId", h.GetTask)
 }
 
@@ -69,6 +71,39 @@ func (h *AnalysisHandler) GetTask(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"data": task})
+}
+
+// ReanalyzeSingle handles POST /api/v1/analysis/reanalyze/:holdingId.
+// It starts an async analysis for a single holding and returns 202 Accepted.
+func (h *AnalysisHandler) ReanalyzeSingle(c *gin.Context) {
+	raw := c.Param("holdingId")
+	holdingID, err := strconv.ParseInt(raw, 10, 64)
+	if err != nil || holdingID <= 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": gin.H{
+			"code":    "BAD_REQUEST",
+			"message": "invalid holdingId",
+		}})
+		return
+	}
+
+	userID := middleware.GetUserID(c)
+	taskID := uuid.New().String()
+
+	triggerErr := h.analysisSvc.TriggerSingleAnalysis(c.Request.Context(), userID, holdingID, taskID)
+	if triggerErr != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": gin.H{
+			"code":    "NOT_FOUND",
+			"message": "holding not found",
+		}})
+		return
+	}
+
+	c.JSON(http.StatusAccepted, gin.H{
+		"data": gin.H{
+			"taskId":  taskID,
+			"message": "reanalysis started",
+		},
+	})
 }
 
 // ReanalyzeAll handles POST /api/v1/analysis/reanalyze-all. It triggers

@@ -196,7 +196,8 @@
 		"confidenceLabel": "信心度",
 		"costLabel": "成本",
 		"positionLabel": "仓位",
-		"marketValueLabel": "市值"
+		"marketValueLabel": "市值",
+		"reanalyze": "重新分析"
 	},
 	"portfolio": {
 		"title": "我的持仓",

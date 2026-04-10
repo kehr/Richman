@@ -71,10 +71,23 @@ func (c *Calculator) Calculate(input Input) float64 {
 	}
 
 	// Compute weighted recommendation direction.
+	// When all weights are zero (e.g. tests that omit WeightConfig), fall back
+	// to equal weighting so division never produces NaN.
 	var weightedSum, totalWeight float64
 	for _, d := range dims {
 		weightedSum += d.weight * d.signal
 		totalWeight += d.weight
+	}
+	if totalWeight == 0 {
+		equalW := 1.0 / float64(n)
+		for i := range dims {
+			dims[i].weight = equalW
+		}
+		weightedSum = 0
+		for _, d := range dims {
+			weightedSum += d.weight * d.signal
+		}
+		totalWeight = 1.0
 	}
 	D := math.Copysign(1, weightedSum) // +1 or -1
 	if weightedSum == 0 {

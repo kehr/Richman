@@ -9,6 +9,7 @@ export {
 	getHoldingHistory,
 	postRerunAnalysis,
 	postReanalyzeAll,
+	postRerunSingle,
 } from "./api";
 export {
 	useDecisionCards,
@@ -19,7 +20,7 @@ export {
 	useDecisionCardDetail,
 	decisionCardDetailQueryKey,
 } from "./use-decision-card-detail";
-export { useRerunAnalysis } from "./use-rerun-analysis";
+export { useRerunAnalysis, useRerunSingle } from "./use-rerun-analysis";
 export { useReanalyzeAll } from "./use-reanalyze-all";
 export { useAnalysisTask } from "./use-analysis-task";
 export { AnalysisProgressDrawer } from "./components/AnalysisProgressDrawer";

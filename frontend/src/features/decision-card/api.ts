@@ -91,3 +91,10 @@ export async function getHoldingHistory(
 export function getAnalysisTask(taskId: string): Promise<ApiResponse<AnalysisTask>> {
 	return request<ApiResponse<AnalysisTask>>(`/analysis/tasks/${taskId}`);
 }
+
+// postRerunSingle triggers re-analysis for a single holding by ID.
+export function postRerunSingle(holdingId: number) {
+	return request<ApiResponse<RerunAnalysisResponse>>(`/analysis/reanalyze/${holdingId}`, {
+		method: "POST",
+	});
+}

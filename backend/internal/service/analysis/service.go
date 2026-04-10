@@ -107,6 +107,68 @@ func (s *Service) GetTask(taskID string) *model.TaskStatus {
 	return s.taskStore.Get(taskID)
 }
 
+// TriggerSingleAnalysis starts an async analysis for a single holding.
+// It returns immediately; the background goroutine updates the task store.
+// Returns an error if the holding is not found or does not belong to the user.
+func (s *Service) TriggerSingleAnalysis(ctx context.Context, userID, holdingID int64, taskID string) error {
+	holding, err := s.holdingRepo.GetHoldingByID(ctx, holdingID)
+	if err != nil {
+		return fmt.Errorf("get holding: %w", err)
+	}
+	if holding == nil || holding.UserID != userID {
+		return fmt.Errorf("holding not found")
+	}
+
+	s.taskStore.Create(taskID, userID)
+	bgCtx := context.WithoutCancel(ctx)
+
+	go func() {
+		hps := []model.HoldingProgress{{
+			Symbol: holding.AssetCode,
+			Name:   holding.AssetName,
+			Status: model.StepPending,
+		}}
+		s.taskStore.InitHoldings(taskID, hps)
+		s.taskStore.UpdateProgress(taskID, 0.1)
+
+		symbol := holding.AssetCode
+		s.taskStore.SetCurrentHolding(taskID, symbol)
+		s.taskStore.UpdateHoldingStatus(taskID, symbol, model.StepRunning, nil, nil, nil)
+		s.taskStore.AppendLog(taskID, model.LogLevelInfo, symbol+" analysis start")
+
+		start := time.Now()
+		ctxHolding, cancel := s.holdingContext(bgCtx)
+		card, analyzeErr := s.AnalyzeHolding(ctxHolding, userID, holding, taskID)
+		cancel()
+		ms := time.Since(start).Milliseconds()
+
+		if analyzeErr != nil {
+			s.logger.Error("single holding analysis failed",
+				zap.Int64("holding_id", holdingID),
+				zap.String("asset", symbol),
+				zap.Error(analyzeErr),
+			)
+			s.taskStore.UpdateHoldingStatus(taskID, symbol, model.StepFailed, nil, nil, &ms)
+			s.taskStore.AppendLog(taskID, model.LogLevelError, symbol+" analysis failed: "+analyzeErr.Error())
+		} else {
+			src := ""
+			prov := ""
+			if card.SynthesisSource != nil {
+				src = *card.SynthesisSource
+			}
+			if card.ProviderUsed != nil {
+				prov = *card.ProviderUsed
+			}
+			s.taskStore.UpdateHoldingStatus(
+				taskID, symbol, model.StepDone, card.SynthesisSource, card.ProviderUsed, &ms,
+			)
+			s.taskStore.AppendLog(taskID, model.LogLevelInfo, symbol+" done · source="+src+" provider="+prov)
+		}
+		s.taskStore.Complete(taskID)
+	}()
+	return nil
+}
+
 // TriggerReanalyzeAll is the endpoint-facing alias for TriggerAnalysis.
 // The LLM degraded contract exposes POST /analysis/reanalyze-all so the
 // dashboard banner can upgrade template/mixed cards after a provider
