@@ -3,6 +3,7 @@
 	"tabs": {
 		"account": "账户",
 		"ai": "AI 配置",
+		"schedule": "调度策略",
 		"channels": "推送渠道",
 		"preferences": "偏好",
 		"subscription": "订阅与额度"
@@ -141,6 +142,59 @@
 			"testTooltip": "测试发送接口待后端补齐",
 			"deleteButton": "删除"
 		}
+	},
+	"schedule": {
+		"title": "调度策略",
+		"description": "配置各市场的分析时间窗口和触发频率。单个持仓可在详情页单独覆盖。",
+		"globalFrequency": {
+			"label": "全局默认频率",
+			"every_window": "每个窗口",
+			"every_windowHint": "所有已启用触发点都执行，同一天可多次",
+			"daily": "每日",
+			"dailyHint": "每天最多 1 次",
+			"every_2_days": "每两日",
+			"every_2_daysHint": "隔天 1 次",
+			"every_3_days": "每三日",
+			"every_3_daysHint": "3 天 1 次",
+			"weekly": "每周",
+			"weeklyHint": "7 天 1 次",
+			"custom": "自定义",
+			"customHint": "设置间隔天数",
+			"customDays": "每 {{n}} 天",
+			"customInputLabel": "天数（1–30）",
+			"followGlobal": "跟随全局",
+			"followMarket": "跟随市场默认"
+		},
+		"window": {
+			"pre": "盘前",
+			"post": "盘后",
+			"preHint": "开盘前研判 + 信息增量",
+			"postHint": "收盘后完整分析",
+			"defaultLabel": "默认",
+			"customLabel": "已修改",
+			"resetTooltip": "重置为默认时间"
+		},
+		"markets": {
+			"a_share": "A 股",
+			"us_stock": "美股 / 黄金",
+			"hk_stock": "港股",
+			"hkComingSoon": "规划中",
+			"frequency": "频率",
+			"windows": "时间窗口"
+		},
+		"holdingOverride": {
+			"title": "自动分析覆盖",
+			"frequency": "分析频率",
+			"window": "分析窗口",
+			"windowOptions": {
+				"follow": "跟随市场默认",
+				"pre": "仅盘前",
+				"post": "仅盘后",
+				"both": "盘前和盘后"
+			}
+		},
+		"saveSuccess": "调度策略已保存",
+		"saveError": "保存失败，请稍后重试"
 	},
 	"llm": {
 		"title": "配置 Provider",

@@ -3,6 +3,7 @@
 	"tabs": {
 		"account": "Account",
 		"ai": "AI Configuration",
+		"schedule": "Schedule",
 		"channels": "Push Channels",
 		"preferences": "Preferences",
 		"subscription": "Subscription & Quota"
@@ -141,6 +142,59 @@
 			"testTooltip": "Test send API pending backend",
 			"deleteButton": "Delete"
 		}
+	},
+	"schedule": {
+		"title": "Schedule",
+		"description": "Configure analysis time windows and trigger frequency per market. Individual holdings can override in the detail page.",
+		"globalFrequency": {
+			"label": "Global Default Frequency",
+			"every_window": "Every Window",
+			"every_windowHint": "Triggers at all enabled time slots, multiple times per day",
+			"daily": "Daily",
+			"dailyHint": "At most once per day",
+			"every_2_days": "Every 2 Days",
+			"every_2_daysHint": "Once every other day",
+			"every_3_days": "Every 3 Days",
+			"every_3_daysHint": "Once every 3 days",
+			"weekly": "Weekly",
+			"weeklyHint": "Once every 7 days",
+			"custom": "Custom",
+			"customHint": "Set interval in days",
+			"customDays": "Every {{n}} days",
+			"customInputLabel": "Days (1–30)",
+			"followGlobal": "Follow Global",
+			"followMarket": "Follow Market Default"
+		},
+		"window": {
+			"pre": "Pre-market",
+			"post": "Post-market",
+			"preHint": "Pre-open analysis + information delta",
+			"postHint": "Full post-close analysis",
+			"defaultLabel": "Default",
+			"customLabel": "Modified",
+			"resetTooltip": "Reset to default time"
+		},
+		"markets": {
+			"a_share": "A-Share",
+			"us_stock": "US Stocks / Gold",
+			"hk_stock": "HK Stocks",
+			"hkComingSoon": "Coming soon",
+			"frequency": "Frequency",
+			"windows": "Time Windows"
+		},
+		"holdingOverride": {
+			"title": "Auto Analysis Override",
+			"frequency": "Analysis Frequency",
+			"window": "Analysis Window",
+			"windowOptions": {
+				"follow": "Follow Market Default",
+				"pre": "Pre-market Only",
+				"post": "Post-market Only",
+				"both": "Pre and Post"
+			}
+		},
+		"saveSuccess": "Schedule settings saved",
+		"saveError": "Failed to save, please try again"
 	},
 	"llm": {
 		"title": "Configure Provider",
