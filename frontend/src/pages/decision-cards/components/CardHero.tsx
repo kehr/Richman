@@ -1,10 +1,11 @@
+import { AssetTypeTag } from "@/components/AssetTypeTag";
 import { useMoney } from "@/domain/money/useMoney";
 import { ChangeBadge, type DecisionCardDTO } from "@/features/decision-card";
-import { QuestionCircleOutlined, Space, Tag, Tooltip, Typography } from "@/ui-kit/eat";
+import { QuestionCircleOutlined, Space, Tooltip, Typography } from "@/ui-kit/eat";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 
-const { Text, Title } = Typography;
+const { Text } = Typography;
 
 interface CardHeroProps {
 	card: DecisionCardDTO;
@@ -49,12 +50,9 @@ export function CardHero({ card }: CardHeroProps) {
 		>
 			<Space direction="vertical" size={4} style={{ flex: 1 }}>
 				<Space wrap>
-					<Tag>{card.assetType}</Tag>
+					<AssetTypeTag assetType={card.assetType} />
 					<Text type="secondary">{card.assetCode}</Text>
 				</Space>
-				<Title level={2} style={{ margin: 0, fontSize: 28 }}>
-					{card.assetName}
-				</Title>
 				<Space size="middle" wrap>
 					<Text type="secondary">
 						{t("decisionCard.hero.cost")}: {card.costPrice.toFixed(2)}
