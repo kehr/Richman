@@ -1,7 +1,8 @@
+import { useEffect, useRef, useState } from "react";
 import { useMoney } from "@/domain/money/useMoney";
 import { Card, Divider, Space, Tag, Typography } from "@/ui-kit/eat";
 import { useTranslation } from "react-i18next";
-import type { DecisionCardDTO } from "../types";
+import type { DecisionCardDTO, HoldingAnalysisStatus } from "../types";
 import { ChangeBadge } from "./ChangeBadge";
 import { DimensionBadges } from "./DimensionBadges";
 import { ExecutionPlanStrip } from "./ExecutionPlanStrip";
@@ -18,6 +19,13 @@ interface DecisionCardSummaryProps {
 	previousCard?: DecisionCardDTO | null;
 	onClick?: (card: DecisionCardDTO) => void;
 	onShowFullPlan?: (card: DecisionCardDTO) => void;
+	// analysisStatus drives in-progress visual state on the card:
+	// "running" shows a blue border and updating badge; "done" triggers a
+	// 2-second green flash before returning to the default appearance.
+	analysisStatus?: HoldingAnalysisStatus;
+	// analysisProgress is a 0-1 value rendered as a thin progress bar at the
+	// bottom of the card when analysisStatus is "running".
+	analysisProgress?: number;
 }
 
 // DecisionCardSummary composes the four sub-components into the full card
@@ -41,12 +49,38 @@ export function DecisionCardSummary({
 	previousCard,
 	onClick,
 	onShowFullPlan,
+	analysisStatus,
+	analysisProgress,
 }: DecisionCardSummaryProps) {
 	const { t } = useTranslation("app");
 	const money = useMoney();
 	const positionText = money.format(card.positionRatio, card.positionAmount);
 	const marketValueText = money.formatAmountOnly(card.positionAmount);
 	const interactive = Boolean(onClick);
+
+	const [justUpdated, setJustUpdated] = useState(false);
+	const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+	useEffect(() => {
+		if (analysisStatus === "done") {
+			setJustUpdated(true);
+			timeoutRef.current = setTimeout(() => setJustUpdated(false), 2000);
+		}
+		return () => {
+			clearTimeout(timeoutRef.current ?? 0);
+		};
+	}, [analysisStatus]);
+
+	// Compute border style based on analysis state.
+	const borderStyle: React.CSSProperties =
+		analysisStatus === "running"
+			? { borderColor: "#91caff", borderWidth: 1.5 }
+			: justUpdated
+				? { borderColor: "#b7eb8f" }
+				: {};
+
+	// Card body background flashes green on completion for 2 seconds.
+	const bodyBg = justUpdated ? "#f6ffed" : undefined;
 
 	const handleKeyDown = interactive
 		? (event: React.KeyboardEvent<HTMLDivElement>) => {
@@ -69,10 +103,28 @@ export function DecisionCardSummary({
 					? `${card.assetName} ${card.assetCode} ${t("decisionCard.viewFullReasoning")}`
 					: undefined
 			}
-			style={{ height: "100%" }}
-			styles={{ body: { height: "100%", display: "flex", flexDirection: "column" } }}
+			style={{ height: "100%", position: "relative", ...borderStyle }}
+			styles={{ body: { height: "100%", display: "flex", flexDirection: "column", background: bodyBg } }}
 			data-testid={`decision-card-${card.cardId}`}
 		>
+			{analysisStatus === "running" && (
+				<span
+					style={{
+						position: "absolute",
+						top: 6,
+						right: 8,
+						background: "#1677ff",
+						color: "#fff",
+						fontSize: 10,
+						borderRadius: 4,
+						padding: "1px 4px",
+						zIndex: 1,
+					}}
+				>
+					{t("analysisProgress.updating")}
+				</span>
+			)}
+
 			<div
 				style={{
 					display: "flex",
@@ -166,6 +218,25 @@ export function DecisionCardSummary({
 				</Space>
 				<Text type="secondary">{t("decisionCard.viewFullReasoning")}</Text>
 			</div>
+
+			{analysisStatus === "running" && analysisProgress !== undefined && (
+				<div
+					style={{
+						height: 2,
+						background: "#f0f0f0",
+						margin: "8px -24px -24px",
+					}}
+				>
+					<div
+						style={{
+							height: "100%",
+							background: "#1677ff",
+							width: `${Math.round((analysisProgress ?? 0) * 100)}%`,
+							transition: "width 0.5s ease",
+						}}
+					/>
+				</div>
+			)}
 		</Card>
 	);
 }
