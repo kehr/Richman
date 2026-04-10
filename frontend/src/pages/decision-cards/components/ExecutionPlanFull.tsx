@@ -46,15 +46,46 @@ const RATIONALE_KEYS: (keyof StructuredRationale)[] = [
 ];
 
 // RationaleBlock renders a StructuredRationale as labeled rows, hiding
-// empty fields. For legacy string rationale, the text is rendered as-is.
+// empty fields. When rationaleTemplate is provided, text is resolved from
+// the i18n bundle instead of the rationale fields (which are empty for
+// rules-engine fallback steps). For legacy string rationale, the text is
+// rendered as-is.
 function RationaleBlock({
 	rationale,
+	rationaleTemplate,
 	stepOrder,
 }: {
 	rationale: StructuredRationale | string;
+	rationaleTemplate?: string;
 	stepOrder: number;
 }) {
 	const { t } = useTranslation("app");
+
+	// Rules-engine fallback: resolve rationale text from i18n bundle.
+	// Dynamic key paths cannot be statically typed by the i18n plugin, so the
+	// constructed key is cast to satisfy the overloaded t() signature.
+	if (rationaleTemplate) {
+		const prefix = `decisionCard.executionPlan.fallbackRationale.${rationaleTemplate}`;
+		const tDyn = t as (key: string, opts?: Record<string, unknown>) => string;
+		const entries = RATIONALE_KEYS.filter(
+			(k) => tDyn(`${prefix}.${k}`, { defaultValue: "" }) !== "",
+		);
+		if (entries.length === 0) return null;
+		return (
+			<div data-testid={`plan-full-rationale-${stepOrder}`}>
+				{entries.map((key) => (
+					<div key={key} style={{ marginBottom: 2 }}>
+						<Text type="secondary" style={{ fontSize: 12 }}>
+							{t(`decisionCard.executionPlan.rationale.${key}`)}:
+						</Text>{" "}
+						<Text style={{ fontSize: 12 }}>{tDyn(`${prefix}.${key}`)}</Text>
+					</div>
+				))}
+			</div>
+		);
+	}
+
+	// Legacy string rationale (pre-v2 cards).
 	if (typeof rationale === "string") {
 		if (!rationale) return null;
 		return (
@@ -68,6 +99,7 @@ function RationaleBlock({
 		);
 	}
 
+	// LLM-generated structured rationale.
 	if (!isStructuredRationale(rationale)) return null;
 
 	const entries = RATIONALE_KEYS.filter((k) => rationale[k]);
@@ -124,7 +156,11 @@ function StepRow({
 						{t("decisionCard.executionPlan.lotUnit")}
 					</Text>
 				)}
-				<RationaleBlock rationale={step.rationale} stepOrder={step.order} />
+				<RationaleBlock
+					rationale={step.rationale}
+					rationaleTemplate={step.rationaleTemplate}
+					stepOrder={step.order}
+				/>
 			</Space>
 		</div>
 	);

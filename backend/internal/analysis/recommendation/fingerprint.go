@@ -39,9 +39,9 @@ func Fingerprint(targetPositionPct float64, exec Execution) string {
 		return steps[i].Order < steps[j].Order
 	})
 
-	for _, s := range steps {
+	for i := range steps {
 		fmt.Fprintf(&buf, "step|%d|%s|%s|%.6f\n",
-			s.Order, s.TriggerType, s.TriggerValue, s.DeltaPct)
+			steps[i].Order, steps[i].TriggerType, steps[i].TriggerValue, steps[i].DeltaPct)
 	}
 
 	sum := sha1.Sum(buf.Bytes()) // #nosec G401

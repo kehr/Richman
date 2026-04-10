@@ -81,68 +81,32 @@ func legacyToAction(r analysis.Recommendation) recommendation.Action {
 	return recommendation.Action(string(r))
 }
 
-// localizedFallback holds language-specific strings for template fallback
-// recommendations. Keyed by the two supported language codes ("en", "zh").
-type localizedFallback struct {
-	executeImmediately string
-	aggressiveReason   string
-	smallAddReason     string
-	gradualReduceReason string
-	controlReason      string
-	monitorTrigger     string
-	monitorReason      string
-	monitorPosReason   string
-	monitorPrecondition string
-	monitorFallback    string
-	monitorTimeWindow  string
-}
+// executeImmediatelyTrigger is the canonical trigger value for time-based
+// one-shot steps. The frontend format-trigger.ts detects this string and
+// translates it via i18n, so it is intentionally kept in English regardless
+// of the user's language preference.
+const executeImmediatelyTrigger = "execute immediately"
 
-var fallbackStrings = map[string]localizedFallback{
-	"en": {
-		executeImmediately:  "execute immediately",
-		aggressiveReason:    "Aggressive add per matrix decision.",
-		smallAddReason:      "Small add per matrix decision.",
-		gradualReduceReason: "Gradual reduce per matrix decision.",
-		controlReason:       "Control position per matrix decision.",
-		monitorTrigger:      "price breaks below stop-loss",
-		monitorReason:       "Reduce if price breaks below stop-loss to limit downside.",
-		monitorPosReason:    "Moderate trim to observe before further action.",
-		monitorPrecondition: "Price closes below stop-loss level on consecutive days.",
-		monitorFallback:     "If price recovers above cost, continue holding.",
-		monitorTimeWindow:   "Continuous monitoring.",
-	},
-	"zh": {
-		executeImmediately:  "\u7acb\u5373\u6267\u884c",
-		aggressiveReason:    "\u77e9\u9635\u51b3\u7b56\u5224\u5b9a\u4e3a\u79ef\u6781\u52a0\u4ed3\u3002",
-		smallAddReason:      "\u77e9\u9635\u51b3\u7b56\u5224\u5b9a\u4e3a\u5c0f\u5e45\u52a0\u4ed3\u3002",
-		gradualReduceReason: "\u77e9\u9635\u51b3\u7b56\u5224\u5b9a\u4e3a\u9010\u6b65\u51cf\u4ed3\u3002",
-		controlReason:       "\u77e9\u9635\u51b3\u7b56\u5224\u5b9a\u4e3a\u63a7\u5236\u4ed3\u4f4d\u3002",
-		monitorTrigger:      "\u4ef7\u683c\u8dcc\u7834\u6b62\u635f\u7ebf",
-		monitorReason:       "\u4ef7\u683c\u8dcc\u7834\u6b62\u635f\u4f4d\u65f6\u51cf\u4ed3\uff0c\u9650\u5236\u4e0b\u884c\u98ce\u9669\u3002",
-		monitorPosReason:    "\u9002\u5ea6\u51cf\u4ed3\u540e\u89c2\u5bdf\uff0c\u518d\u51b3\u5b9a\u540e\u7eed\u64cd\u4f5c\u3002",
-		monitorPrecondition: "\u4ef7\u683c\u8fde\u7eed\u591a\u65e5\u6536\u76d8\u4f4e\u4e8e\u6b62\u635f\u4f4d\u3002",
-		monitorFallback:     "\u82e5\u4ef7\u683c\u56de\u5347\u81f3\u6210\u672c\u4ee5\u4e0a\uff0c\u7ee7\u7eed\u6301\u6709\u3002",
-		monitorTimeWindow:   "\u6301\u7eed\u76d1\u63a7\u3002",
-	},
-}
-
-// getFallbackStrings returns the localized fallback strings for the given
-// language code. Falls back to English for unrecognized codes.
-func getFallbackStrings(lang string) localizedFallback {
-	if l, ok := fallbackStrings[lang]; ok {
-		return l
+// monitorTriggerFallback returns a language-specific trigger description used
+// only when CostPrice is zero (no structured TriggerPayload available). When
+// CostPrice > 0, the caller produces a structured price trigger instead.
+func monitorTriggerFallback(lang string) string {
+	if lang == "zh" {
+		return "\u4ef7\u683c\u8dcc\u7834\u6b62\u635f\u7ebf" // 价格跌破止损线
 	}
-	return fallbackStrings["en"]
+	return "price breaks below stop-loss"
 }
 
 // fallbackRecommendation builds a deterministic default recommendation when
 // the LLM response is missing or malformed. It uses the matrix-derived action
 // together with the user's current position and cost price to produce a
 // single-step one-shot plan (or a monitor plan for hold).
+//
+// Rationale fields are intentionally left empty. RationaleTemplate is set
+// instead so the frontend can resolve localized text from its i18n bundle.
 func fallbackRecommendation(input *SynthesisInput) recommendation.Recommendation {
 	action := legacyToAction(input.Recommendation)
 	currentPct := input.PositionRatio * 100
-	ls := getFallbackStrings(input.Language)
 
 	rec := recommendation.Recommendation{
 		Action:             action,
@@ -161,24 +125,20 @@ func fallbackRecommendation(input *SynthesisInput) recommendation.Recommendation
 	case recommendation.ActionAggressiveAdd:
 		rec.TargetPositionPct = currentPct + 10
 		rec.Execution.Steps = []recommendation.Step{{
-			Order:        1,
-			TriggerType:  recommendation.TriggerTime,
-			TriggerValue: ls.executeImmediately,
-			DeltaPct:     10,
-			Rationale: recommendation.StructuredRationale{
-				TriggerReason: ls.aggressiveReason,
-			},
+			Order:             1,
+			TriggerType:       recommendation.TriggerTime,
+			TriggerValue:      executeImmediatelyTrigger,
+			DeltaPct:          10,
+			RationaleTemplate: "aggressiveAdd",
 		}}
 	case recommendation.ActionSmallAdd:
 		rec.TargetPositionPct = currentPct + 5
 		rec.Execution.Steps = []recommendation.Step{{
-			Order:        1,
-			TriggerType:  recommendation.TriggerTime,
-			TriggerValue: ls.executeImmediately,
-			DeltaPct:     5,
-			Rationale: recommendation.StructuredRationale{
-				TriggerReason: ls.smallAddReason,
-			},
+			Order:             1,
+			TriggerType:       recommendation.TriggerTime,
+			TriggerValue:      executeImmediatelyTrigger,
+			DeltaPct:          5,
+			RationaleTemplate: "smallAdd",
 		}}
 	case recommendation.ActionHold:
 		rec.Execution.Type = recommendation.ExecutionMonitor
@@ -192,24 +152,20 @@ func fallbackRecommendation(input *SynthesisInput) recommendation.Recommendation
 	case recommendation.ActionGradualReduce:
 		rec.TargetPositionPct = clampNonNegative(currentPct - 10)
 		rec.Execution.Steps = []recommendation.Step{{
-			Order:        1,
-			TriggerType:  recommendation.TriggerTime,
-			TriggerValue: ls.executeImmediately,
-			DeltaPct:     -10,
-			Rationale: recommendation.StructuredRationale{
-				TriggerReason: ls.gradualReduceReason,
-			},
+			Order:             1,
+			TriggerType:       recommendation.TriggerTime,
+			TriggerValue:      executeImmediatelyTrigger,
+			DeltaPct:          -10,
+			RationaleTemplate: "gradualReduce",
 		}}
 	case recommendation.ActionControl:
 		rec.TargetPositionPct = clampNonNegative(currentPct - 15)
 		rec.Execution.Steps = []recommendation.Step{{
-			Order:        1,
-			TriggerType:  recommendation.TriggerTime,
-			TriggerValue: ls.executeImmediately,
-			DeltaPct:     -15,
-			Rationale: recommendation.StructuredRationale{
-				TriggerReason: ls.controlReason,
-			},
+			Order:             1,
+			TriggerType:       recommendation.TriggerTime,
+			TriggerValue:      executeImmediatelyTrigger,
+			DeltaPct:          -15,
+			RationaleTemplate: "control",
 		}}
 	default:
 		// Unknown action: treat as monitor with fallback steps.
@@ -223,9 +179,11 @@ func fallbackRecommendation(input *SynthesisInput) recommendation.Recommendation
 // fallbackMonitorSteps generates a single conditional watch step for
 // monitor-type plans when the LLM did not provide steps. The step
 // instructs the user to trim if price drops below the stop-loss level.
+//
+// Rationale fields are left empty; RationaleTemplate is set so the frontend
+// resolves localized text from its i18n bundle.
 func fallbackMonitorSteps(input *SynthesisInput) []recommendation.Step {
-	ls := getFallbackStrings(input.Language)
-	triggerValue := ls.monitorTrigger
+	triggerValue := monitorTriggerFallback(input.Language)
 	var payload recommendation.TriggerPayload
 	if input.CostPrice > 0 {
 		stopPrice := input.CostPrice * 0.95
@@ -237,18 +195,12 @@ func fallbackMonitorSteps(input *SynthesisInput) []recommendation.Step {
 	}
 	return []recommendation.Step{
 		{
-			Order:          1,
-			TriggerType:    recommendation.TriggerPrice,
-			TriggerValue:   triggerValue,
-			TriggerPayload: payload,
-			DeltaPct:       -5,
-			Rationale: recommendation.StructuredRationale{
-				TriggerReason:  ls.monitorReason,
-				PositionReason: ls.monitorPosReason,
-				Precondition:   ls.monitorPrecondition,
-				Fallback:       ls.monitorFallback,
-				TimeWindow:     ls.monitorTimeWindow,
-			},
+			Order:             1,
+			TriggerType:       recommendation.TriggerPrice,
+			TriggerValue:      triggerValue,
+			TriggerPayload:    payload,
+			DeltaPct:          -5,
+			RationaleTemplate: "monitor",
 		},
 	}
 }

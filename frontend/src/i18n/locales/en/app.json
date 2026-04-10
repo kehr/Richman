@@ -119,6 +119,27 @@
 				"precondition": "Precondition",
 				"fallback": "Fallback",
 				"timeWindow": "Time Window"
+			},
+			"fallbackRationale": {
+				"monitor": {
+					"triggerReason": "Reduce if price breaks below stop-loss to limit downside.",
+					"positionReason": "Moderate trim to observe before further action.",
+					"precondition": "Price closes below stop-loss level on consecutive days.",
+					"fallback": "If price recovers above cost, continue holding.",
+					"timeWindow": "Continuous monitoring."
+				},
+				"aggressiveAdd": {
+					"triggerReason": "Aggressive add per matrix decision."
+				},
+				"smallAdd": {
+					"triggerReason": "Small add per matrix decision."
+				},
+				"gradualReduce": {
+					"triggerReason": "Gradual reduce per matrix decision."
+				},
+				"control": {
+					"triggerReason": "Control position per matrix decision."
+				}
 			}
 		},
 		"mainRisks": {

@@ -119,6 +119,27 @@
 				"precondition": "前提条件",
 				"fallback": "备选方案",
 				"timeWindow": "时间窗口"
+			},
+			"fallbackRationale": {
+				"monitor": {
+					"triggerReason": "价格跌破止损位时减仓，限制下行风险。",
+					"positionReason": "适度减仓后观察，再决定后续操作。",
+					"precondition": "价格连续多日收盘低于止损位。",
+					"fallback": "若价格回升至成本以上，继续持有。",
+					"timeWindow": "持续监控。"
+				},
+				"aggressiveAdd": {
+					"triggerReason": "矩阵决策判定为积极加仓。"
+				},
+				"smallAdd": {
+					"triggerReason": "矩阵决策判定为小幅加仓。"
+				},
+				"gradualReduce": {
+					"triggerReason": "矩阵决策判定为逐步减仓。"
+				},
+				"control": {
+					"triggerReason": "矩阵决策判定为控制仓位。"
+				}
 			}
 		},
 		"mainRisks": {

@@ -83,6 +83,11 @@ export interface Step {
 	deltaPct: number;
 	lotCount?: number;
 	rationale: StructuredRationale | string;
+	// rationaleTemplate is set by the rules-engine fallback path. When present,
+	// rationale fields are empty and the frontend resolves localized text from
+	// decisionCard.executionPlan.fallbackRationale.<template>.<field> i18n keys.
+	// Known values: "monitor" | "aggressiveAdd" | "smallAdd" | "gradualReduce" | "control".
+	rationaleTemplate?: string;
 }
 
 // Execution is a complete execution plan attached to a Recommendation.

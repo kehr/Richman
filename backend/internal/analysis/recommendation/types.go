@@ -116,6 +116,12 @@ type Step struct {
 	DeltaPct       float64             `json:"deltaPct"`
 	LotCount       float64             `json:"lotCount"`
 	Rationale      StructuredRationale `json:"rationale"`
+	// RationaleTemplate is set by the rules-engine fallback path to signal that
+	// Rationale fields are empty and the frontend should resolve localized text
+	// from its own i18n bundle using this key segment. Empty string means
+	// Rationale contains LLM-generated prose.
+	// Known values: "monitor", "aggressiveAdd", "smallAdd", "gradualReduce", "control".
+	RationaleTemplate string `json:"rationaleTemplate,omitempty"`
 }
 
 // UnmarshalJSON implements custom unmarshaling for Step to handle backward
