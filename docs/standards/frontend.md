@@ -392,6 +392,42 @@ ProTable 的 request prop 直接对接 feature API：
 | import 排序 | Biome 自动管理 |
 
 
+## 国际化（i18n）执行规范
+
+**核心规则：所有 UI 可见字符串必须经过 `t()`，禁止在 JSX 中直接渲染硬编码字符串。**
+
+```typescript
+// 正确
+<Text>{t("decisionCard.badge.plan_adjust")}</Text>
+<Text>{t(`decisionCard.badge.${badgeState}`)}</Text>
+
+// 错误 — 硬编码字符串直接出现在 JSX 返回值中
+<Text>Plan Adjusted</Text>
+<Text>{BADGE_TEXT[badgeState]}</Text>
+```
+
+**硬编码字符串常量的使用限制**
+
+有时需要为非 React 上下文（推送通知、邮件模板、服务端日志）维护一份英文字符串常量（如 `BADGE_TEXT`）。这类常量：
+
+- 只允许在非渲染上下文中使用（mutation 回调、API 请求体、日志输出）
+- 禁止在 JSX / TSX 返回值中使用
+- 注释必须明确标注 `// non-React context only`
+
+**动态 key 拼接**
+
+动态拼接翻译 key 时，使用类型断言绕过 i18next 的严格 key 校验，不要引入 `as any`：
+
+```typescript
+// 推荐写法
+t(`decisionCard.badge.${state as Exclude<BadgeState, "none">}`)
+```
+
+**两个 locale 文件必须同步**
+
+新增或修改任何翻译 key 时，`zh/app.json` 和 `en/app.json` 必须在同一次提交中同步更新。只改一个文件是 review 违规项。
+
+
 ## 架构边界检查
 
 dependency-cruiser 规则（.dependency-cruiser.web.cjs）：

@@ -3,9 +3,9 @@ import type { CSSProperties } from "react";
 import { useTranslation } from "react-i18next";
 import type { BadgeState } from "../types";
 
-// BADGE_TEXT is kept as a stable English fallback used by ChangeAnchorList
-// (which calls it outside of a React component context via buildChangeSummary).
-// UI-visible badge labels are rendered via useTranslation inside ChangeBadge.
+// BADGE_TEXT is for non-React contexts only: push notifications, email
+// templates, server-side logs. DO NOT use in JSX — always call
+// t(`decisionCard.badge.${state}`) inside components so the locale is respected.
 export const BADGE_TEXT: Record<Exclude<BadgeState, "none">, string> = {
 	data_degraded: "Data Degraded",
 	first_analysis: "First Analysis",
