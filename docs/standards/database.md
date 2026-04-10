@@ -9,20 +9,27 @@ PostgreSQL（Supabase 托管或自建）
 
 每张表的主键为 `{表名单数}_id`，使用 BIGSERIAL 自增。
 
-| 表 | 主键 | 自增起始值 |
-|---|------|-----------|
-| users | user_id | 10000 |
-| holdings | holding_id | 20000 |
-| trades | trade_id | 30000 |
-| analysis_results | analysis_result_id | 40000 |
-| decision_cards | decision_card_id | 50000 |
-| notification_channels | notification_channel_id | 60000 |
-| notification_logs | notification_log_id | 70000 |
-| asset_catalog | asset_catalog_id | 80000 |
-| invite_codes | invite_code_id | 90000 |
-| plans | plan_id | 100000 |
+**6 位数起始规则：** 所有业务产品实体表（用户直接交互的实体）的 sequence 起始值不低于 100000。
+这避免短 ID 带来的爬取风险，并与系统/种子数据（计划、资产目录等）保持视觉区分。
 
-新增表以 10000 为间隔递增。
+| 表 | 主键 | 序列起始值 | 说明 |
+|---|------|-----------|------|
+| users | user_id | 100000 | 业务实体 |
+| holdings | holding_id | 100000 | 业务实体 |
+| trades | trade_id | 100000 | 业务实体 |
+| analysis_results | analysis_result_id | 100000 | 业务实体 |
+| decision_cards | decision_card_id | 100000 | 业务实体 |
+| notification_channels | notification_channel_id | 100000 | 业务实体 |
+| notification_logs | notification_log_id | 100000 | 业务实体 |
+| llm_configs | config_id | 100000 | 业务实体 |
+| user_schedule_settings | id | 100000 | 业务实体 |
+| holding_schedule_overrides | id | 100000 | 业务实体 |
+| plans | plan_id | 100000 | 管理数据（种子已在 100000） |
+| asset_catalog | asset_catalog_id | 1 | 参考种子数据，不适用 6 位规则 |
+| invite_codes | invite_code_id | 1 | 管理员创建，不适用 6 位规则 |
+| analysis_tasks | task_id | UUID | 非序列主键 |
+
+新增业务实体表：sequence 统一从 100000 起步，在建表 DDL 中通过 `ALTER SEQUENCE ... RESTART WITH 100000` 或 `START 100000` 显式指定，不依赖迁移后补。
 
 
 ## 审计字段
