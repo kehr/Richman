@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/richman/backend/internal/llm"
@@ -14,7 +15,10 @@ import (
 )
 
 const (
-	defaultBaseURL = "https://api.openai.com/v1/chat/completions"
+	// defaultBaseURL is the OpenAI API v1 base path. ChatCompletion appends
+	// /chat/completions so callers (and the openai_compatible provider) can
+	// set a plain base URL without knowing the endpoint suffix.
+	defaultBaseURL = "https://api.openai.com/v1"
 	defaultModel   = "gpt-4o"
 )
 
@@ -135,7 +139,8 @@ func (c *Client) ChatCompletion(ctx context.Context, req llm.ChatRequest) (*llm.
 		return nil, fmt.Errorf("marshal request: %w", err)
 	}
 
-	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL, bytes.NewReader(payload))
+	endpoint := strings.TrimRight(c.baseURL, "/") + "/chat/completions"
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewReader(payload))
 	if err != nil {
 		return nil, fmt.Errorf("create request: %w", err)
 	}
