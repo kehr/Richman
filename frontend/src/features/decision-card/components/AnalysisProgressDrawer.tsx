@@ -1,3 +1,4 @@
+import { formatDuration } from "@/domain/time/format-duration";
 import {
 	Button,
 	CheckCircleOutlined,
@@ -218,7 +219,7 @@ export function AnalysisProgressDrawer({
 										)}
 									{h.durationMs !== null && h.status === "done" && (
 										<span style={{ fontSize: 11, color: "#d9d9d9", flexShrink: 0 }}>
-											{h.durationMs}ms
+											{formatDuration(h.durationMs)}
 										</span>
 									)}
 								</div>

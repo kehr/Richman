@@ -1,3 +1,4 @@
+import { formatDuration } from "@/domain/time/format-duration";
 import { useTranslation } from "react-i18next";
 import type { AnalysisTaskStep } from "../types";
 
@@ -81,7 +82,7 @@ export function AnalysisStepTimeline({ steps, currentHolding }: AnalysisStepTime
 							{t(`analysisProgress.step.${step.key}`)}
 						</span>
 						{(step.status === "done" || step.status === "failed") && step.durationMs !== null && (
-							<span style={{ fontSize: 11, color: "#bbb" }}>{step.durationMs}ms</span>
+							<span style={{ fontSize: 11, color: "#bbb" }}>{formatDuration(step.durationMs)}</span>
 						)}
 					</div>
 				))}
