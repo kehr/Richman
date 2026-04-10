@@ -1,13 +1,10 @@
-import { Button, Card, Empty, Space, Typography } from "@/ui-kit/eat";
+import { Alert, Button, Card, Typography, theme } from "@/ui-kit/eat";
+import { Bot } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 const { Text, Title } = Typography;
 
 interface LLMEmptyStateProps {
-	// systemDefaultAvailable controls the supporting callout: when true we
-	// tell the user analyses will fall back to Richman's shared provider
-	// (assuming consent); when false we tell them analyses will use the
-	// rules engine.
 	systemDefaultAvailable: boolean;
 	useSystemDefaultConsent: boolean;
 	onAddProvider: () => void;
@@ -22,33 +19,48 @@ export function LLMEmptyState({
 	onAddProvider,
 }: LLMEmptyStateProps) {
 	const { t } = useTranslation("settings");
+	const { token } = theme.useToken();
 
-	const calloutCopy = (() => {
+	const calloutNode = (() => {
 		if (!systemDefaultAvailable) return null;
 		if (useSystemDefaultConsent) {
-			return t("llm.emptyState.callout.systemConsentGiven");
+			return (
+				<Alert
+					type="info"
+					showIcon
+					message={t("llm.emptyState.callout.systemConsentGiven")}
+					style={{ borderTop: "none", borderRadius: "0 0 8px 8px" }}
+				/>
+			);
 		}
-		return t("llm.emptyState.callout.systemNoConsent");
+		return (
+			<Alert
+				type="warning"
+				showIcon
+				message={t("llm.emptyState.callout.systemNoConsent")}
+				style={{ borderTop: "none", borderRadius: "0 0 8px 8px" }}
+			/>
+		);
 	})();
 
 	return (
 		<Card data-testid="llm-empty-state">
-			<Space direction="vertical" size={16} style={{ width: "100%" }}>
-				<Empty
-					description={
-						<Space direction="vertical" size={4}>
-							<Title level={5} style={{ margin: 0 }}>
-								{t("llm.emptyState.title")}
-							</Title>
-							{calloutCopy && <Text type="secondary">{calloutCopy}</Text>}
-						</Space>
-					}
+			<div style={{ textAlign: "center", padding: "24px 20px" }}>
+				<Bot size={32} color={token.colorTextQuaternary} style={{ marginBottom: 12 }} />
+				<Title level={5} style={{ margin: "0 0 6px" }}>
+					{t("llm.emptyState.title")}
+				</Title>
+				<Text
+					type="secondary"
+					style={{ display: "block", maxWidth: 360, margin: "0 auto 16px", fontSize: 13 }}
 				>
-					<Button type="primary" onClick={onAddProvider} data-testid="llm-add-provider-button">
-						{t("llm.emptyState.addButton")}
-					</Button>
-				</Empty>
-			</Space>
+					{t("llm.emptyState.description")}
+				</Text>
+				<Button type="primary" onClick={onAddProvider} data-testid="llm-add-provider-button">
+					{t("llm.emptyState.addButton")}
+				</Button>
+			</div>
+			{calloutNode}
 		</Card>
 	);
 }
