@@ -310,11 +310,12 @@ func (s *Scheduler) registerWindowEntry(
 
 	key := userEntryKey{userID: userID, market: market, window: window}
 
+	// Hold the lock across the entire read+remove+write sequence to eliminate
+	// the TOCTOU window. cron.Remove and cron.AddFunc use their own internal
+	// lock, so calling them while holding s.mu is safe.
 	s.mu.Lock()
 	if oldID, exists := s.entryIDs[key]; exists {
-		s.mu.Unlock()
 		s.cron.Remove(oldID)
-		s.mu.Lock()
 	}
 	s.entryIDs[key] = id
 	s.mu.Unlock()
