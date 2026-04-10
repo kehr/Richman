@@ -88,6 +88,12 @@ type SynthesisMeta struct {
 	// (i.e. when the LLM was reached). They are empty/zero for template-only paths.
 	Model      string
 	TokensUsed int
+	// PromptSnippet and ResponseSnippet carry the first 300 / 500 characters of
+	// the user prompt and raw LLM response respectively. They are populated only
+	// on the LLM success path and are intended for task-log display; full content
+	// is emitted to the structured logger at Debug level.
+	PromptSnippet   string
+	ResponseSnippet string
 }
 
 // Synthesize generates structured decision card content and reports how it
@@ -122,14 +128,24 @@ func (s *Synthesizer) Synthesize(
 		langInstruction = "Respond in Simplified Chinese."
 	}
 
+	systemPrompt := "You are a financial analysis assistant. " +
+		"Generate structured investment analysis summaries. " +
+		langInstruction + " " +
+		"Respond only with valid JSON."
+
+	s.logger.Debug("llm request",
+		zap.String("asset", input.AssetCode),
+		zap.String("system_prompt", systemPrompt),
+		zap.String("user_prompt", prompt),
+		zap.Int("max_tokens", 2048),
+		zap.Float64("temperature", 0.4),
+	)
+
 	resolved, err := s.resolver.ResolvedChatCompletion(ctx, userID, llm.ChatRequest{
-		SystemPrompt: "You are a financial analysis assistant. " +
-			"Generate structured investment analysis summaries. " +
-			langInstruction + " " +
-			"Respond only with valid JSON.",
-		UserPrompt:  prompt,
-		MaxTokens:   2048,
-		Temperature: 0.4,
+		SystemPrompt: systemPrompt,
+		UserPrompt:   prompt,
+		MaxTokens:    2048,
+		Temperature:  0.4,
 	})
 	if err != nil || resolved == nil {
 		// Distinguish ErrConsentDenied from real failures only in log level;
@@ -154,6 +170,15 @@ func (s *Synthesizer) Synthesize(
 	}
 
 	layer := string(resolved.Layer)
+
+	s.logger.Debug("llm response",
+		zap.String("asset", input.AssetCode),
+		zap.String("layer", layer),
+		zap.String("model", resolved.Response.Model),
+		zap.Int("tokens_used", resolved.Response.TokensUsed),
+		zap.Duration("latency", resolved.Response.Latency),
+		zap.String("content", resolved.Response.Content),
+	)
 
 	// Parse the main JSON block. A malformed response degrades to template
 	// for the text fields, but we keep the layer that answered so operators
@@ -196,11 +221,13 @@ func (s *Synthesizer) Synthesize(
 	)
 
 	return output, &SynthesisMeta{
-		Source:       source,
-		ProviderUsed: layer,
-		LatencyMs:    elapsedMs(start),
-		Model:        resolved.Response.Model,
-		TokensUsed:   resolved.Response.TokensUsed,
+		Source:          source,
+		ProviderUsed:    layer,
+		LatencyMs:       elapsedMs(start),
+		Model:           resolved.Response.Model,
+		TokensUsed:      resolved.Response.TokensUsed,
+		PromptSnippet:   snippet(prompt, 300),
+		ResponseSnippet: snippet(resolved.Response.Content, 500),
 	}, nil
 }
 
@@ -298,6 +325,16 @@ func recommendationText(rec analysis.Recommendation) string {
 	default:
 		return string(rec)
 	}
+}
+
+// snippet returns the first n runes of s, appending "…" when truncated.
+// Safe for multi-byte UTF-8 strings.
+func snippet(s string, n int) string {
+	runes := []rune(s)
+	if len(runes) <= n {
+		return s
+	}
+	return string(runes[:n]) + "…"
 }
 
 // extractJSON attempts to find the first JSON object in a string.

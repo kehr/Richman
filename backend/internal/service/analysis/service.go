@@ -414,6 +414,16 @@ func (s *Service) AnalyzeHolding(
 				"%s LLM ok · provider=%s model=%s tokens=%d latency=%dms",
 				holding.AssetCode, synthMeta.ProviderUsed, synthMeta.Model, synthMeta.TokensUsed, synthMeta.LatencyMs,
 			))
+			if synthMeta.PromptSnippet != "" {
+				s.tsLog(tID, model.LogLevelInfo, fmt.Sprintf(
+					"%s → prompt: %s", holding.AssetCode, synthMeta.PromptSnippet,
+				))
+			}
+			if synthMeta.ResponseSnippet != "" {
+				s.tsLog(tID, model.LogLevelInfo, fmt.Sprintf(
+					"%s ← response: %s", holding.AssetCode, synthMeta.ResponseSnippet,
+				))
+			}
 		}
 	}
 	s.tsComplete(tID, model.StepKeyLLMSynthesis)
