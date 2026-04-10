@@ -1,4 +1,4 @@
-import { formatPercent } from "@/domain/money/format";
+import { DeltaDisplay } from "@/domain/money/DeltaDisplay";
 import { useMoney } from "@/domain/money/useMoney";
 import { computeNextAnalysisTime, formatHm } from "@/features/decision-card";
 import {
@@ -75,16 +75,11 @@ export function DashboardTopStrip({
 	const hasCapital = totalCapitalCny != null;
 	const capitalDisplay = money.formatAmountOnly(totalCapitalCny);
 
-	// Directional color: use theme palette values (success/error) rather than
-	// saturated Chinese-market reds to keep the signal informational, not alarming.
-	const pnlColor = aggregatePnlPct > 0 ? "#10B981" : aggregatePnlPct < 0 ? "#EF4444" : undefined;
-
 	const amountStr =
 		money.hasCapital && aggregatePnlAmount != null
 			? money.formatAmountOnly(aggregatePnlAmount)
 			: null;
 
-	const holdingPnlColor = holdingPnlPct > 0 ? "#10B981" : holdingPnlPct < 0 ? "#EF4444" : undefined;
 	const holdingPnlAmountStr =
 		holdingPnlAmount != null ? money.formatAmountOnly(holdingPnlAmount) : null;
 
@@ -136,31 +131,26 @@ export function DashboardTopStrip({
 			</Row>
 
 			{/* Hero: suggested rebalance — primary actionable signal */}
-			<Flex align="flex-end" justify="space-between" style={{ margin: "20px 0 16px" }}>
-				<Flex vertical gap={6}>
-					<Flex align="center" gap={5}>
-						<Text type="secondary" style={{ fontSize: 12 }}>
-							{t("dashboard.stat.suggestedRebalance")}
-						</Text>
-						<Tooltip title={t("dashboard.stat.suggestedRebalanceHint")}>
-							<QuestionCircleOutlined
-								style={{ fontSize: 11, color: "#8C8C8C", cursor: "default" }}
-							/>
-						</Tooltip>
-					</Flex>
-					<Text
-						strong
-						style={{ fontSize: 36, lineHeight: 1, color: pnlColor }}
-						data-testid="stat-aggregate-pnl"
-					>
-						{formatPercent(aggregatePnlPct)}
+			<Flex vertical gap={6} style={{ margin: "20px 0 16px" }}>
+				<Flex align="center" gap={5}>
+					<Text type="secondary" style={{ fontSize: 12 }}>
+						{t("dashboard.stat.suggestedRebalance")}
 					</Text>
+					<Tooltip title={t("dashboard.stat.suggestedRebalanceHint")}>
+						<QuestionCircleOutlined style={{ fontSize: 11, color: "#8C8C8C", cursor: "default" }} />
+					</Tooltip>
 				</Flex>
-				{amountStr != null && (
-					<Text type="secondary" style={{ fontSize: 18, paddingBottom: 4 }}>
-						{amountStr}
-					</Text>
-				)}
+				<DeltaDisplay
+					pct={aggregatePnlPct}
+					amount={amountStr}
+					convention="us"
+					showSign={false}
+					primarySize={36}
+					secondarySize={18}
+					layout="horizontal"
+					align="left"
+					data-testid="stat-aggregate-pnl"
+				/>
 			</Flex>
 
 			<Divider style={{ margin: 0 }} />
@@ -221,18 +211,16 @@ export function DashboardTopStrip({
 								/>
 							</Tooltip>
 						</Flex>
-						<Text
-							strong
-							style={{ fontSize: 20, color: holdingPnlColor }}
+						<DeltaDisplay
+							pct={holdingPnlPct}
+							amount={holdingPnlAmountStr}
+							convention="us"
+							showSign={false}
+							primarySize={20}
+							secondarySize={12}
+							align="left"
 							data-testid="stat-holding-pnl"
-						>
-							{formatPercent(holdingPnlPct)}
-						</Text>
-						{holdingPnlAmountStr != null && (
-							<Text type="secondary" style={{ fontSize: 12 }}>
-								{holdingPnlAmountStr}
-							</Text>
-						)}
+						/>
 					</Flex>
 				</Col>
 			</Row>

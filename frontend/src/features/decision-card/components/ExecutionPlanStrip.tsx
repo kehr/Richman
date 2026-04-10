@@ -1,3 +1,4 @@
+import { DeltaDisplay } from "@/domain/money/DeltaDisplay";
 import { useMoney } from "@/domain/money/useMoney";
 import { Space, Typography } from "@/ui-kit/eat";
 import type { CSSProperties } from "react";
@@ -29,22 +30,6 @@ function stepCircleStyle(index: number): CSSProperties {
 	};
 }
 
-// formatDeltaPct renders a signed percentage suffix ("+20%" / "-10%"). The
-// sign is derived from the raw delta so the caller does not need to
-// pre-format it.
-function formatDeltaPct(delta: number): string {
-	const sign = delta > 0 ? "+" : "";
-	return `${sign}${delta.toFixed(0)}%`;
-}
-
-// deltaPctColor follows A-share convention: red = increase (涨/加仓),
-// green = decrease (跌/减仓), gray = neutral (0%).
-function deltaPctColor(delta: number): string {
-	if (delta > 0) return "#f5222d";
-	if (delta < 0) return "#52c41a";
-	return "#8c8c8c";
-}
-
 function StepRow({
 	step,
 	index,
@@ -56,23 +41,12 @@ function StepRow({
 		<div style={{ display: "flex", alignItems: "center" }} data-testid={`plan-step-${step.order}`}>
 			<span style={stepCircleStyle(index)}>{step.order}</span>
 			<Text style={{ flex: 1 }}>{formatTrigger(step)}</Text>
-			<div
-				style={{
-					display: "flex",
-					flexDirection: "column",
-					alignItems: "flex-end",
-					marginLeft: 8,
-				}}
-			>
-				<Text strong style={{ color: deltaPctColor(step.deltaPct) }}>
-					{formatDeltaPct(step.deltaPct)}
-				</Text>
-				{amountStr != null && (
-					<Text type="secondary" style={{ fontSize: 11, lineHeight: 1.3 }}>
-						{amountStr}
-					</Text>
-				)}
-			</div>
+			<DeltaDisplay
+				pct={step.deltaPct}
+				amount={amountStr}
+				style={{ marginLeft: 8 }}
+				data-testid={`plan-step-delta-${step.order}`}
+			/>
 		</div>
 	);
 }

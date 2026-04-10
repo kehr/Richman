@@ -1,3 +1,4 @@
+import { DeltaDisplay } from "@/domain/money/DeltaDisplay";
 import { useMoney } from "@/domain/money/useMoney";
 import { isStructuredRationale, useFormatTriggerValue } from "@/features/decision-card";
 import type { Execution, Step, StructuredRationale } from "@/features/decision-card";
@@ -32,19 +33,6 @@ function stepCircleStyle(index: number): CSSProperties {
 		fontWeight: 600,
 		flex: "0 0 auto",
 	};
-}
-
-function formatDeltaPct(delta: number): string {
-	const sign = delta > 0 ? "+" : "";
-	return `${sign}${delta.toFixed(0)}%`;
-}
-
-// deltaPctColor follows A-share convention: red = increase (涨/加仓),
-// green = decrease (跌/减仓), gray = neutral (0%).
-function deltaPctColor(delta: number): string {
-	if (delta > 0) return "#f5222d";
-	if (delta < 0) return "#52c41a";
-	return "#8c8c8c";
 }
 
 // RATIONALE_KEYS is the display order for StructuredRationale fields.
@@ -159,23 +147,12 @@ function StepRow({
 							<Tag color="default">{t("decisionCard.executionPlan.monitorStepLabel")}</Tag>
 						)}
 					</Space>
-					<div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
-						<Text
-							strong
-							style={{
-								fontSize: 18,
-								lineHeight: 1.2,
-								color: deltaPctColor(step.deltaPct),
-							}}
-						>
-							{formatDeltaPct(step.deltaPct)}
-						</Text>
-						{amountStr != null && (
-							<Text type="secondary" style={{ fontSize: 11, lineHeight: 1.3 }}>
-								{amountStr}
-							</Text>
-						)}
-					</div>
+					<DeltaDisplay
+						pct={step.deltaPct}
+						amount={amountStr}
+						primarySize={18}
+						data-testid={`plan-full-step-delta-${step.order}`}
+					/>
 				</div>
 				{step.lotCount != null && step.lotCount > 0 && (
 					<Text type="secondary" style={{ fontSize: 12 }}>
