@@ -5,6 +5,15 @@ import "time"
 // TaskStepStatus represents the execution state of a single analysis step.
 type TaskStepStatus string
 
+// LogLevel represents the severity of a task log entry.
+type LogLevel string
+
+const (
+	LogLevelInfo  LogLevel = "info"
+	LogLevelWarn  LogLevel = "warn"
+	LogLevelError LogLevel = "error"
+)
+
 const (
 	StepPending TaskStepStatus = "pending"
 	StepRunning TaskStepStatus = "running"
@@ -32,15 +41,15 @@ type TaskStep struct {
 // TaskLog holds a single structured log entry emitted during task execution.
 type TaskLog struct {
 	Ts    time.Time `json:"ts"`
-	Level string    `json:"level"`
+	Level LogLevel  `json:"level"`
 	Msg   string    `json:"msg"`
 }
 
 // HoldingProgress tracks per-holding analysis progress within a task.
 type HoldingProgress struct {
-	Symbol          string  `json:"symbol"`
-	Name            string  `json:"name"`
-	Status          string  `json:"status"`
+	Symbol          string         `json:"symbol"`
+	Name            string         `json:"name"`
+	Status          TaskStepStatus `json:"status"`
 	Progress        float64 `json:"progress"`
 	SynthesisSource *string `json:"synthesisSource"`
 	ProviderUsed    *string `json:"providerUsed"`
