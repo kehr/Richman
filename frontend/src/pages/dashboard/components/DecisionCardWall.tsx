@@ -81,33 +81,31 @@ export function DecisionCardWall({
 		// container width, so the layout adapts automatically as more cards
 		// are added without any breakpoint configuration.
 		<div style={gridStyle} data-testid="decision-card-wall">
-			{cards.map((card) => (
-				<div
-					key={card.cardId}
-					ref={(node) => {
-						if (!cardRefs) return;
-						if (node) {
-							cardRefs.set(card.cardId, node);
-						} else {
-							cardRefs.delete(card.cardId);
-						}
-					}}
-					data-card-anchor={card.cardId}
-					style={{ height: "100%" }}
-				>
-					{(() => {
-						const holding = holdingsProgress?.find((h) => h.symbol === card.assetCode);
-						return (
-							<DecisionCardSummary
-								card={card}
-								onClick={onCardClick}
-								analysisStatus={holding?.status}
-								analysisProgress={holding?.progress}
-							/>
-						);
-					})()}
-				</div>
-			))}
+			{cards.map((card) => {
+				const holding = holdingsProgress?.find((h) => h.symbol === card.assetCode);
+				return (
+					<div
+						key={card.cardId}
+						ref={(node) => {
+							if (!cardRefs) return;
+							if (node) {
+								cardRefs.set(card.cardId, node);
+							} else {
+								cardRefs.delete(card.cardId);
+							}
+						}}
+						data-card-anchor={card.cardId}
+						style={{ height: "100%" }}
+					>
+						<DecisionCardSummary
+							card={card}
+							onClick={onCardClick}
+							analysisStatus={holding?.status}
+							analysisProgress={holding?.progress}
+						/>
+					</div>
+				);
+			})}
 		</div>
 	);
 }
