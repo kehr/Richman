@@ -5,7 +5,7 @@ import {
 	SettingOutlined,
 	UserOutlined,
 } from "@/ui-kit/eat";
-import { Sparkles } from "lucide-react";
+import { CalendarClock, Sparkles } from "lucide-react";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router";
@@ -14,9 +14,10 @@ import { AITab } from "./tabs/AITab";
 import { AccountTab } from "./tabs/AccountTab";
 import { ChannelsTab } from "./tabs/ChannelsTab";
 import { PreferencesTab } from "./tabs/PreferencesTab";
+import { ScheduleTab } from "./tabs/ScheduleTab";
 import { SubscriptionTab } from "./tabs/SubscriptionTab";
 
-const TAB_KEYS = ["account", "ai", "channels", "preferences", "subscription"] as const;
+const TAB_KEYS = ["account", "ai", "schedule", "channels", "preferences", "subscription"] as const;
 type TabKey = (typeof TAB_KEYS)[number];
 
 function isTabKey(value: string | null): value is TabKey {
@@ -37,6 +38,12 @@ export default function SettingsPage() {
 		() => [
 			{ key: "account", label: t("tabs.account"), icon: <UserOutlined />, content: <AccountTab /> },
 			{ key: "ai", label: t("tabs.ai"), icon: <Sparkles size={14} />, content: <AITab /> },
+			{
+				key: "schedule",
+				label: t("tabs.schedule"),
+				icon: <CalendarClock size={14} />,
+				content: <ScheduleTab />,
+			},
 			{
 				key: "channels",
 				label: t("tabs.channels"),

@@ -48,6 +48,7 @@ export {
 	Flex,
 	Image,
 	theme,
+	TimePicker,
 } from "antd";
 
 export { Tag } from "./Tag";
