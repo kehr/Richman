@@ -106,3 +106,4 @@ task (see "Design Review Gate" above); the rest are loaded on demand.
 | `testing.md` | Test structure, naming, mock strategy (frontend + backend) |
 | `logging.md` | Uber zap, log levels, request tracing, rotation, masking |
 | `dev-environment.md` | Startup order, pull-then-migrate discipline, schema drift defenses (Makefile + startup check), observability invariants |
+| `abstraction-reuse.md` | MANDATORY abstraction and reuse principles (frontend + backend): domain layer model, forbidden direct infra calls, interface-first, centralized registries |
