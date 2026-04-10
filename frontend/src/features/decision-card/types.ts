@@ -193,8 +193,8 @@ export interface HoldingProgress {
 	name: string;
 	status: HoldingAnalysisStatus;
 	progress: number;
-	synthesisSource: "llm" | "template" | "mixed" | null;
-	providerUsed: "user" | "system_default" | "none" | null;
+	synthesisSource: string | null;
+	providerUsed: string | null;
 	durationMs: number | null;
 }
 
@@ -204,15 +204,18 @@ export interface AnalysisTaskLog {
 	msg: string;
 }
 
-export type AnalysisTaskStatus = "running" | "done" | "failed";
+export type AnalysisTaskStatus = "pending" | "running" | "completed" | "failed";
 
 export interface AnalysisTask {
 	taskId: string;
+	userId: number;
 	status: AnalysisTaskStatus;
 	progress: number;
+	error?: string;
+	startedAt: string;
+	doneAt?: string;
 	currentHolding: string;
 	holdings: HoldingProgress[];
 	steps: AnalysisTaskStep[];
 	logs: AnalysisTaskLog[];
-	error?: string;
 }
