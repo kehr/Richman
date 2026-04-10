@@ -1,11 +1,5 @@
-import {
-	BellOutlined,
-	PageContainer,
-	PieChartOutlined,
-	SettingOutlined,
-	UserOutlined,
-} from "@/ui-kit/eat";
-import { CalendarClock, Sparkles } from "lucide-react";
+import { BellOutlined, PageContainer, UserOutlined } from "@/ui-kit/eat";
+import { CalendarClock, Crown, SlidersHorizontal, Sparkles } from "lucide-react";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router";
@@ -40,7 +34,7 @@ export default function SettingsPage() {
 			{
 				key: "preferences",
 				label: t("tabs.preferences"),
-				icon: <SettingOutlined />,
+				icon: <SlidersHorizontal size={14} />,
 				content: <PreferencesTab />,
 			},
 			{
@@ -59,7 +53,7 @@ export default function SettingsPage() {
 			{
 				key: "subscription",
 				label: t("tabs.subscription"),
-				icon: <PieChartOutlined />,
+				icon: <Crown size={14} />,
 				content: <SubscriptionTab />,
 			},
 		],

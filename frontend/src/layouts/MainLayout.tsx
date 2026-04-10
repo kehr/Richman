@@ -6,15 +6,14 @@ import {
 	Avatar,
 	Dropdown,
 	GlobalOutlined,
-	LineChartOutlined,
 	LogoutOutlined,
-	PieChartOutlined,
 	ProLayout,
 	QuestionCircleOutlined,
 	SettingOutlined,
 	Space,
 	UserOutlined,
 } from "@/ui-kit/eat";
+import { Briefcase, TrendingUp } from "lucide-react";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, Outlet, useLocation, useNavigate } from "react-router";
@@ -31,8 +30,8 @@ export function MainLayout() {
 		() => ({
 			path: "/",
 			routes: [
-				{ path: "/briefing", name: t("nav.briefing"), icon: <LineChartOutlined /> },
-				{ path: "/portfolio", name: t("nav.portfolio"), icon: <PieChartOutlined /> },
+				{ path: "/briefing", name: t("nav.briefing"), icon: <TrendingUp size={14} /> },
+				{ path: "/portfolio", name: t("nav.portfolio"), icon: <Briefcase size={14} /> },
 			],
 		}),
 		[t],
