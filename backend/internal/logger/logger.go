@@ -11,28 +11,35 @@ import (
 )
 
 // New creates a new zap.Logger based on the given configuration.
-// In dev mode it uses a console encoder at debug level writing to stdout only.
-// In prod mode it uses a JSON encoder at info level, writing to stdout and
-// rotated log files (app.log for Info+, error.log for Error+).
+//
+// All environments use the same JSON encoder so that log lines are parseable
+// by tooling (humanlog, jq, lnav) and dev/prod behavior is identical.
+//
+// Dev mode differences from prod:
+//   - Level: DEBUG (prod: INFO)
+//   - Output: stdout only, no file rotation
+//   - Global fields: omitted (service/env are obvious in a local dev process)
+//
+// Recommended dev viewing:
+//
+//	make dev-pretty          # auto-routes through humanlog if installed
+//	make dev | jq .          # ad-hoc pretty-print without extra tools
 func New(cfg *config.Config) (*zap.Logger, error) {
-	var cores []zapcore.Core
-
 	encoderCfg := zap.NewProductionEncoderConfig()
 	encoderCfg.TimeKey = "ts"
 	encoderCfg.EncodeTime = zapcore.ISO8601TimeEncoder
+	jsonEncoder := zapcore.NewJSONEncoder(encoderCfg)
+
+	var cores []zapcore.Core
 
 	if cfg.IsDev() {
-		devEncoderCfg := zap.NewDevelopmentEncoderConfig()
-		devEncoderCfg.EncodeLevel = zapcore.CapitalColorLevelEncoder
-		consoleEncoder := zapcore.NewConsoleEncoder(devEncoderCfg)
-		cores = append(cores, zapcore.NewCore(consoleEncoder, zapcore.AddSync(os.Stdout), zap.DebugLevel))
+		// Dev: single stdout core at DEBUG level. Global service/env fields are
+		// omitted — they add noise when running a single local process.
+		cores = append(cores, zapcore.NewCore(jsonEncoder, zapcore.AddSync(os.Stdout), zap.DebugLevel))
 	} else {
-		jsonEncoder := zapcore.NewJSONEncoder(encoderCfg)
-
-		// Stdout core
+		// Prod: stdout at INFO + two rotating file sinks.
 		cores = append(cores, zapcore.NewCore(jsonEncoder, zapcore.AddSync(os.Stdout), zap.InfoLevel))
 
-		// App log file (Info+)
 		appWriter := zapcore.AddSync(&lumberjack.Logger{
 			Filename:   cfg.Log.Dir + "/app.log",
 			MaxSize:    100,
@@ -42,7 +49,6 @@ func New(cfg *config.Config) (*zap.Logger, error) {
 		})
 		cores = append(cores, zapcore.NewCore(jsonEncoder, appWriter, zap.InfoLevel))
 
-		// Error log file (Error+)
 		errorWriter := zapcore.AddSync(&lumberjack.Logger{
 			Filename:   cfg.Log.Dir + "/error.log",
 			MaxSize:    50,
@@ -54,16 +60,23 @@ func New(cfg *config.Config) (*zap.Logger, error) {
 	}
 
 	core := zapcore.NewTee(cores...)
-	logger := zap.New(core,
+
+	opts := []zap.Option{
 		zap.AddCaller(),
 		zap.AddStacktrace(zap.ErrorLevel),
-		zap.Fields(
-			zap.String("service", "richman-api"),
-			zap.String("env", cfg.App.Env),
-		),
-	)
+	}
+	// Global fields are useful in prod log aggregation (Loki, Datadog) but
+	// unnecessary noise in a local dev process.
+	if !cfg.IsDev() {
+		opts = append(opts,
+			zap.Fields(
+				zap.String("service", "richman-api"),
+				zap.String("env", cfg.App.Env),
+			),
+		)
+	}
 
-	return logger, nil
+	return zap.New(core, opts...), nil
 }
 
 // GetLogger retrieves the request-scoped logger from the Gin context.
