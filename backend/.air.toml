@@ -1,0 +1,19 @@
+[build]
+  cmd = "go build -o ./tmp/main ./cmd/server/main.go"
+  bin = "./tmp/main"
+  full_bin = "./tmp/main"
+  include_ext = ["go"]
+  exclude_dir = ["tmp", "bin", "db/migration", "vendor"]
+  exclude_regex = ["_test\\.go$"]
+  delay = 500
+  kill_delay = 500
+
+[log]
+  time = true
+
+[color]
+  build = "yellow"
+  runner = "green"
+
+[misc]
+  clean_on_exit = true
