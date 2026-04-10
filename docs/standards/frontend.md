@@ -197,14 +197,15 @@ import { Sparkles, BrainCircuit, Zap } from "lucide-react";
 
 | 场景 | 使用 | 禁止 |
 |------|-----|------|
-| 枚举型单选（选项 <= 5） | `Radio.Group`（默认圆形样式） | `Select`、`Radio.Group optionType="button"` |
+| 枚举型单选（选项 <= 5） | `Radio.Group` + 普通 `Radio`（默认圆形样式） | `Select`、`Radio.Button`、`Radio.Group optionType="button"` |
 | 枚举型单选（选项 > 5） | `Select` | - |
 | 多选 | `Checkbox.Group` | - |
 | 数值输入 | `InputNumber` | `Input` |
 
 **Radio.Group 默认原则：**
-- 枚举型单选（风险偏好、状态切换等固定选项）统一用 plain `Radio.Group`，不加 `optionType="button"` 和 `buttonStyle="solid"`
-- 只在用户明确要求按钮样式时才使用 button 变体
+- 枚举型单选统一用 `Radio.Group` + 普通 `Radio`（默认圆形样式）
+- 禁止使用 `Radio.Button`、`optionType="button"`、`buttonStyle="solid"`
+- 只在产品设计稿明确要求按钮样式时才使用 button 变体
 - 选项不超过 5 个且语义清晰时优先 Radio 而非 Select（减少交互层级）
 
 
