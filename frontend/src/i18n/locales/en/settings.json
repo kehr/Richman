@@ -161,7 +161,7 @@
 			"custom": "Custom",
 			"customHint": "Set interval in days",
 			"customDays": "Every {{n}} days",
-			"customInputLabel": "Days (1–30)",
+			"customPlaceholder": "Days (1–30)",
 			"followGlobal": "Follow Global",
 			"followMarket": "Follow Market Default"
 		},

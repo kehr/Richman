@@ -161,7 +161,7 @@
 			"custom": "自定义",
 			"customHint": "设置间隔天数",
 			"customDays": "每 {{n}} 天",
-			"customInputLabel": "天数（1–30）",
+			"customPlaceholder": "天数（1–30）",
 			"followGlobal": "跟随全局",
 			"followMarket": "跟随市场默认"
 		},
