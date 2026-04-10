@@ -73,9 +73,7 @@ export function DashboardTopStrip({
 	const money = useMoney();
 
 	const hasCapital = totalCapitalCny != null;
-	const capitalDisplay = hasCapital
-		? `¥${new Intl.NumberFormat("zh-CN", { maximumFractionDigits: 0 }).format(totalCapitalCny as number)}`
-		: null;
+	const capitalDisplay = money.formatAmountOnly(totalCapitalCny);
 
 	// Directional color: use theme palette values (success/error) rather than
 	// saturated Chinese-market reds to keep the signal informational, not alarming.
