@@ -52,13 +52,14 @@ function formatShanghaiDateTime(date: Date | null, locale: string): string {
 }
 
 // formatHistoryDate renders a compact "MM-DD HH:mm" date for the history strip.
-// Year is omitted to keep the row narrow. Falls back to "--" for invalid input.
+// formatHistoryDate renders "YYYY-MM-DD HH:mm" in Shanghai time.
 function formatHistoryDate(isoDate: string, locale: string): string {
 	const d = new Date(isoDate);
 	if (Number.isNaN(d.getTime())) return "--";
 	const intlLocale = locale === "zh" ? "zh-CN" : "en-US";
 	const fmt = new Intl.DateTimeFormat(intlLocale, {
 		timeZone: SHANGHAI_TZ,
+		year: "numeric",
 		month: "2-digit",
 		day: "2-digit",
 		hour: "2-digit",
@@ -67,7 +68,7 @@ function formatHistoryDate(isoDate: string, locale: string): string {
 	});
 	const parts = fmt.formatToParts(d);
 	const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
-	return `${get("month")}-${get("day")} ${get("hour")}:${get("minute")}`;
+	return `${get("year")}-${get("month")}-${get("day")} ${get("hour")}:${get("minute")}`;
 }
 
 export function MetaSidebar({ card, historicalCards = [], onSelectHistory }: MetaSidebarProps) {
