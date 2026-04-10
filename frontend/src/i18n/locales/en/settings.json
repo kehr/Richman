@@ -198,7 +198,7 @@
 			"providerTypeRequired": "Please select provider type",
 			"baseUrl": "Base URL",
 			"baseUrlRequired": "Please fill in Base URL",
-			"baseUrlHttpsRequired": "Base URL must start with https://",
+			"baseUrlProtocolRequired": "Base URL must start with http:// or https://",
 			"apiKey": "API Key",
 			"apiKeyEdit": "API Key (leave blank to keep unchanged)",
 			"apiKeyRequired": "Please fill in API Key",

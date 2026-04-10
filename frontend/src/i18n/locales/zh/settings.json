@@ -198,7 +198,7 @@
 			"providerTypeRequired": "请选择 Provider 类型",
 			"baseUrl": "Base URL",
 			"baseUrlRequired": "请填写 Base URL",
-			"baseUrlHttpsRequired": "Base URL 必须以 https:// 开头",
+			"baseUrlProtocolRequired": "Base URL 必须以 http:// 或 https:// 开头",
 			"apiKey": "API Key",
 			"apiKeyEdit": "API Key (留空表示不修改)",
 			"apiKeyRequired": "请填写 API Key",

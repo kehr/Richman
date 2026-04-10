@@ -74,8 +74,9 @@ export function LLMConfigForm({ open, mode, initialValue, onClose, onSaved }: LL
 				{
 					validator: (_rule: unknown, value: string) => {
 						if (typeof value !== "string" || value.length === 0) return Promise.resolve();
-						if (value.startsWith("https://")) return Promise.resolve();
-						return Promise.reject(new Error(t("llm.configForm.baseUrlHttpsRequired")));
+						if (value.startsWith("https://") || value.startsWith("http://"))
+							return Promise.resolve();
+						return Promise.reject(new Error(t("llm.configForm.baseUrlProtocolRequired")));
 					},
 				},
 			],
