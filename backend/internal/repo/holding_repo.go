@@ -29,7 +29,7 @@ func (r *HoldingRepo) ListHoldingsByUser(ctx context.Context, userID int64) ([]m
 		        cost_price, position_ratio, quantity, created_at, updated_at
 		 FROM holdings
 		 WHERE user_id = $1 AND is_deleted = 0
-		 ORDER BY created_at DESC`,
+		 ORDER BY holding_id ASC`,
 		userID,
 	)
 	if err != nil {
