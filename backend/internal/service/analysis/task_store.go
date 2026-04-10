@@ -172,7 +172,7 @@ func (s *TaskStore) InitHoldings(taskID string, holdings []model.HoldingProgress
 }
 
 // SetCurrentHolding updates the currently analyzed holding and resets step progress.
-func (s *TaskStore) SetCurrentHolding(taskID string, symbol string) {
+func (s *TaskStore) SetCurrentHolding(taskID, symbol string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if task := s.getTask(taskID); task != nil {
@@ -182,24 +182,30 @@ func (s *TaskStore) SetCurrentHolding(taskID string, symbol string) {
 }
 
 // UpdateHoldingStatus updates the status and result metadata for a specific holding.
-func (s *TaskStore) UpdateHoldingStatus(taskID, symbol string, status model.TaskStepStatus, source, provider *string, durationMs *int64) {
+func (s *TaskStore) UpdateHoldingStatus(
+	taskID, symbol string,
+	status model.TaskStepStatus,
+	source, provider *string,
+	durationMs *int64,
+) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if task := s.getTask(taskID); task != nil {
 		for i := range task.Holdings {
-			if task.Holdings[i].Symbol == symbol {
-				task.Holdings[i].Status = status
-				task.Holdings[i].SynthesisSource = source
-				task.Holdings[i].ProviderUsed = provider
-				task.Holdings[i].DurationMs = durationMs
-				return
+			if task.Holdings[i].Symbol != symbol {
+				continue
 			}
+			task.Holdings[i].Status = status
+			task.Holdings[i].SynthesisSource = source
+			task.Holdings[i].ProviderUsed = provider
+			task.Holdings[i].DurationMs = durationMs
+			return
 		}
 	}
 }
 
 // StartStep marks a pipeline step as running and records its start time.
-func (s *TaskStore) StartStep(taskID string, key string) {
+func (s *TaskStore) StartStep(taskID, key string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if task := s.getTask(taskID); task != nil {
@@ -214,7 +220,7 @@ func (s *TaskStore) StartStep(taskID string, key string) {
 }
 
 // CompleteStep marks a pipeline step as done and records its duration.
-func (s *TaskStore) CompleteStep(taskID string, key string) {
+func (s *TaskStore) CompleteStep(taskID, key string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if task := s.getTask(taskID); task != nil {
@@ -233,7 +239,7 @@ func (s *TaskStore) CompleteStep(taskID string, key string) {
 }
 
 // FailStep marks a pipeline step as failed and records its duration.
-func (s *TaskStore) FailStep(taskID string, key string) {
+func (s *TaskStore) FailStep(taskID, key string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if task := s.getTask(taskID); task != nil {

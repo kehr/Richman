@@ -147,10 +147,10 @@ func (s *Service) TriggerAnalysis(ctx context.Context, userID int64, taskID stri
 
 		// Build holding progress list for task tracking.
 		hps := make([]model.HoldingProgress, len(holdings))
-		for i, h := range holdings {
+		for i := range holdings {
 			hps[i] = model.HoldingProgress{
-				Symbol: h.AssetCode,
-				Name:   h.AssetName,
+				Symbol: holdings[i].AssetCode,
+				Name:   holdings[i].AssetName,
 				Status: model.StepPending,
 			}
 		}
@@ -189,7 +189,10 @@ func (s *Service) TriggerAnalysis(ctx context.Context, userID int64, taskID stri
 				if card.ProviderUsed != nil {
 					prov = *card.ProviderUsed
 				}
-				s.taskStore.UpdateHoldingStatus(taskID, symbol, model.StepDone, card.SynthesisSource, card.ProviderUsed, &ms)
+				s.taskStore.UpdateHoldingStatus(
+					taskID, symbol, model.StepDone,
+					card.SynthesisSource, card.ProviderUsed, &ms,
+				)
 				s.taskStore.AppendLog(taskID, model.LogLevelInfo, symbol+" done · source="+src+" provider="+prov)
 			}
 		}

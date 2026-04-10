@@ -35,7 +35,6 @@ type TaskStep struct {
 	Key        string         `json:"key"`
 	Status     TaskStepStatus `json:"status"`
 	DurationMs *int64         `json:"durationMs"`
-	startedAt  time.Time
 }
 
 // TaskLog holds a single structured log entry emitted during task execution.
@@ -50,11 +49,10 @@ type HoldingProgress struct {
 	Symbol          string         `json:"symbol"`
 	Name            string         `json:"name"`
 	Status          TaskStepStatus `json:"status"`
-	Progress        float64 `json:"progress"`
-	SynthesisSource *string `json:"synthesisSource"`
-	ProviderUsed    *string `json:"providerUsed"`
-	DurationMs      *int64  `json:"durationMs"`
-	startedAt       time.Time
+	Progress        float64        `json:"progress"`
+	SynthesisSource *string        `json:"synthesisSource"`
+	ProviderUsed    *string        `json:"providerUsed"`
+	DurationMs      *int64         `json:"durationMs"`
 }
 
 // AllStepKeys returns all pipeline step keys in execution order.
