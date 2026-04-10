@@ -32,6 +32,14 @@ type scheduleServiceDep interface {
 	) (time.Time, error)
 }
 
+// eligibleHolding pairs a holding with the latest card fetched during
+// frequency-gate evaluation, so downstream callers can reuse it without
+// issuing a second database query.
+type eligibleHolding struct {
+	holding  model.Holding
+	lastCard *model.DecisionCard
+}
+
 // windowKind identifies a trading window within a market.
 type windowKind string
 
@@ -483,17 +491,20 @@ func (s *Scheduler) runJobForUser(userID int64, assetTypes []string, messageType
 	}
 
 	s.processUserJob(ctx, userID, eligible, messageType, isPreWindow)
+
 }
 
 // filterEligibleHoldings returns only holdings for which the frequency minimum
-// interval has elapsed since the last analysis.
+// interval has elapsed since the last analysis. Each result bundles the
+// holding with the last DecisionCard fetched during the gate check so that
+// callers can reuse it without issuing a second database query.
 func (s *Scheduler) filterEligibleHoldings(
 	ctx context.Context,
 	userID int64,
 	holdings []model.Holding,
 	now time.Time,
-) []model.Holding {
-	var eligible []model.Holding
+) []eligibleHolding {
+	var eligible []eligibleHolding
 
 	for i := range holdings {
 		h := &holdings[i]
@@ -506,7 +517,8 @@ func (s *Scheduler) filterEligibleHoldings(
 				zap.Int64("holding_id", h.HoldingID),
 				zap.Error(err),
 			)
-			eligible = append(eligible, *h)
+			// Include the holding with no card — downstream will handle the nil.
+			eligible = append(eligible, eligibleHolding{holding: *h, lastCard: nil})
 			continue
 		}
 
@@ -523,12 +535,12 @@ func (s *Scheduler) filterEligibleHoldings(
 				zap.Int64("holding_id", h.HoldingID),
 				zap.Error(err),
 			)
-			eligible = append(eligible, *h)
+			eligible = append(eligible, eligibleHolding{holding: *h, lastCard: card})
 			continue
 		}
 
 		if !nextAt.After(now) {
-			eligible = append(eligible, *h)
+			eligible = append(eligible, eligibleHolding{holding: *h, lastCard: card})
 		}
 	}
 
@@ -546,24 +558,27 @@ func assetTypeToMarket(assetType string) string {
 // processUserJob runs analysis on a user's holdings and sends a notification.
 // When isPreWindow is true, per-holding price delta since last analysis is
 // fetched and injected into the synthesis prompt as additional context.
+// The lastCard bundled in each eligibleHolding is reused here to avoid a
+// second GetLatestByHolding query inside buildPriceDeltaContext.
 func (s *Scheduler) processUserJob(
 	ctx context.Context, userID int64,
-	holdings []model.Holding, messageType string, isPreWindow bool,
+	eligible []eligibleHolding, messageType string, isPreWindow bool,
 ) {
 	var cardSummaries []string
 
-	for i := range holdings {
+	for i := range eligible {
+		h := &eligible[i].holding
 		priceDeltaCtx := ""
 		if isPreWindow {
-			priceDeltaCtx = s.buildPriceDeltaContext(ctx, &holdings[i])
+			priceDeltaCtx = s.buildPriceDeltaContext(ctx, h, eligible[i].lastCard)
 		}
 
-		card, err := s.analysisSvc.analyzeHolding(ctx, userID, &holdings[i], priceDeltaCtx, "")
+		card, err := s.analysisSvc.analyzeHolding(ctx, userID, h, priceDeltaCtx, "")
 		if err != nil {
 			s.logger.Warn("analysis failed for holding in cron job",
 				zap.Int64("user_id", userID),
-				zap.Int64("holding_id", holdings[i].HoldingID),
-				zap.String("asset", holdings[i].AssetCode),
+				zap.Int64("holding_id", h.HoldingID),
+				zap.String("asset", h.AssetCode),
 				zap.Error(err),
 			)
 			continue
@@ -608,25 +623,21 @@ func (s *Scheduler) processUserJob(
 }
 
 // buildPriceDeltaContext fetches recent OHLCV data for a holding and returns a
-// formatted string describing price changes since the last analysis. Returns an
-// empty string if the last card is unavailable, the price fetch fails, or there
-// are no new data points since the last analysis — so callers can always treat
-// an empty return as "no context available, proceed normally".
-func (s *Scheduler) buildPriceDeltaContext(ctx context.Context, holding *model.Holding) string {
-	card, err := s.cardRepo.GetLatestByHolding(ctx, holding.HoldingID)
-	if err != nil {
-		s.logger.Warn("pre-window: failed to get latest card for price delta",
-			zap.Int64("holding_id", holding.HoldingID),
-			zap.Error(err),
-		)
-		return ""
-	}
-	if card == nil {
+// formatted string describing price changes since the last analysis. lastCard
+// is the most recent DecisionCard for this holding, already fetched by the
+// caller; passing it here avoids a duplicate database query. Returns an empty
+// string if lastCard is nil, the price fetch fails, or there are no new data
+// points since the last analysis — so callers can always treat an empty return
+// as "no context available, proceed normally".
+func (s *Scheduler) buildPriceDeltaContext(
+	ctx context.Context, holding *model.Holding, lastCard *model.DecisionCard,
+) string {
+	if lastCard == nil {
 		// No prior analysis — nothing to diff against.
 		return ""
 	}
 
-	lastAnalyzedAt := card.AnalyzedAt
+	lastAnalyzedAt := lastCard.AnalyzedAt
 
 	// Fetch 5 days of price history to cover weekends and short sessions.
 	prices, err := s.fetcher().FetchAssetData(ctx, holding.AssetCode, holding.AssetType)
@@ -637,6 +648,10 @@ func (s *Scheduler) buildPriceDeltaContext(ctx context.Context, holding *model.H
 		)
 		return ""
 	}
+
+	// prices.Prices is sorted by date ascending (oldest → newest) as guaranteed
+	// by both AKShare and Yahoo Finance clients. refClose will therefore end up
+	// as the close of the bar immediately before lastAnalyzedAt.
 
 	// Collect price bars that fall strictly after lastAnalyzedAt.
 	var recent []datasource.PriceData
@@ -649,7 +664,9 @@ func (s *Scheduler) buildPriceDeltaContext(ctx context.Context, holding *model.H
 		return ""
 	}
 
-	// Find the reference close price (last bar before lastAnalyzedAt).
+	// Find the reference close price (last bar on or before lastAnalyzedAt).
+	// The ascending sort ensures each iteration that matches overwrites the
+	// previous, leaving refClose as the closest prior bar.
 	var refClose float64
 	for _, p := range prices.Prices {
 		if !p.Date.After(lastAnalyzedAt) {
