@@ -1,4 +1,4 @@
-import { Button, Drawer, Flex, Form, Input, Radio, Typography, message } from "@/ui-kit/eat";
+import { Button, Flex, Form, Input, Modal, Radio, Typography, message } from "@/ui-kit/eat";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type {
@@ -10,7 +10,7 @@ import type {
 } from "../types";
 import { useCreateChannel } from "../use-channels";
 
-interface AddChannelDrawerProps {
+interface AddChannelModalProps {
 	open: boolean;
 	onClose: () => void;
 }
@@ -28,10 +28,10 @@ interface WechatFormValues {
 	templateId: string;
 }
 
-// AddChannelDrawer guides the user through a two-step flow: pick a channel
+// AddChannelModal guides the user through a two-step flow: pick a channel
 // type, then fill in the per-type configuration form. The form fields mirror
 // the backend adapter config structs verbatim (see types.ts for citations).
-export function AddChannelDrawer({ open, onClose }: AddChannelDrawerProps) {
+export function AddChannelModal({ open, onClose }: AddChannelModalProps) {
 	const { t } = useTranslation("settings");
 	const [channelType, setChannelType] = useState<ChannelType>("email");
 	const [emailForm] = Form.useForm<EmailFormValues>();
@@ -117,13 +117,12 @@ export function AddChannelDrawer({ open, onClose }: AddChannelDrawerProps) {
 	};
 
 	return (
-		<Drawer
+		<Modal
 			title={t("channels.drawer.title")}
 			open={open}
-			onClose={handleClose}
-			placement="right"
+			onCancel={handleClose}
 			width={480}
-			data-testid="add-channel-drawer"
+			data-testid="add-channel-modal"
 			footer={
 				<Flex justify="flex-end" gap={8}>
 					<Button onClick={handleClose}>{t("action.cancel", { ns: "common" })}</Button>
@@ -138,7 +137,7 @@ export function AddChannelDrawer({ open, onClose }: AddChannelDrawerProps) {
 				</Flex>
 			}
 		>
-			<Form.Item label={t("channels.drawer.channelType")}>
+			<Form.Item label={t("channels.drawer.channelType")} style={{ marginBottom: 16 }}>
 				<Radio.Group
 					value={channelType}
 					onChange={(e) => setChannelType(e.target.value as ChannelType)}
@@ -197,6 +196,6 @@ export function AddChannelDrawer({ open, onClose }: AddChannelDrawerProps) {
 					</Form.Item>
 				</Form>
 			)}
-		</Drawer>
+		</Modal>
 	);
 }

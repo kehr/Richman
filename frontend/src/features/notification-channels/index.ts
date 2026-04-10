@@ -16,5 +16,5 @@ export {
 	useUpdateChannel,
 } from "./use-channels";
 export { ChannelList } from "./components/ChannelList";
-export { AddChannelDrawer } from "./components/AddChannelDrawer";
+export { AddChannelModal } from "./components/AddChannelModal";
 export { ChannelTestButton } from "./components/ChannelTestButton";

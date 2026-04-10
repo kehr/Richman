@@ -1,4 +1,4 @@
-import { AddChannelDrawer, ChannelList, useChannels } from "@/features/notification-channels";
+import { AddChannelModal, ChannelList, useChannels } from "@/features/notification-channels";
 import { Alert, Button, Divider, Flex, PlusOutlined, Typography } from "@/ui-kit/eat";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -6,12 +6,12 @@ import { Link } from "react-router";
 
 // ChannelsTab is the PRD §6.3 channel management view: header counter,
 // channel list (with toggle / test / delete actions), an "add" button that
-// opens the drawer, and a footer pointer to the help anchor explaining
+// opens the modal, and a footer pointer to the help anchor explaining
 // push windows.
 export function ChannelsTab() {
 	const { t } = useTranslation("settings");
 	const channelsQuery = useChannels();
-	const [drawerOpen, setDrawerOpen] = useState(false);
+	const [modalOpen, setModalOpen] = useState(false);
 
 	const channels = channelsQuery.data ?? [];
 	const enabledCount = useMemo(() => channels.filter((c) => c.enabled).length, [channels]);
@@ -25,7 +25,7 @@ export function ChannelsTab() {
 				<Button
 					type="primary"
 					icon={<PlusOutlined />}
-					onClick={() => setDrawerOpen(true)}
+					onClick={() => setModalOpen(true)}
 					data-testid="channels-add-button"
 				>
 					{t("channels.addButton")}
@@ -53,7 +53,7 @@ export function ChannelsTab() {
 				</Link>
 			</Typography.Text>
 
-			<AddChannelDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />
+			<AddChannelModal open={modalOpen} onClose={() => setModalOpen(false)} />
 		</Flex>
 	);
 }
