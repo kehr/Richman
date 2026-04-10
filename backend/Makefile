@@ -1,12 +1,16 @@
-.PHONY: dev build lint test test-race test-cover sqlc migrate-up migrate-down docker-build check clean
+.PHONY: dev dev-run build lint test test-race test-cover sqlc migrate-up migrate-down docker-build check clean
 
-# dev depends on migrate-up so local development always boots against an
-# up-to-date schema. The server itself also verifies schema drift at startup
-# via internal/migration/VerifyCurrent, so invoking go run directly will
-# still fail loudly if migrations are missing, but the dependency here is
-# the first line of mechanical defense and removes one manual step per pull.
-dev: migrate-up
-	go run ./cmd/server/main.go
+# dev: migrate first, then start with air hot-reload if available, else plain go run.
+dev: migrate-up dev-run
+
+dev-run:
+	@AIR=$$(go env GOPATH)/bin/air; \
+	if [ -x "$$AIR" ]; then \
+		$$AIR; \
+	else \
+		echo "air not found, falling back to go run (install: go install github.com/air-verse/air@latest)"; \
+		go run ./cmd/server/main.go; \
+	fi
 
 build:
 	go build -o bin/server ./cmd/server/main.go

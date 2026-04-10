@@ -26,3 +26,17 @@ body {
 .ant-pro-layout .ant-pro-layout-content-has-page-container {
 	padding: 16px;
 }
+
+/* External links only: dashed underline with offset to avoid cramping the
+   text baseline. Applies to href="https://..." targets; excludes in-app
+   router links which use relative paths. Hover switches to solid for feedback. */
+a[href^="http"] {
+	text-decoration: underline dashed;
+	text-underline-offset: 4px;
+}
+
+a[href^="http"]:hover,
+a[href^="http"]:focus-visible {
+	text-decoration: underline;
+	text-underline-offset: 4px;
+}

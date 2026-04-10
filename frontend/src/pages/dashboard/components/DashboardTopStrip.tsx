@@ -1,6 +1,18 @@
+import { formatPercent } from "@/domain/money/format";
 import { useMoney } from "@/domain/money/useMoney";
 import { computeNextAnalysisTime, formatHm } from "@/features/decision-card";
-import { Button, Card, Col, ReloadOutlined, Row, Space, Tooltip, Typography } from "@/ui-kit/eat";
+import {
+	Button,
+	Card,
+	Col,
+	Divider,
+	Flex,
+	QuestionCircleOutlined,
+	ReloadOutlined,
+	Row,
+	Tooltip,
+	Typography,
+} from "@/ui-kit/eat";
 import { useTranslation } from "react-i18next";
 
 // Re-export the schedule helpers for callers that already imported them
@@ -31,6 +43,11 @@ interface DashboardTopStripProps {
 // presentational component: all data (counts, amounts, mutation state) is
 // passed by the parent page so this file stays test-friendly and can be
 // rendered without a QueryClient.
+//
+// Layout: header row (title + button) → hero rebalance section → supporting
+// stats row. The suggested rebalance is the primary actionable signal and
+// receives the largest visual weight. The three supporting stats (holding
+// count, total capital, allocated position) are secondary context.
 export function DashboardTopStrip({
 	holdingCount,
 	totalCapitalCny,
@@ -49,16 +66,27 @@ export function DashboardTopStrip({
 }: DashboardTopStripProps) {
 	const { t } = useTranslation("app");
 	const money = useMoney();
+
 	const hasCapital = totalCapitalCny != null;
 	const capitalDisplay = hasCapital
 		? `¥${new Intl.NumberFormat("zh-CN", { maximumFractionDigits: 0 }).format(totalCapitalCny as number)}`
 		: null;
 
+	// Directional color: use theme palette values (success/error) rather than
+	// saturated Chinese-market reds to keep the signal informational, not alarming.
+	const pnlColor = aggregatePnlPct > 0 ? "#10B981" : aggregatePnlPct < 0 ? "#EF4444" : undefined;
+
+	const amountStr =
+		money.hasCapital && aggregatePnlAmount != null
+			? money.formatAmountOnly(aggregatePnlAmount)
+			: null;
+
 	return (
 		<Card data-testid="dashboard-top-strip" styles={{ body: { padding: 20 } }}>
+			{/* Header: title + meta + rerun button */}
 			<Row align="middle" justify="space-between" gutter={[16, 12]}>
 				<Col flex="auto">
-					<Space direction="vertical" size={2}>
+					<Flex vertical gap={2}>
 						<Title level={3} style={{ margin: 0 }}>
 							{t("dashboard.todayDecision")}
 						</Title>
@@ -66,7 +94,7 @@ export function DashboardTopStrip({
 							{t("dashboard.lastAnalyzed")} {formatHm(lastAnalyzedAt)} · {t("dashboard.nextAuto")}{" "}
 							{formatHm(nextAnalysisAt)}
 						</Text>
-					</Space>
+					</Flex>
 				</Col>
 				<Col>
 					{isRunning ? (
@@ -98,60 +126,79 @@ export function DashboardTopStrip({
 				</Col>
 			</Row>
 
-			<Row gutter={[16, 16]} style={{ marginTop: 20 }}>
-				<Col xs={12} md={6}>
-					<Space direction="vertical" size={2}>
-						<Text type="secondary">{t("dashboard.stat.holdingCount")}</Text>
-						<Text strong style={{ fontSize: 22 }} data-testid="stat-holding-count">
+			{/* Hero: suggested rebalance — primary actionable signal */}
+			<Flex align="flex-end" justify="space-between" style={{ margin: "20px 0 16px" }}>
+				<Flex vertical gap={6}>
+					<Flex align="center" gap={5}>
+						<Text type="secondary" style={{ fontSize: 12 }}>
+							{t("dashboard.stat.suggestedRebalance")}
+						</Text>
+						<Tooltip title={t("dashboard.stat.suggestedRebalanceHint")}>
+							<QuestionCircleOutlined
+								style={{ fontSize: 11, color: "#8C8C8C", cursor: "default" }}
+							/>
+						</Tooltip>
+					</Flex>
+					<Text
+						strong
+						style={{ fontSize: 36, lineHeight: 1, color: pnlColor }}
+						data-testid="stat-aggregate-pnl"
+					>
+						{formatPercent(aggregatePnlPct)}
+					</Text>
+				</Flex>
+				{amountStr != null && (
+					<Text type="secondary" style={{ fontSize: 18, paddingBottom: 4 }}>
+						{amountStr}
+					</Text>
+				)}
+			</Flex>
+
+			<Divider style={{ margin: 0 }} />
+
+			{/* Supporting stats: context metrics, visually subordinate */}
+			<Row gutter={[16, 8]} style={{ marginTop: 16 }}>
+				<Col xs={8}>
+					<Flex vertical gap={3}>
+						<Text type="secondary" style={{ fontSize: 12 }}>
+							{t("dashboard.stat.holdingCount")}
+						</Text>
+						<Text strong style={{ fontSize: 20 }} data-testid="stat-holding-count">
 							{holdingCount}
 						</Text>
-					</Space>
+					</Flex>
 				</Col>
-				<Col xs={12} md={6}>
-					<Space direction="vertical" size={2}>
-						<Text type="secondary">{t("dashboard.stat.totalCapital")}</Text>
+				<Col xs={8}>
+					<Flex vertical gap={3}>
+						<Text type="secondary" style={{ fontSize: 12 }}>
+							{t("dashboard.stat.totalCapital")}
+						</Text>
 						{hasCapital ? (
-							<Text strong style={{ fontSize: 22 }} data-testid="stat-total-capital">
+							<Text strong style={{ fontSize: 20 }} data-testid="stat-total-capital">
 								{capitalDisplay}
 							</Text>
 						) : (
 							<Button
 								type="link"
 								size="small"
-								style={{ padding: 0, height: "auto", fontSize: 14 }}
+								style={{ padding: 0, height: "auto", fontSize: 13 }}
 								onClick={onConfigureCapital}
 								data-testid="stat-total-capital-cta"
 							>
 								{t("dashboard.stat.totalCapitalCta")}
 							</Button>
 						)}
-					</Space>
+					</Flex>
 				</Col>
-				<Col xs={12} md={6}>
-					<Space direction="vertical" size={2}>
-						<Text type="secondary">{t("dashboard.stat.suggestedRebalance")}</Text>
-						<Text
-							strong
-							style={{
-								fontSize: 22,
-								color:
-									aggregatePnlPct > 0 ? "#389e0d" : aggregatePnlPct < 0 ? "#cf1322" : undefined,
-							}}
-							data-testid="stat-aggregate-pnl"
-						>
-							{money.hasCapital && aggregatePnlAmount != null
-								? money.format(aggregatePnlPct, aggregatePnlAmount)
-								: money.format(aggregatePnlPct)}
+				<Col xs={8}>
+					<Flex vertical gap={3}>
+						<Text type="secondary" style={{ fontSize: 12 }}>
+							{t("dashboard.stat.allocatedPosition")}
 						</Text>
-					</Space>
-				</Col>
-				<Col xs={12} md={6}>
-					<Space direction="vertical" size={2}>
-						<Text type="secondary">{t("dashboard.stat.allocatedPosition")}</Text>
-						<Text strong style={{ fontSize: 22 }} data-testid="stat-allocated-position">
+						<Text strong style={{ fontSize: 20 }} data-testid="stat-allocated-position">
 							{money.format(totalPositionRatio)}
 						</Text>
-					</Space>
+					</Flex>
 				</Col>
 			</Row>
 		</Card>

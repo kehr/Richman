@@ -2,10 +2,10 @@ import {
 	BellOutlined,
 	PageContainer,
 	PieChartOutlined,
-	RobotOutlined,
 	SettingOutlined,
 	UserOutlined,
 } from "@/ui-kit/eat";
+import { Sparkles } from "lucide-react";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router";
@@ -36,7 +36,7 @@ export default function SettingsPage() {
 	const items = useMemo<SettingsTabItem[]>(
 		() => [
 			{ key: "account", label: t("tabs.account"), icon: <UserOutlined />, content: <AccountTab /> },
-			{ key: "ai", label: t("tabs.ai"), icon: <RobotOutlined />, content: <AITab /> },
+			{ key: "ai", label: t("tabs.ai"), icon: <Sparkles size={14} />, content: <AITab /> },
 			{
 				key: "channels",
 				label: t("tabs.channels"),

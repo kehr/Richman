@@ -10,6 +10,7 @@
 			"totalCapital": "总资金",
 			"totalCapitalCta": "设置以查看 →",
 			"suggestedRebalance": "建议调仓",
+			"suggestedRebalanceHint": "占总资金的建议增减仓幅度，正数为加仓，负数为减仓",
 			"allocatedPosition": "已分配仓位"
 		},
 		"changeAnchor": {

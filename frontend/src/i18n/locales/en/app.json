@@ -10,6 +10,7 @@
 			"totalCapital": "Total Capital",
 			"totalCapitalCta": "Set to view →",
 			"suggestedRebalance": "Suggested Rebalance",
+			"suggestedRebalanceHint": "Recommended adjustment as % of total capital. Positive = increase, negative = decrease.",
 			"allocatedPosition": "Allocated Position"
 		},
 		"changeAnchor": {

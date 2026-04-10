@@ -99,5 +99,4 @@ export {
 	LeftOutlined,
 	InboxOutlined,
 	UploadOutlined,
-	RobotOutlined,
 } from "@ant-design/icons";

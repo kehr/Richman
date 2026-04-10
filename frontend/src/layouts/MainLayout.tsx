@@ -86,6 +86,12 @@ export function MainLayout() {
 			token={layoutToken}
 			location={{ pathname: location.pathname }}
 			route={menuRoutes}
+			menuHeaderRender={(logo, title) => (
+				<Link to="/" style={{ display: "flex", alignItems: "center" }}>
+					{logo}
+					{title}
+				</Link>
+			)}
 			menuItemRender={(item, dom) => <Link to={item.path || "#"}>{dom}</Link>}
 			actionsRender={() => [
 				<Link
@@ -106,8 +112,8 @@ export function MainLayout() {
 							paddingBlock: 0,
 						}}
 					>
-						<Avatar src={gravatarUrl(user?.email ?? "", 32)} icon={<UserOutlined />} />
-						<span>{displayName}</span>
+						<Avatar src={gravatarUrl(user?.email ?? "", 32)} icon={<UserOutlined />} size={24} />
+						<span style={{ fontSize: 14 }}>{displayName}</span>
 					</Space>
 				</Dropdown>,
 			]}
