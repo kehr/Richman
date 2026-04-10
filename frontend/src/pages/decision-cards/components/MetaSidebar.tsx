@@ -1,30 +1,39 @@
-import { type DecisionCardDTO, computeNextAnalysisTime } from "@/features/decision-card";
+import {
+	type Action,
+	type DecisionCardDTO,
+	computeNextAnalysisTime,
+} from "@/features/decision-card";
 import { Card, Divider, Space, Typography } from "@/ui-kit/eat";
-import type { MouseEvent } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { type MouseEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { HoldingScheduleSection, useHoldingNextAnalysisAt } from "./HoldingScheduleSection";
 
-const { Text, Paragraph } = Typography;
+const PAGE_SIZE = 5;
+
+// ACTION_STYLE maps each recommendation action to a dot color and label color
+// used in the history strip. Colors follow the same semantic palette as the
+// conclusion banner: green = add, blue = hold, orange/red = reduce.
+const ACTION_STYLE: Record<Action, { dot: string; label: string }> = {
+	aggressive_add: { dot: "#389e0d", label: "#389e0d" },
+	small_add: { dot: "#52c41a", label: "#52c41a" },
+	hold: { dot: "#1677ff", label: "#1677ff" },
+	gradual_reduce: { dot: "#fa8c16", label: "#fa8c16" },
+	control_position: { dot: "#f5222d", label: "#f5222d" },
+};
+
+const { Text } = Typography;
 
 interface MetaSidebarProps {
 	card: DecisionCardDTO;
-	// historicalCards is the recent list of cards for the same holding. The
-	// current card may appear in the list and is filtered out automatically
-	// so consumers do not need to pre-slice it.
+	// historicalCards is the full ordered history list for the same holding,
+	// including the current card. Pagination is handled internally.
 	historicalCards?: DecisionCardDTO[];
 	onSelectHistory?: (cardId: number) => void;
 }
 
-// SHANGHAI_TZ mirrors backend/internal/service/analysis/scheduler.go. The
-// sidebar renders times in this timezone regardless of the viewer's locale
-// so "下一次分析" matches the schedule the backend actually uses.
 const SHANGHAI_TZ = "Asia/Shanghai";
 
-// formatShanghaiDateTime renders a Date as "YYYY-MM-DD HH:mm" in Shanghai
-// wall-clock. Returns a dash placeholder when input is null so the sidebar
-// always has a stable layout. The locale parameter controls number/separator
-// formatting; "zh" maps to "zh-CN", all other values fall back to "en-US"
-// so the output always uses the predictable YYYY-MM-DD HH:mm shape.
 function formatShanghaiDateTime(date: Date | null, locale: string): string {
 	if (!date) return "--";
 	const intlLocale = locale === "zh" ? "zh-CN" : "en-US";
@@ -42,26 +51,37 @@ function formatShanghaiDateTime(date: Date | null, locale: string): string {
 	return `${get("year")}-${get("month")}-${get("day")} ${get("hour")}:${get("minute")}`;
 }
 
-// MetaSidebar renders the right-hand meta column for the decision card
-// detail page per PRD section 5: analysis time + timezone, data source
-// health, next scheduled analysis, short history list, and risk disclaimer.
-//
-// The data source status block is currently a static mock because the
-// backend DTO does not yet expose per-source freshness; Step 17 (trade
-// ledger + screenshot intake) is expected to add the real feed.
+// formatHistoryDate renders a compact "MM-DD HH:mm" date for the history strip.
+// Year is omitted to keep the row narrow. Falls back to "--" for invalid input.
+function formatHistoryDate(isoDate: string, locale: string): string {
+	const d = new Date(isoDate);
+	if (Number.isNaN(d.getTime())) return "--";
+	const intlLocale = locale === "zh" ? "zh-CN" : "en-US";
+	const fmt = new Intl.DateTimeFormat(intlLocale, {
+		timeZone: SHANGHAI_TZ,
+		month: "2-digit",
+		day: "2-digit",
+		hour: "2-digit",
+		minute: "2-digit",
+		hour12: false,
+	});
+	const parts = fmt.formatToParts(d);
+	const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
+	return `${get("month")}-${get("day")} ${get("hour")}:${get("minute")}`;
+}
+
 export function MetaSidebar({ card, historicalCards = [], onSelectHistory }: MetaSidebarProps) {
 	const { t, i18n } = useTranslation("app");
+	const [page, setPage] = useState(0);
 	const analyzedAt = new Date(card.analyzedAt);
 
-	// nextAnalysisAt is sourced from the backend-computed holding schedule.
-	// Falls back to the local computeNextAnalysisTime when the backend value is
-	// not yet available (e.g. query still loading or holding has no override).
 	const backendNextAt = useHoldingNextAnalysisAt(card.holdingId);
 	const nextAnalysisAt = backendNextAt
 		? new Date(backendNextAt)
 		: computeNextAnalysisTime(new Date());
 
-	const historyItems = historicalCards.filter((c) => c.cardId !== card.cardId).slice(0, 5);
+	const totalPages = Math.ceil(historicalCards.length / PAGE_SIZE);
+	const pageItems = historicalCards.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
 	const handleSelect = (cardId: number) => (event: MouseEvent<HTMLElement>) => {
 		event.preventDefault();
@@ -80,9 +100,9 @@ export function MetaSidebar({ card, historicalCards = [], onSelectHistory }: Met
 
 				<div data-testid="meta-data-source">
 					<Text type="secondary">{t("decisionCard.metaSidebar.dataSource")}</Text>
-					<Paragraph type="secondary" style={{ margin: 0 }}>
+					<Typography.Paragraph type="secondary" style={{ margin: 0 }}>
 						{t("decisionCard.metaSidebar.dataSourcePending")}
-					</Paragraph>
+					</Typography.Paragraph>
 				</div>
 
 				<div>
@@ -98,32 +118,182 @@ export function MetaSidebar({ card, historicalCards = [], onSelectHistory }: Met
 
 				<div>
 					<Text type="secondary">{t("decisionCard.metaSidebar.history")}</Text>
-					{historyItems.length === 0 ? (
-						<Paragraph type="secondary" style={{ margin: 0 }}>
+
+					{historicalCards.length === 0 ? (
+						<Typography.Paragraph type="secondary" style={{ margin: "4px 0 0" }}>
 							{t("decisionCard.metaSidebar.noHistory")}
-						</Paragraph>
+						</Typography.Paragraph>
 					) : (
-						<Space direction="vertical" size={4} style={{ width: "100%" }}>
-							{historyItems.map((h) => (
-								<button
-									type="button"
-									key={h.cardId}
-									onClick={handleSelect(h.cardId)}
-									data-testid={`meta-history-${h.cardId}`}
+						<>
+							<div style={{ marginTop: 8 }} data-testid="meta-history-list">
+								{pageItems.map((h) => {
+									const isCurrent = h.cardId === card.cardId;
+									const style = ACTION_STYLE[h.recommendation.action] ?? {
+										dot: "#8c8c8c",
+										label: "#8c8c8c",
+									};
+									return (
+										<button
+											key={h.cardId}
+											type="button"
+											onClick={isCurrent ? undefined : handleSelect(h.cardId)}
+											disabled={isCurrent}
+											data-testid={`meta-history-${h.cardId}`}
+											style={{
+												display: "flex",
+												alignItems: "flex-start",
+												gap: 8,
+												width: "100%",
+												background: isCurrent ? "#fafafa" : "transparent",
+												border: "none",
+												borderRadius: 6,
+												padding: "6px 8px",
+												marginBottom: 2,
+												cursor: isCurrent ? "default" : "pointer",
+												textAlign: "left",
+												transition: "background 0.15s",
+											}}
+											onMouseEnter={(e) => {
+												if (!isCurrent) {
+													(e.currentTarget as HTMLButtonElement).style.background = "#f5f5f5";
+												}
+											}}
+											onMouseLeave={(e) => {
+												if (!isCurrent) {
+													(e.currentTarget as HTMLButtonElement).style.background = "transparent";
+												}
+											}}
+										>
+											{/* colored indicator dot, vertically centered to first line */}
+											<span
+												style={{
+													flexShrink: 0,
+													marginTop: 4,
+													width: 6,
+													height: 6,
+													borderRadius: "50%",
+													background: style.dot,
+												}}
+											/>
+
+											<div style={{ flex: 1, minWidth: 0 }}>
+												{/* date row */}
+												<div
+													style={{
+														display: "flex",
+														alignItems: "center",
+														justifyContent: "space-between",
+														gap: 4,
+													}}
+												>
+													<span
+														style={{
+															fontSize: 12,
+															color: "#8c8c8c",
+															fontVariantNumeric: "tabular-nums",
+															flexShrink: 0,
+														}}
+													>
+														{formatHistoryDate(h.analyzedAt, i18n.language)}
+													</span>
+													{isCurrent && (
+														<span
+															style={{
+																fontSize: 11,
+																color: "#8c8c8c",
+																border: "1px solid #d9d9d9",
+																borderRadius: 3,
+																padding: "0 4px",
+																lineHeight: "16px",
+																flexShrink: 0,
+															}}
+														>
+															{t("decisionCard.metaSidebar.historyCurrent")}
+														</span>
+													)}
+												</div>
+
+												{/* action label row */}
+												<div
+													style={{
+														marginTop: 2,
+														fontSize: 12,
+														fontWeight: isCurrent ? 600 : 500,
+														color: style.label,
+														whiteSpace: "nowrap",
+														overflow: "hidden",
+														textOverflow: "ellipsis",
+													}}
+												>
+													{t(`decisionCard.recommendation.${h.recommendation.action}`)}
+												</div>
+											</div>
+										</button>
+									);
+								})}
+							</div>
+
+							{/* pagination — only rendered when there are multiple pages */}
+							{totalPages > 1 && (
+								<div
 									style={{
-										textAlign: "left",
-										background: "transparent",
-										border: "none",
-										padding: 0,
-										cursor: onSelectHistory ? "pointer" : "default",
-										color: "#1677ff",
+										display: "flex",
+										alignItems: "center",
+										justifyContent: "center",
+										gap: 8,
+										marginTop: 6,
 									}}
+									data-testid="meta-history-pagination"
 								>
-									{formatShanghaiDateTime(new Date(h.analyzedAt), i18n.language)} ·{" "}
-									{t(`decisionCard.recommendation.${h.recommendation.action}`)}
-								</button>
-							))}
-						</Space>
+									<button
+										type="button"
+										onClick={() => setPage((p) => Math.max(0, p - 1))}
+										disabled={page === 0}
+										style={{
+											display: "inline-flex",
+											alignItems: "center",
+											background: "transparent",
+											border: "none",
+											cursor: page === 0 ? "default" : "pointer",
+											color: page === 0 ? "#d9d9d9" : "#595959",
+											padding: "2px 4px",
+											borderRadius: 4,
+										}}
+										aria-label="previous page"
+									>
+										<ChevronLeft size={14} />
+									</button>
+
+									<span
+										style={{ fontSize: 12, color: "#8c8c8c", minWidth: 32, textAlign: "center" }}
+									>
+										{t("decisionCard.metaSidebar.historyPageOf", {
+											current: page + 1,
+											total: totalPages,
+										})}
+									</span>
+
+									<button
+										type="button"
+										onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+										disabled={page === totalPages - 1}
+										style={{
+											display: "inline-flex",
+											alignItems: "center",
+											background: "transparent",
+											border: "none",
+											cursor: page === totalPages - 1 ? "default" : "pointer",
+											color: page === totalPages - 1 ? "#d9d9d9" : "#595959",
+											padding: "2px 4px",
+											borderRadius: 4,
+										}}
+										aria-label="next page"
+									>
+										<ChevronRight size={14} />
+									</button>
+								</div>
+							)}
+						</>
 					)}
 				</div>
 

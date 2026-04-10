@@ -158,7 +158,9 @@
 			"nextAnalysis": "Next scheduled analysis",
 			"history": "Analysis history",
 			"noHistory": "No more history",
-			"disclaimer": "This content is for reference only and does not constitute investment advice. Investing involves risk — make decisions carefully."
+			"disclaimer": "This content is for reference only and does not constitute investment advice. Investing involves risk — make decisions carefully.",
+			"historyCurrent": "Current",
+			"historyPageOf": "{{current}} / {{total}}"
 		},
 		"badge": {
 			"data_degraded": "Data Degraded",

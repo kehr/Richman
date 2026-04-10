@@ -158,7 +158,9 @@
 			"nextAnalysis": "下一次自动分析",
 			"history": "历史分析",
 			"noHistory": "暂无更多历史",
-			"disclaimer": "本内容仅供参考，不构成投资建议。投资有风险，决策需谨慎。"
+			"disclaimer": "本内容仅供参考，不构成投资建议。投资有风险，决策需谨慎。",
+			"historyCurrent": "当前",
+			"historyPageOf": "{{current}} / {{total}}"
 		},
 		"badge": {
 			"data_degraded": "数据降级",
