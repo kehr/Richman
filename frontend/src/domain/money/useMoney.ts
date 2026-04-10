@@ -1,39 +1,58 @@
+import type { DisplayCurrency } from "@/features/user-settings";
 import { useUserSettings } from "@/features/user-settings";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { formatAmountOrNull, formatPercentWithAmount } from "./format";
+import { useExchangeRates } from "./useExchangeRates";
+
+// convertCny converts a CNY amount to the target display currency using the
+// provided rates (expressed as "1 CNY = X foreign"). Returns amountCny
+// unchanged when: currency is "CNY", the rate is missing, or the rate is 0.
+// Returns null when amountCny is null/undefined (preserves null semantics).
+function convertCny(
+	amountCny: number | null | undefined,
+	currency: DisplayCurrency,
+	rates: Partial<Record<DisplayCurrency, number>>,
+): number | null {
+	if (amountCny == null) return null;
+	if (currency === "CNY") return amountCny;
+	const rate = rates[currency];
+	if (!rate) return amountCny; // degraded: show CNY value when rate unavailable
+	return amountCny * rate;
+}
 
 // useMoney is the single hook every decision card / portfolio / dashboard
-// view should call to render a "percentage + optional amount" pair. It pulls
-// the user's total capital preference from the user-settings feature and
-// exposes:
+// view should call to render a "percentage + optional amount" pair. It reads
+// the user's capital preference, display currency, and live exchange rates,
+// then exposes:
 //   - hasCapital:       whether the user has configured totalCapitalCny
-//   - format:           render "X% · ¥Y" when possible, otherwise just "X%"
-//   - formatAmountOnly: render "¥Y" when possible, otherwise null
-//
-// The returned object and its functions are memoized on hasCapital and locale
-// so that consumers (Dashboard decision card list, Portfolio table, etc.) that
-// pass them into React.memo children or useEffect dependency arrays do not bust
-// memoization on every render.
-//
-// During initial load (useUserSettings still fetching), hasCapital is false
-// and the hook renders percent-only output. The first paint after hydration
-// will therefore replace any visible amount — this is accepted UX because
-// the OnboardingGuard shell already prevents rendering the main app tree
-// until settings are in cache, so the flash is not observable in practice.
+//   - currency:         the current display currency (CNY | USD | HKD)
+//   - format:           render "X% · ¥Y" (or $Y / HK$Y) when possible
+//   - formatAmountOnly: render the converted amount, or null
 export function useMoney() {
 	const { data: settings } = useUserSettings();
-	const hasCapital = settings?.totalCapitalCny != null;
+	const { rates } = useExchangeRates();
 	const { i18n } = useTranslation();
+
+	const hasCapital = settings?.totalCapitalCny != null;
+	const currency: DisplayCurrency = settings?.displayCurrency ?? "CNY";
 	const locale = i18n.language;
 
 	return useMemo(
 		() => ({
 			hasCapital,
-			format: (pct: number, amount?: number | null) =>
-				formatPercentWithAmount(pct, amount, hasCapital, locale),
-			formatAmountOnly: (amount?: number | null) => formatAmountOrNull(amount, hasCapital, locale),
+			currency,
+			format: (pct: number, amountCny?: number | null) =>
+				formatPercentWithAmount(
+					pct,
+					convertCny(amountCny, currency, rates),
+					hasCapital,
+					locale,
+					currency,
+				),
+			formatAmountOnly: (amountCny?: number | null) =>
+				formatAmountOrNull(convertCny(amountCny, currency, rates), hasCapital, locale, currency),
 		}),
-		[hasCapital, locale],
+		[hasCapital, currency, rates, locale],
 	);
 }
