@@ -165,7 +165,7 @@ export function AccountTab() {
 	return (
 		<Flex vertical gap={24} data-testid="account-tab">
 			<Flex align="center" gap={16} data-testid="account-avatar-section">
-				<Avatar src={gravatarUrl(email, 64)} icon={<UserOutlined />} size={64} />
+				<Avatar src={gravatarUrl(email, 64)} icon={<UserOutlined />} size={64} draggable={false} />
 				<Flex vertical gap={4}>
 					<Typography.Text strong>{displayName}</Typography.Text>
 					<Typography.Text type="secondary">{email}</Typography.Text>
