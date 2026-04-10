@@ -143,7 +143,7 @@ export function DashboardTopStrip({
 				<DeltaDisplay
 					pct={aggregatePnlPct}
 					amount={amountStr}
-					convention="us"
+					convention="green-up"
 					showSign={false}
 					primarySize={36}
 					secondarySize={18}
@@ -214,7 +214,7 @@ export function DashboardTopStrip({
 						<DeltaDisplay
 							pct={holdingPnlPct}
 							amount={holdingPnlAmountStr}
-							convention="us"
+							convention="green-up"
 							showSign={false}
 							primarySize={20}
 							secondarySize={12}

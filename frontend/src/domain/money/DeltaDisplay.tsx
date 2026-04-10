@@ -4,11 +4,11 @@ import type { CSSProperties } from "react";
 const { Text } = Typography;
 
 // Preset color pairs per convention.
-// "cn": A-share standard — red = up / green = down (红涨绿跌).
-// "us": Western P&L standard — green = positive / red = negative.
+// "red-up":   positive = red, negative = green  (红涨绿跌, e.g. A-share price change).
+// "green-up": positive = green, negative = red  (绿涨红跌, e.g. P&L profit/loss).
 const CONVENTION_COLORS = {
-	cn: { positive: "#f5222d", negative: "#52c41a", neutral: "#8c8c8c" },
-	us: { positive: "#52c41a", negative: "#f5222d", neutral: "#8c8c8c" },
+	"red-up": { positive: "#f5222d", negative: "#52c41a", neutral: "#8c8c8c" },
+	"green-up": { positive: "#52c41a", negative: "#f5222d", neutral: "#8c8c8c" },
 } as const;
 
 const ALIGN_ITEMS: Record<"left" | "center" | "right", CSSProperties["alignItems"]> = {
@@ -24,10 +24,10 @@ export interface DeltaDisplayProps {
 	amount?: string | null;
 	/**
 	 * Color convention.
-	 * "cn" (default): red = positive (涨/加仓), green = negative (跌/减仓).
-	 * "us": green = positive (profit), red = negative (loss).
+	 * "red-up" (default): positive = red, negative = green (红涨绿跌, price/position change).
+	 * "green-up": positive = green, negative = red (绿涨红跌, P&L profit/loss).
 	 */
-	convention?: "cn" | "us";
+	convention?: "red-up" | "green-up";
 	/** Override color for positive values (overrides convention). */
 	positiveColor?: string;
 	/** Override color for negative values (overrides convention). */
@@ -83,7 +83,7 @@ export interface DeltaDisplayProps {
 export function DeltaDisplay({
 	pct,
 	amount,
-	convention = "cn",
+	convention = "red-up",
 	positiveColor,
 	negativeColor,
 	neutralColor,
