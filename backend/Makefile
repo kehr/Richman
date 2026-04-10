@@ -8,10 +8,10 @@ AIR      := $(shell go env GOPATH)/bin/air
 #           go install github.com/air-verse/air@latest
 dev: migrate-up
 	@if [ -x "$(AIR)" ]; then \
-		$(AIR) 2>&1 | $(HUMANLOG) --skip-unknown-fields; \
+		$(AIR) 2>&1 | $(HUMANLOG) --time-fields ts --level-fields level --message-fields msg; \
 	else \
 		echo "air not found, falling back to go run (install: go install github.com/air-verse/air@latest)"; \
-		go run ./cmd/server/main.go 2>&1 | $(HUMANLOG) --skip-unknown-fields; \
+		go run ./cmd/server/main.go 2>&1 | $(HUMANLOG) --time-fields ts --level-fields level --message-fields msg; \
 	fi
 
 # dev-raw: same as dev but raw JSON output, no humanlog pipe.
