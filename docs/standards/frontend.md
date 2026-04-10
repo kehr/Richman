@@ -174,23 +174,23 @@ ui-kit/eat/index.ts 是唯一允许直接导入 antd 包的文件。
 
 | 库 | 适用场景 | 导入方式 |
 |----|---------|---------|
-| `@ant-design/icons` | 通用 UI、导航、操作按钮、状态图标 | 必须通过 `@/ui-kit/eat` |
-| `lucide-react` | AI 相关、补充性图标（Sparkles、BrainCircuit、Zap 等） | 直接导入，无需经过 eat |
+| `lucide-react` | **所有新增图标需求**（操作、状态、品牌、语义图标等） | 直接导入，**无需经过 eat** |
+| `@ant-design/icons` | eat barrel 里已有的图标（历史存量，不扩展） | 必须通过 `@/ui-kit/eat` |
 
 ```typescript
-// @ant-design/icons -- 通过 eat
-import { UserOutlined, BellOutlined } from "@/ui-kit/eat";
+// lucide-react -- 直接导入，无需 eat
+import { Mail, BrainCircuit, Trash2 } from "lucide-react";
 
-// lucide-react -- 直接导入
-import { Sparkles, BrainCircuit, Zap } from "lucide-react";
+// @ant-design/icons -- 只使用 eat 里已有的，不往 eat 里新增
+import { UserOutlined, DeleteOutlined } from "@/ui-kit/eat";
 ```
 
-**尺寸对齐：** lucide-react 默认 size 为 24，在 Ant Design 菜单/导航场景中使用 `size={14}` 与 AntD icon 尺寸保持一致。其他场景按实际视觉效果调整。
-
-**选型原则：**
-- 优先使用 `@ant-design/icons`（已有、风格统一）
-- AntD 没有合适图标时（尤其是 AI 相关语义）使用 `lucide-react`
+**核心规则：**
+- 新增图标需求一律用 `lucide-react` 直接导入，**不往 eat barrel 里添加 antd icons**
+- eat 里已有的 `@ant-design/icons` 可以继续使用，但不扩展
 - 不引入第三个图标库
+
+**尺寸对齐：** lucide-react 默认 size 为 24，在 Ant Design 菜单/导航场景中使用 `size={14}` 与 AntD icon 尺寸保持一致。其他场景按实际视觉效果调整。
 
 
 ## 表单组件选型规则
