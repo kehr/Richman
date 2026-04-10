@@ -79,7 +79,7 @@ export function DecisionCardSummary({
 	// completion) the green border takes over briefly.
 	const isRunning = analysisStatus === "running";
 	const borderStyle: React.CSSProperties = isRunning
-		? { border: "none", borderRadius: 6 }
+		? { border: "none", borderRadius: 6, overflow: "hidden" }
 		: justUpdated
 			? { borderColor: "#b7eb8f" }
 			: {};
@@ -203,6 +203,8 @@ export function DecisionCardSummary({
 				<ExecutionPlanStrip
 					execution={card.recommendation.execution}
 					onShowAll={onShowFullPlan ? () => onShowFullPlan(card) : undefined}
+					positionAmountCny={card.positionAmount}
+					positionRatioPct={card.positionRatio}
 				/>
 			</div>
 
