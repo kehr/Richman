@@ -1,3 +1,4 @@
+import { gravatarUrl } from "@/domain/auth/gravatar";
 import { useCurrentUser } from "@/domain/auth/use-current-user";
 import { useLogout } from "@/features/auth";
 import {
@@ -7,6 +8,7 @@ import {
 	useUserSettings,
 } from "@/features/user-settings";
 import {
+	Avatar,
 	Button,
 	Divider,
 	Flex,
@@ -17,6 +19,7 @@ import {
 	Space,
 	Tooltip,
 	Typography,
+	UserOutlined,
 	message,
 } from "@/ui-kit/eat";
 import { useEffect, useMemo } from "react";
@@ -46,6 +49,7 @@ export function AccountTab() {
 
 	const settings = settingsQuery.data;
 	const email = currentUser.data?.email ?? "—";
+	const displayName = email.split("@")[0] || "—";
 
 	const riskOptions = useMemo(
 		() => [
@@ -107,19 +111,29 @@ export function AccountTab() {
 
 	return (
 		<Flex vertical gap={24} data-testid="account-tab">
-			<Flex vertical gap={4}>
-				<Typography.Text type="secondary">{t("account.email")}</Typography.Text>
-				<Typography.Text strong data-testid="account-email">
-					{email}
-				</Typography.Text>
-				<Space style={{ marginTop: 8 }}>
-					<Tooltip title={t("account.changePasswordTooltip")}>
-						<Button disabled data-testid="account-change-password">
-							{t("account.changePassword")}
-						</Button>
-					</Tooltip>
-				</Space>
+			<Flex align="center" gap={16} data-testid="account-avatar-section">
+				<Avatar src={gravatarUrl(email, 64)} icon={<UserOutlined />} size={64} />
+				<Flex vertical gap={4}>
+					<Typography.Text strong>{displayName}</Typography.Text>
+					<Typography.Text type="secondary">{email}</Typography.Text>
+					<Typography.Link
+						href="https://gravatar.com"
+						target="_blank"
+						rel="noopener noreferrer"
+						style={{ fontSize: 12 }}
+					>
+						{t("account.avatar.changeLink")}
+					</Typography.Link>
+				</Flex>
 			</Flex>
+
+			<Space>
+				<Tooltip title={t("account.changePasswordTooltip")}>
+					<Button disabled data-testid="account-change-password">
+						{t("account.changePassword")}
+					</Button>
+				</Tooltip>
+			</Space>
 
 			<Divider style={{ margin: 0 }} />
 
