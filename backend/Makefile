@@ -1,4 +1,4 @@
-.PHONY: dev dev-run dev-raw build lint test test-race test-cover sqlc migrate-up migrate-down docker-build check clean install-tools
+.PHONY: dev dev-run dev-raw build lint test test-race test-cover sqlc migrate-up migrate-down seed docker-build check clean install-tools
 
 HUMANLOG := $(shell go env GOPATH)/bin/humanlog
 AIR      := $(shell go env GOPATH)/bin/air
@@ -53,6 +53,11 @@ migrate-up:
 
 migrate-down:
 	go run ./cmd/migrate down
+
+# seed: load idempotent reference data from db/seed/*.sql.
+# Safe to run repeatedly; seed files must use ON CONFLICT / IF NOT EXISTS.
+seed:
+	go run ./cmd/seed
 
 docker-build:
 	docker build -t richman-api .
