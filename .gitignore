@@ -7,6 +7,12 @@ frontend/.next/
 frontend/out/
 backend/bin/
 backend/tmp/
+# Accidental top-level binaries: `go build ./cmd/<name>` from backend/
+# without -o drops a file named after the package here. The canonical
+# path is `make build`, which writes to backend/bin/ instead.
+backend/seed
+backend/server
+backend/migrate
 
 # Environment files (secrets)
 .env
