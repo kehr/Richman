@@ -1,16 +1,22 @@
-.PHONY: dev dev-run dev-raw build lint test test-race test-cover sqlc migrate-up migrate-down docker-build check clean
+.PHONY: dev dev-run dev-raw build lint test test-race test-cover sqlc migrate-up migrate-down docker-build check clean install-tools
 
 HUMANLOG := $(shell go env GOPATH)/bin/humanlog
 AIR      := $(shell go env GOPATH)/bin/air
 
+# install-tools: install dev tools pinned to specific versions.
+# Run once after cloning on a new machine: make install-tools
+install-tools:
+	go install github.com/air-verse/air@v1.65.0
+	go install github.com/humanlogio/humanlog/cmd/humanlog@v0.8.9
+	go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.64.8
+
 # dev: migrate then start with hot-reload, piped through humanlog for readable colored output.
-# Requires: go install github.com/humanlogio/humanlog/cmd/humanlog@latest
-#           go install github.com/air-verse/air@latest
+# Requires: make install-tools
 dev: migrate-up
 	@if [ -x "$(AIR)" ]; then \
 		$(AIR) 2>&1 | $(HUMANLOG) --time-fields ts --level-fields level --message-fields msg --time-format "2006-01-02 15:04:05"; \
 	else \
-		echo "air not found, falling back to go run (install: go install github.com/air-verse/air@latest)"; \
+		echo "air not found, falling back to go run (run: make install-tools)"; \
 		go run ./cmd/server/main.go 2>&1 | $(HUMANLOG) --time-fields ts --level-fields level --message-fields msg --time-format "2006-01-02 15:04:05"; \
 	fi
 
