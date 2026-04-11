@@ -7,6 +7,7 @@ import {
 } from "@/features/portfolio";
 import {
 	Alert,
+	App,
 	Button,
 	Col,
 	InboxOutlined,
@@ -17,7 +18,6 @@ import {
 	Typography,
 	Upload,
 	type UploadProps,
-	message,
 } from "@/ui-kit/eat";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -98,6 +98,7 @@ export function ScreenshotImportModal({
 	holdingLimit,
 }: ScreenshotImportModalProps) {
 	const { t } = useTranslation("app");
+	const { message } = App.useApp();
 	const [phase, setPhase] = useState<Phase>("initial-upload");
 	const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 	const [rows, setRows] = useState<EditableRecognizedHolding[]>([]);

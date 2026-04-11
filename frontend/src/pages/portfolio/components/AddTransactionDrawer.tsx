@@ -1,6 +1,6 @@
 import type { DayjsLike } from "@/domain/datetime/dayjs-like";
 import { type CreateTradeInput, useCreateTrade } from "@/features/portfolio";
-import { Button, DatePicker, Drawer, Flex, Form, InputNumber, Radio, message } from "@/ui-kit/eat";
+import { App, Button, DatePicker, Drawer, Flex, Form, InputNumber, Radio } from "@/ui-kit/eat";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -24,6 +24,7 @@ interface FormValues {
 
 export function AddTransactionDrawer({ open, holdingId, onClose }: AddTransactionDrawerProps) {
 	const { t } = useTranslation("app");
+	const { message } = App.useApp();
 	const [form] = Form.useForm<FormValues>();
 	const createTrade = useCreateTrade(holdingId);
 

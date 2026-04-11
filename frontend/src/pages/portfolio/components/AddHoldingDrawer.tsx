@@ -1,5 +1,6 @@
 import { useCreateHolding } from "@/features/portfolio";
 import {
+	App,
 	Button,
 	Drawer,
 	Flex,
@@ -10,7 +11,6 @@ import {
 	Tag,
 	Tooltip,
 	Typography,
-	message,
 } from "@/ui-kit/eat";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -33,6 +33,7 @@ type TabKey = "quick" | "detail" | "screenshot";
 
 export function AddHoldingDrawer({ open, onClose, onCreated }: AddHoldingDrawerProps) {
 	const { t } = useTranslation("app");
+	const { message } = App.useApp();
 	const [selectedAsset, setSelectedAsset] = useState<SelectedAssetValue | null>(null);
 	const [activeTab, setActiveTab] = useState<TabKey>("quick");
 	const [form] = Form.useForm<QuickHoldingFormValues>();

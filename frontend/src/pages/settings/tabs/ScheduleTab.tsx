@@ -1,6 +1,6 @@
 import type { MarketScheduleDTO, ScheduleSettingsDTO } from "@/features/schedule";
 import { useScheduleSettings, useUpdateScheduleSettings } from "@/features/schedule";
-import { Button, Divider, Flex, Skeleton, message } from "@/ui-kit/eat";
+import { App, Button, Divider, Flex, Skeleton } from "@/ui-kit/eat";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { GlobalFrequencySelector } from "./schedule/GlobalFrequencySelector";
@@ -13,6 +13,7 @@ import { MarketWindowCard } from "./schedule/MarketWindowCard";
 // emit partial updates via onUpdate callbacks.
 export function ScheduleTab() {
 	const { t } = useTranslation("settings");
+	const { message } = App.useApp();
 	const query = useScheduleSettings();
 	const mutation = useUpdateScheduleSettings();
 

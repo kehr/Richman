@@ -4,7 +4,7 @@ import {
 	usePatchUserSettings,
 	useUserSettings,
 } from "@/features/user-settings";
-import { Collapse, Divider, Flex, Radio, Typography, message } from "@/ui-kit/eat";
+import { App, Collapse, Divider, Flex, Radio, Typography } from "@/ui-kit/eat";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -15,6 +15,7 @@ import { useTranslation } from "react-i18next";
 // in the user's preferred language and amounts render in the chosen currency.
 export function PreferencesTab() {
 	const { t, i18n } = useTranslation("settings");
+	const { message } = App.useApp();
 	const settingsQuery = useUserSettings();
 	const patchMutation = usePatchUserSettings();
 

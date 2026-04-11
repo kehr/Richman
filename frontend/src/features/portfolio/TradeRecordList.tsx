@@ -1,6 +1,7 @@
 import type { DayjsLike } from "@/domain/datetime/dayjs-like";
 import { formatCurrency, formatDate } from "@/domain/ui/format";
 import {
+	App,
 	Button,
 	DatePicker,
 	Form,
@@ -10,7 +11,6 @@ import {
 	Radio,
 	Space,
 	Tag,
-	message,
 } from "@/ui-kit/eat";
 import { PlusOutlined } from "@/ui-kit/eat";
 import { useMemo, useState } from "react";
@@ -28,6 +28,7 @@ export function TradeRecordList({ holdingId }: TradeRecordListProps) {
 	const [modalOpen, setModalOpen] = useState(false);
 	const [form] = Form.useForm();
 	const { t, i18n } = useTranslation("app");
+	const { message } = App.useApp();
 
 	const handleCreateTrade = async (values: Record<string, unknown>) => {
 		try {

@@ -10,6 +10,7 @@ import {
 	useUserSettings,
 } from "@/features/user-settings";
 import {
+	App,
 	Avatar,
 	Button,
 	Divider,
@@ -23,7 +24,6 @@ import {
 	Tooltip,
 	Typography,
 	UserOutlined,
-	message,
 } from "@/ui-kit/eat";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -41,6 +41,12 @@ interface CapitalFormValues {
 // who dismissed the Dashboard nudge would otherwise have no regret path.
 export function AccountTab() {
 	const { t } = useTranslation("settings");
+	// App-scoped message hook. Static message.success / message.error from the
+	// barrel do not render under React 19 + antd v6 without the compat patch;
+	// App.useApp() is the officially recommended path and the pattern used
+	// everywhere else in this project (see OnboardingLayout, DashboardPage,
+	// settings-llm/*, etc).
+	const { message } = App.useApp();
 	const settingsQuery = useUserSettings();
 	const patchMutation = usePatchUserSettings();
 	const resetOnboarding = useResetOnboarding();

@@ -1,4 +1,4 @@
-import { Button, Flex, Form, Input, Modal, Radio, Typography, message } from "@/ui-kit/eat";
+import { App, Button, Flex, Form, Input, Modal, Radio, Typography } from "@/ui-kit/eat";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type {
@@ -33,6 +33,7 @@ interface WechatFormValues {
 // the backend adapter config structs verbatim (see types.ts for citations).
 export function AddChannelModal({ open, onClose }: AddChannelModalProps) {
 	const { t } = useTranslation("settings");
+	const { message } = App.useApp();
 	const [channelType, setChannelType] = useState<ChannelType>("email");
 	const [emailForm] = Form.useForm<EmailFormValues>();
 	const [feishuForm] = Form.useForm<FeishuFormValues>();

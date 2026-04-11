@@ -1,4 +1,5 @@
 import {
+	App,
 	Button,
 	DeleteOutlined,
 	Empty,
@@ -9,7 +10,6 @@ import {
 	Switch,
 	Tag,
 	Typography,
-	message,
 } from "@/ui-kit/eat";
 import { useTranslation } from "react-i18next";
 import type { ChannelDto, ChannelType } from "../types";
@@ -24,6 +24,7 @@ interface ChannelListProps {
 
 export function ChannelList({ channels, loading }: ChannelListProps) {
 	const { t } = useTranslation("settings");
+	const { message } = App.useApp();
 
 	// summarizeConfig produces a one-line description of the channel's config
 	// for the row body. Because the backend stores config as a free-form JSON

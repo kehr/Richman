@@ -1,4 +1,4 @@
-import { Button, Form, InputNumber, message } from "@/ui-kit/eat";
+import { App, Button, Form, InputNumber } from "@/ui-kit/eat";
 import { type ReactNode, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { HoldingDto } from "./api";
@@ -22,6 +22,7 @@ interface HoldingFormProps {
 
 export function HoldingForm({ initialValues, onSuccess, renderAssetPicker }: HoldingFormProps) {
 	const { t } = useTranslation("app");
+	const { message } = App.useApp();
 	const [form] = Form.useForm();
 	const [pickerOpen, setPickerOpen] = useState(false);
 	const [selectedAsset, setSelectedAsset] = useState<SelectedAsset | null>(null);

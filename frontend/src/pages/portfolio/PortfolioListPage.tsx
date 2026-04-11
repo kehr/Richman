@@ -2,6 +2,7 @@ import { useDecisionCards } from "@/features/decision-card";
 import { useDeleteHolding, useHoldings } from "@/features/portfolio";
 import type { HoldingDto } from "@/features/portfolio";
 import {
+	App,
 	Button,
 	CameraOutlined,
 	Flex,
@@ -10,7 +11,6 @@ import {
 	Space,
 	Tooltip,
 	Typography,
-	message,
 } from "@/ui-kit/eat";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -34,6 +34,7 @@ const HOLDING_LIMIT = 5;
 export default function PortfolioListPage() {
 	const navigate = useNavigate();
 	const { t } = useTranslation("app");
+	const { message } = App.useApp();
 	const { data: holdings, isLoading } = useHoldings();
 	const { data: decisionCards } = useDecisionCards();
 	const deleteMutation = useDeleteHolding();
