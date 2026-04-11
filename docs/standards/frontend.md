@@ -168,6 +168,49 @@ import { UserOutlined } from "@ant-design/icons";
 ui-kit/eat/index.ts 是唯一允许直接导入 antd 包的文件。
 
 
+## Toast / Modal / Notification API 规则
+
+**antd 的 `message` / `notification` / `Modal.confirm` 静态 API 一律禁止使用**,必须通过 `App.useApp()` hook 获取 app-scoped 实例。
+
+```typescript
+// 正确 -- 通过 App.useApp() 获取 hook 版本
+import { App } from "@/ui-kit/eat";
+
+export function MyComponent() {
+  const { message, modal, notification } = App.useApp();
+
+  const handleSave = async () => {
+    try {
+      await mutation.mutateAsync(payload);
+      message.success(t("common.saveSuccess"));
+    } catch {
+      message.error(t("common.saveError"));
+    }
+  };
+}
+
+// 错误 -- 静态 API 在 React 19 + antd v6 下不渲染
+import { message } from "@/ui-kit/eat";      // 编译错误：eat barrel 已移除静态 message
+import { message } from "antd";               // Biome noRestrictedImports 报错
+message.success("saved");                      // 即便进入运行时也不会显示 toast
+```
+
+**背景(为什么静态 API 不生效):** antd v5 起引入 `ConfigProvider` + `App` 组件的上下文隔离机制;React 19 配合 antd v6 时,静态 `message.xxx` / `Modal.confirm` / `notification.xxx` 走的是全局单例,**不继承**当前 `ConfigProvider` 的主题 token、i18n locale 和 React 上下文,结果是 toast 不渲染(或 portal 挂载在错误的 root 下被 CSS 覆盖)。只有 `App.useApp()` 返回的实例走当前 subtree 的 `App` context,才能在 React 19 + antd v6 环境下正常工作。详见 antd 官方文档 `App` 组件一节。
+
+**机械性拦截:** `ui-kit/eat/index.ts` 已经**不再导出** `message` 和 `notification` 两个静态符号,任何 `import { message } from "@/ui-kit/eat"` 会直接编译报错;通过 Biome 的 `noRestrictedImports` 阻止从 `antd` 直接导入,形成双重护栏。
+
+**迁移检查清单(新增组件或 code review 时必须核对):**
+
+- 不要 `import { message } from "@/ui-kit/eat"`(已无此导出)
+- 不要 `import { message, notification, Modal } from "antd"` 后调用静态方法
+- 不要 `Modal.confirm({ ... })`,改用 `modal.confirm({ ... })`(从 `App.useApp()` 取)
+- 在组件顶部调用 `const { message } = App.useApp();`(以及需要的 `modal` / `notification`)
+- Hook 返回的实例只能在**同一组件**或其子组件内使用,禁止存到模块级变量绕过 context
+- 非组件环境(例如 `QueryClient.onError` 这种全局回调)不要直接调 toast;改为把错误抛给组件层,由组件的 `useMutation.onError` 调用 `App.useApp()` 返回的 `message`
+
+**反面教训:** 曾经有 7 个文件(AccountTab / FirstHoldingPage / PortfolioListPage / AddHoldingDrawer / ScreenshotImportModal / TradeRecordList / ChannelList)因为从 barrel 引入静态 `message` 导致用户点击"保存"后**没有任何反馈**的 bug 长期存在,原因就是这一条静态 API 不兼容 React 19 + antd v6。该类问题无法通过肉眼 review 发现(代码看上去完全正确),所以通过"从 barrel 移除静态符号 + 标准强制 + 双护栏"的方式机械性拦截。
+
+
 ## 图标使用规范
 
 项目采用双图标库方案：
