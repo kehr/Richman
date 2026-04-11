@@ -1,6 +1,5 @@
 import {
 	ASSET_CATEGORIES,
-	ASSET_CATEGORY_META,
 	type AssetCategory,
 	type AssetDto,
 	useAssets,
@@ -9,6 +8,7 @@ import { useCreateHolding, useHoldings } from "@/features/portfolio";
 import { usePatchUserSettings, useUserSettings } from "@/features/user-settings";
 import {
 	Alert,
+	App,
 	Button,
 	Collapse,
 	Form,
@@ -19,7 +19,6 @@ import {
 	Tabs,
 	Tooltip,
 	Typography,
-	message,
 } from "@/ui-kit/eat";
 import { type Variants, motion, useReducedMotion } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
@@ -184,8 +183,12 @@ function QuickModeForm({ itemsVariant }: QuickModeFormProps) {
 						<Radio.Group
 							value={category}
 							onChange={(e) => handleCategoryChange(e.target.value as AssetCategory)}
+							// Labels resolved from common:assetCategory.{key}.label so the
+							// Radio group matches the CategoriesPage card copy in every
+							// locale. Keeping the same source-of-truth avoids drift if
+							// we add a 5th category later.
 							options={ASSET_CATEGORIES.map((key) => ({
-								label: ASSET_CATEGORY_META[key].label,
+								label: t(`assetCategory.${key}.label`, { ns: "common" }),
 								value: key,
 							}))}
 						/>
@@ -243,6 +246,7 @@ function QuickModeForm({ itemsVariant }: QuickModeFormProps) {
 
 function TotalCapitalCollapse() {
 	const { t } = useTranslation("auth");
+	const { message } = App.useApp();
 	const { data: settings } = useUserSettings();
 	const patch = usePatchUserSettings();
 	const [value, setValue] = useState<number | null>(settings?.totalCapitalCny ?? null);
@@ -309,6 +313,7 @@ function TotalCapitalCollapse() {
 
 export default function FirstHoldingPage() {
 	const { t } = useTranslation("auth");
+	const { message } = App.useApp();
 	const nav = useOnboardingNav();
 	const { state, updateHoldingDraft } = useOnboardingState();
 	const { data: holdings } = useHoldings();

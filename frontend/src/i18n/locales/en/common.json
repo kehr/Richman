@@ -35,5 +35,27 @@
 		"total": "Total",
 		"actions": "Actions"
 	},
-	"riskDisclaimer": "All analysis and recommendations provided by this platform are for reference only and do not constitute investment advice. Investing involves risk. Past performance does not guarantee future returns. Please make investment decisions based on your own risk tolerance."
+	"riskDisclaimer": "All analysis and recommendations provided by this platform are for reference only and do not constitute investment advice. Investing involves risk. Past performance does not guarantee future returns. Please make investment decisions based on your own risk tolerance.",
+	"assetCategory": {
+		"gold_etf": {
+			"label": "Gold ETF",
+			"description": "ETF funds that track gold prices",
+			"examples": "518880 Huaan Gold, 518800 E-Fund Gold"
+		},
+		"a_share_broad": {
+			"label": "A-Share Broad ETF",
+			"description": "Broad-based ETFs tracking major indices",
+			"examples": "510300 CSI 300, 510500 CSI 500"
+		},
+		"a_share_industry": {
+			"label": "A-Share Sector ETF",
+			"description": "ETFs tracking specific sector indices",
+			"examples": "512880 Securities, 515790 Solar"
+		},
+		"us_stock": {
+			"label": "US Stocks",
+			"description": "Individual stocks and ETFs on the US market",
+			"examples": "AAPL Apple, TSLA Tesla"
+		}
+	}
 }

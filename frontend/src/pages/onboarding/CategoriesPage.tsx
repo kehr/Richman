@@ -1,10 +1,6 @@
-import {
-	ASSET_CATEGORIES,
-	ASSET_CATEGORY_META,
-	type AssetCategory,
-} from "@/features/asset-catalog";
+import { ASSET_CATEGORIES, type AssetCategory } from "@/features/asset-catalog";
 import { usePatchUserSettings } from "@/features/user-settings";
-import { Button, Card, Col, Row, Typography, message } from "@/ui-kit/eat";
+import { App, Button, Card, Col, Row, Typography } from "@/ui-kit/eat";
 import { motion, useReducedMotion } from "framer-motion";
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
@@ -38,6 +34,7 @@ const reducedItemVariants = {
 
 export default function CategoriesPage() {
 	const { t } = useTranslation("auth");
+	const { message } = App.useApp();
 	const nav = useOnboardingNav();
 	const { state, update } = useOnboardingState();
 	const patch = usePatchUserSettings();
@@ -90,7 +87,13 @@ export default function CategoriesPage() {
 				style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(2, 1fr)" }}
 			>
 				{ASSET_CATEGORIES.map((key) => {
-					const meta = ASSET_CATEGORY_META[key];
+					// Asset category copy lives in common:assetCategory.{key}.* so it
+					// stays in sync across onboarding, the AddHoldingDrawer and any
+					// future consumer. The explicit ns prefix is necessary because
+					// this page's useTranslation default is "auth".
+					const label = t(`assetCategory.${key}.label`, { ns: "common" });
+					const description = t(`assetCategory.${key}.description`, { ns: "common" });
+					const examples = t(`assetCategory.${key}.examples`, { ns: "common" });
 					const isSelected = state.categories.includes(key);
 					return (
 						<motion.div key={key} variants={items}>
@@ -105,7 +108,7 @@ export default function CategoriesPage() {
 								data-testid={`category-card-${key}`}
 								data-selected={isSelected ? "true" : "false"}
 								aria-pressed={isSelected}
-								aria-label={`${meta.label} ${meta.description}`}
+								aria-label={`${label} ${description}`}
 								onClick={() => toggleCategory(key)}
 								style={{
 									width: "100%",
@@ -127,14 +130,14 @@ export default function CategoriesPage() {
 										}}
 									>
 										<Title level={4} style={{ marginTop: 0, marginBottom: 4 }}>
-											{meta.label}
+											{label}
 										</Title>
 										<Text type="secondary" style={{ display: "block", marginBottom: 8 }}>
-											{meta.description}
+											{description}
 										</Text>
 										<Text style={{ fontSize: 12, color: "#8c8c8c" }}>
 											{t("onboarding.categories.example")}
-											{meta.examples}
+											{examples}
 										</Text>
 									</Card>
 								</motion.div>

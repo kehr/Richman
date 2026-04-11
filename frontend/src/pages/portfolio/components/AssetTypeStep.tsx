@@ -1,6 +1,5 @@
 import {
 	ASSET_CATEGORIES,
-	ASSET_CATEGORY_META,
 	type AssetCategory,
 	type AssetDto,
 	useAssets,
@@ -81,8 +80,11 @@ export function AssetTypeStep({ onSelect }: AssetTypeStepProps) {
 			<Radio.Group
 				value={category}
 				onChange={(e) => setCategory(e.target.value as AssetCategory)}
+				// Labels pulled from common:assetCategory.{key}.label — the single
+				// source shared with onboarding pages. The explicit ns prefix is
+				// required because this component's default useTranslation is "app".
 				options={ASSET_CATEGORIES.map((key) => ({
-					label: ASSET_CATEGORY_META[key].label,
+					label: t(`assetCategory.${key}.label`, { ns: "common" }),
 					value: key,
 					"data-testid": `asset-type-${key}`,
 				}))}
@@ -112,7 +114,7 @@ export function AssetTypeStep({ onSelect }: AssetTypeStepProps) {
 			/>
 
 			<Typography.Text type="secondary" style={{ fontSize: 12 }}>
-				{ASSET_CATEGORY_META[category].examples}
+				{t(`assetCategory.${category}.examples`, { ns: "common" })}
 			</Typography.Text>
 		</Space>
 	);
