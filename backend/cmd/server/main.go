@@ -51,6 +51,7 @@ import (
 	"github.com/richman/backend/internal/service/exchangerate"
 	notificationSvc "github.com/richman/backend/internal/service/notification"
 	onboardingSvc "github.com/richman/backend/internal/service/onboarding"
+	quoteSvc "github.com/richman/backend/internal/service/quote"
 	screenshotSvc "github.com/richman/backend/internal/service/screenshot"
 	usersettingsSvc "github.com/richman/backend/internal/service/user_settings"
 )
@@ -307,6 +308,11 @@ func main() {
 	)
 	exchangeRateService := exchangerate.NewService(zapLogger)
 	exchangeRatesHandler := v1.NewExchangeRatesHandler(exchangeRateService)
+	quoteService := quoteSvc.NewService(
+		quoteSvc.NewFetcherAdapter(fetcher),
+		zapLogger,
+	)
+	quoteHandler := v1.NewAssetQuoteHandler(quoteService)
 	scheduleHandler := v1.NewScheduleHandler(scheduleService, holdingRepo, cardRepo, scheduler, zapLogger)
 
 	// Setup Gin
@@ -342,6 +348,7 @@ func main() {
 	llmSettingsHandler.RegisterRoutes(apiV1, authMiddleware)
 	dashboardHandler.RegisterRoutes(apiV1, authMiddleware)
 	exchangeRatesHandler.RegisterRoutes(apiV1, authMiddleware)
+	quoteHandler.RegisterRoutes(apiV1, authMiddleware)
 	scheduleHandler.RegisterRoutes(apiV1, authMiddleware)
 
 	// Start scheduler
