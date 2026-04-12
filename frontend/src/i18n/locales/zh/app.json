@@ -197,7 +197,33 @@
 		"costLabel": "成本",
 		"positionLabel": "仓位",
 		"marketValueLabel": "市值",
-		"reanalyze": "重新分析"
+		"reanalyze": "重新分析",
+		"marketContext": {
+			"title": "实盘行情",
+			"currentPrice": "现价",
+			"todayChange": "今日",
+			"vsAnalysis": "较分析",
+			"vsCost": "较成本",
+			"updatedAt": "更新于 {{time}}",
+			"refresh": "刷新行情",
+			"refreshing": "刷新中",
+			"unavailable": {
+				"title": "{{assetType}} 实盘行情数据源待接入",
+				"analysisPrice": "分析时刻价格 (非实时)",
+				"analysisTime": "分析于 {{time}}"
+			},
+			"error": {
+				"title": "行情数据加载失败",
+				"retry": "重试"
+			},
+			"overlay": {
+				"cost": "成本",
+				"stopLoss": "止损",
+				"trigger": "触发",
+				"analysis": "分析"
+			},
+			"outsideRange": "分析时刻早于此区间"
+		}
 	},
 	"portfolio": {
 		"title": "我的持仓",

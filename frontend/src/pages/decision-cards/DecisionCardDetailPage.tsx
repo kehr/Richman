@@ -13,6 +13,7 @@ import { ConclusionBanner } from "./components/ConclusionBanner";
 import { DimensionReasoning } from "./components/DimensionReasoning";
 import { ExecutionPlanFull } from "./components/ExecutionPlanFull";
 import { MainRisks } from "./components/MainRisks";
+import { MarketContextPanel } from "./components/MarketContextPanel";
 import { MetaSidebar } from "./components/MetaSidebar";
 
 // formatAnalysisTime renders the analysis timestamp shown in the page subtitle.
@@ -157,6 +158,7 @@ export default function DecisionCardDetailPage() {
 					<Col xs={24} lg={18}>
 						<Space direction="vertical" size={16} style={{ width: "100%" }}>
 							<CardHero card={card} />
+							<MarketContextPanel card={card} />
 							<ConclusionBanner card={card} prevCard={prevCard} />
 							<ExecutionPlanFull
 								execution={card.recommendation.execution}

@@ -197,7 +197,33 @@
 		"costLabel": "Cost",
 		"positionLabel": "Position",
 		"marketValueLabel": "Market Value",
-		"reanalyze": "Re-analyze"
+		"reanalyze": "Re-analyze",
+		"marketContext": {
+			"title": "Market Quote",
+			"currentPrice": "Price",
+			"todayChange": "Today",
+			"vsAnalysis": "vs Analysis",
+			"vsCost": "vs Cost",
+			"updatedAt": "Updated at {{time}}",
+			"refresh": "Refresh",
+			"refreshing": "Refreshing",
+			"unavailable": {
+				"title": "{{assetType}} market data source pending",
+				"analysisPrice": "Price at analysis time (not live)",
+				"analysisTime": "Analyzed at {{time}}"
+			},
+			"error": {
+				"title": "Failed to load market data",
+				"retry": "Retry"
+			},
+			"overlay": {
+				"cost": "Cost",
+				"stopLoss": "Stop Loss",
+				"trigger": "Trigger",
+				"analysis": "Analysis"
+			},
+			"outsideRange": "Analysis time is outside chart range"
+		}
 	},
 	"portfolio": {
 		"title": "My Holdings",
