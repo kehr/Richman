@@ -32,6 +32,7 @@ export function MarketQuoteChart({
 				background: { color: "transparent" },
 				textColor: "#666",
 				fontSize: 11,
+				attributionLogo: false,
 			},
 			grid: {
 				vertLines: { visible: false },
