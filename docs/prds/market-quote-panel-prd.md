@@ -85,7 +85,7 @@ Skeleton 占位，高度与正常态一致。
 ### 请求
 
 ```
-GET /api/v1/assets/:assetType/:assetCode/quote
+GET /api/v1/quotes/:assetType/:assetCode
 Authorization: Bearer <jwt>
 ```
 

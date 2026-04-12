@@ -204,7 +204,7 @@ var validAssetTypes = map[string]bool{
 }
 
 func (h *AssetQuoteHandler) RegisterRoutes(g *gin.RouterGroup, authMW gin.HandlerFunc) {
-    g.GET("/assets/:assetType/:assetCode/quote", authMW, h.getQuote)
+    g.GET("/quotes/:assetType/:assetCode", authMW, h.getQuote)
 }
 
 func (h *AssetQuoteHandler) getQuote(c *gin.Context) {

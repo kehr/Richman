@@ -7,5 +7,5 @@ export async function fetchAssetQuote(
 	assetType: string,
 	assetCode: string,
 ): Promise<ApiResponse<AssetQuoteDTO>> {
-	return request<ApiResponse<AssetQuoteDTO>>(`/assets/${assetType}/${assetCode}/quote`);
+	return request<ApiResponse<AssetQuoteDTO>>(`/quotes/${assetType}/${assetCode}`);
 }
