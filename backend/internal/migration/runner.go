@@ -212,41 +212,37 @@ func (r *Runner) removeApplied(ctx context.Context, version int) error {
 	return err
 }
 
+// execFile runs a migration file as a single transactional batch. The full
+// file body is sent through pgx's simple query protocol (PgConn.Exec), which
+// lets Postgres itself tokenize the script. This is important because the
+// previous implementation split on ';' in Go, which mis-parsed any semicolon
+// appearing inside a line comment, a block comment, a string literal, or a
+// DO $$ ... $$ block. The simple protocol supports multi-statement scripts
+// natively and reports the first failing statement's error with full context.
 func (r *Runner) execFile(ctx context.Context, path string) error {
 	contents, err := os.ReadFile(path)
 	if err != nil {
 		return err
 	}
-	stmts := splitStatements(string(contents))
-	if len(stmts) == 0 {
+	body := strings.TrimSpace(string(contents))
+	if body == "" {
 		return nil
 	}
 	tx, err := r.pool.Begin(ctx)
 	if err != nil {
 		return err
 	}
-	for _, stmt := range stmts {
-		if _, err := tx.Exec(ctx, stmt); err != nil {
-			if rbErr := tx.Rollback(ctx); rbErr != nil {
-				return fmt.Errorf("exec failed: %w (rollback failed: %v)", err, rbErr)
-			}
-			return err
+	// tx.Conn().PgConn() returns the underlying connection that the
+	// transaction is bound to, so the multi-statement Exec runs inside the
+	// same BEGIN/COMMIT scope established by pool.Begin above.
+	mrr := tx.Conn().PgConn().Exec(ctx, body)
+	if _, execErr := mrr.ReadAll(); execErr != nil {
+		if rbErr := tx.Rollback(ctx); rbErr != nil {
+			return fmt.Errorf("exec failed: %w (rollback failed: %v)", execErr, rbErr)
 		}
+		return execErr
 	}
 	return tx.Commit(ctx)
-}
-
-func splitStatements(body string) []string {
-	parts := strings.Split(body, ";")
-	stmts := make([]string, 0, len(parts))
-	for _, part := range parts {
-		stmt := strings.TrimSpace(part)
-		if stmt == "" {
-			continue
-		}
-		stmts = append(stmts, stmt)
-	}
-	return stmts
 }
 
 func availableByVersion(list []migrationFile) map[int]migrationFile {
