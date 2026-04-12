@@ -4,8 +4,8 @@
 	"private": true,
 	"type": "module",
 	"scripts": {
-		"dev": "vite",
-		"build": "tsc --noEmit && vite build",
+		"dev": "vite --mode dev",
+		"build": "tsc --noEmit && vite build --mode prod",
 		"preview": "vite preview",
 		"lint": "biome check src/",
 		"format": "biome format src/",
