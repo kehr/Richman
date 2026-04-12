@@ -17,6 +17,24 @@
 - 不用动词：`/holdings`（不是 `/getHoldings`）
 
 
+## Gin 路由参数冲突预检（强制）
+
+Gin 的 radix tree 路由不允许同一路径层级使用不同的参数名。例如 `/assets/:code` 和 `/assets/:assetType/...` 会在运行时 panic，但编译期不报错。
+
+设计任何新 API 端点前，必须执行以下检查：
+
+```bash
+grep -rn '\.GET\|\.POST\|\.PUT\|\.DELETE\|\.PATCH' internal/api/ | grep '<同前缀>'
+```
+
+检查内容：
+1. 新路径的每个前缀段（如 `/assets/`）是否已被其他 handler 注册
+2. 已注册路由中该层级的参数名（如 `:code`）是否与新路由的参数名（如 `:assetType`）一致
+3. 不一致则必须改路径前缀（如 `/quotes/` 替代 `/assets/.../quote`）
+
+此规则无例外。违反不会被编译器或 lint 拦截，只会在 `main()` 运行时 panic。
+
+
 ## HTTP 方法和状态码
 
 | 操作 | 方法 | 成功码 | 说明 |
