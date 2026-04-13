@@ -25,6 +25,7 @@ dependencies = [
     "numpy>=1.26",
     "pandas>=3.0",
     "pandas-ta-classic>=0.1",
+    "cachetools>=5.3",
     # financial data sources
     "fredapi>=0.5",
     "yfinance>=0.2",
