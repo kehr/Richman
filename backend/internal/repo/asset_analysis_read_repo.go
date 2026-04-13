@@ -102,6 +102,31 @@ func (r *AssetAnalysisReadRepo) GetLatestByAssetCode(
 	return &a, nil
 }
 
+// GetSecondLatestByAssetCode returns the second most recent analysis for an
+// asset (i.e. the analysis immediately before the one with excludeID). Used by
+// the daily briefing to compute the gold score delta vs yesterday.
+// Returns nil if no prior analysis exists.
+func (r *AssetAnalysisReadRepo) GetSecondLatestByAssetCode(
+	ctx context.Context, code string, excludeID int64,
+) (*model.AssetAnalysis, error) {
+	var a model.AssetAnalysis
+	row := r.pool.QueryRow(ctx,
+		`SELECT `+assetAnalysisColumns+`
+		 FROM rs_asset_analyses
+		 WHERE asset_code = $1 AND asset_analysis_id != $2 AND is_deleted = 0
+		 ORDER BY analyzed_at DESC
+		 LIMIT 1`,
+		code, excludeID,
+	)
+	if err := scanAssetAnalysisRow(row, &a); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("query second latest analysis by asset code: %w", err)
+	}
+	return &a, nil
+}
+
 // GetLatestByAssetCodes returns the most recent analysis for each asset in the
 // provided codes slice. The result is keyed by asset_code. Codes with no
 // analysis are absent from the returned map. An empty codes slice returns an

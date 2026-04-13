@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Richman 每日简报</title>
+<style>
+  body { margin: 0; padding: 0; background-color: #f5f5f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; }
+  @media (prefers-color-scheme: dark) {
+    body { background-color: #1a1a1a; }
+    .wrapper { background-color: #1a1a1a !important; }
+    .container { background-color: #2a2a2a !important; }
+    .text-primary { color: #e8e8e8 !important; }
+    .text-secondary { color: #a0a0a0 !important; }
+    .divider { border-color: #3a3a3a !important; }
+    .card { background-color: #333333 !important; border-color: #444444 !important; }
+    .footer-text { color: #666666 !important; }
+  }
+</style>
+</head>
+<body>
+<table class="wrapper" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f5f5f5;">
+  <tr>
+    <td align="center" style="padding: 24px 16px;">
+      <table class="container" width="600" cellpadding="0" cellspacing="0" style="background-color:#ffffff; border-radius:8px; overflow:hidden; max-width:600px;">
+
+        <!-- Header -->
+        <tr>
+          <td style="background-color:#1a1a2e; padding:24px 32px;">
+            <table width="100%" cellpadding="0" cellspacing="0">
+              <tr>
+                <td>
+                  <span style="font-size:20px; font-weight:700; color:#ffffff;">Richman</span>
+                  <span style="font-size:13px; color:#8888aa; margin-left:8px;">每日简报</span>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- Market Regime -->
+        <tr>
+          <td style="padding:24px 32px 0 32px;">
+            <p class="text-secondary" style="margin:0 0 6px 0; font-size:12px; color:#888888; text-transform:uppercase; letter-spacing:1px;">市场环境</p>
+            <p class="text-primary" style="margin:0; font-size:22px; font-weight:600; color:#1a1a2e;">{{.RegimeLabel}}</p>
+          </td>
+        </tr>
+
+        <!-- Gold Score -->
+        <tr>
+          <td style="padding:16px 32px 0 32px;">
+            <table class="card" width="100%" cellpadding="16" cellspacing="0" style="background-color:#f8f9ff; border:1px solid #e8eaf6; border-radius:6px;">
+              <tr>
+                <td>
+                  <p class="text-secondary" style="margin:0 0 4px 0; font-size:12px; color:#888888;">黄金 ETF 评分</p>
+                  <table width="100%" cellpadding="0" cellspacing="0">
+                    <tr>
+                      <td>
+                        <span class="text-primary" style="font-size:32px; font-weight:700; color:#1a1a2e;">{{printf "%.1f" .GoldScore}}</span>
+                        <span class="text-secondary" style="font-size:14px; color:#888888; margin-left:4px;">/ 100</span>
+                      </td>
+                      <td align="right">
+                        {{if gt .GoldScoreDelta 0.0}}
+                        <span style="font-size:14px; color:#22c55e; font-weight:600;">+{{printf "%.1f" .GoldScoreDelta}}</span>
+                        {{else if lt .GoldScoreDelta 0.0}}
+                        <span style="font-size:14px; color:#ef4444; font-weight:600;">{{printf "%.1f" .GoldScoreDelta}}</span>
+                        {{else}}
+                        <span style="font-size:14px; color:#888888;">持平</span>
+                        {{end}}
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- Events -->
+        {{if .Events}}
+        <tr>
+          <td style="padding:24px 32px 0 32px;">
+            <p class="text-secondary" style="margin:0 0 12px 0; font-size:12px; color:#888888; text-transform:uppercase; letter-spacing:1px;">近期事件</p>
+            <table width="100%" cellpadding="0" cellspacing="0">
+              {{range .Events}}
+              <tr>
+                <td style="padding:8px 0; border-bottom:1px solid #f0f0f0;">
+                  <table width="100%" cellpadding="0" cellspacing="0">
+                    <tr>
+                      <td>
+                        <p class="text-primary" style="margin:0; font-size:14px; color:#1a1a2e;">{{.Title}}</p>
+                        {{if .GoldDirection}}
+                        <p class="text-secondary" style="margin:2px 0 0 0; font-size:12px; color:#888888;">黄金方向：{{.GoldDirection}}</p>
+                        {{end}}
+                      </td>
+                      <td align="right" style="padding-left:12px; white-space:nowrap;">
+                        <span style="font-size:11px; padding:2px 8px; border-radius:99px; background-color:#f0f0f0; color:#666666;">{{.Impact}}</span>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+              {{end}}
+            </table>
+          </td>
+        </tr>
+        {{end}}
+
+        <!-- Holdings -->
+        {{if .HasHoldings}}
+        <tr>
+          <td style="padding:24px 32px 0 32px;">
+            <p class="text-secondary" style="margin:0 0 12px 0; font-size:12px; color:#888888; text-transform:uppercase; letter-spacing:1px;">持仓建议</p>
+            <table width="100%" cellpadding="0" cellspacing="0">
+              {{range .Holdings}}
+              <tr>
+                <td style="padding:10px 0; border-bottom:1px solid #f0f0f0;">
+                  <table width="100%" cellpadding="0" cellspacing="0">
+                    <tr>
+                      <td>
+                        <p class="text-primary" style="margin:0; font-size:14px; font-weight:600; color:#1a1a2e;">{{.AssetName}}</p>
+                        <p class="text-secondary" style="margin:2px 0 0 0; font-size:12px; color:#888888;">{{.AssetCode}}</p>
+                        {{if .ActionAdvice}}
+                        <p class="text-primary" style="margin:6px 0 0 0; font-size:13px; color:#1a1a2e;">{{.ActionAdvice}}</p>
+                        {{end}}
+                      </td>
+                      {{if .Confidence}}
+                      <td align="right" style="padding-left:12px;">
+                        <span style="font-size:12px; color:#888888;">置信度 {{printf "%.0f" .Confidence}}%</span>
+                      </td>
+                      {{end}}
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+              {{end}}
+            </table>
+          </td>
+        </tr>
+        {{else}}
+        <tr>
+          <td style="padding:24px 32px 0 32px;">
+            <table class="card" width="100%" cellpadding="16" cellspacing="0" style="background-color:#f8f9ff; border:1px solid #e8eaf6; border-radius:6px; text-align:center;">
+              <tr>
+                <td>
+                  <p class="text-primary" style="margin:0 0 8px 0; font-size:15px; font-weight:600; color:#1a1a2e;">录入持仓，获取专属建议</p>
+                  <p class="text-secondary" style="margin:0; font-size:13px; color:#888888;">在 Richman 中添加您的持仓，每日收到个性化的投资参考。</p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+        {{end}}
+
+        <!-- Divider -->
+        <tr>
+          <td style="padding:24px 32px 0 32px;">
+            <hr class="divider" style="border:none; border-top:1px solid #f0f0f0; margin:0;">
+          </td>
+        </tr>
+
+        <!-- Footer -->
+        <tr>
+          <td style="padding:16px 32px 24px 32px;">
+            <p class="footer-text" style="margin:0 0 6px 0; font-size:11px; color:#aaaaaa; text-align:center;">
+              <a href="{{.UnsubscribeURL}}" style="color:#aaaaaa; text-decoration:underline;">退订邮件</a>
+            </p>
+            <p class="footer-text" style="margin:0; font-size:11px; color:#aaaaaa; text-align:center; line-height:1.5;">{{.Disclaimer}}</p>
+          </td>
+        </tr>
+
+      </table>
+    </td>
+  </tr>
+</table>
+</body>
+</html>

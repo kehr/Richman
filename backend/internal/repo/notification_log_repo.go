@@ -3,6 +3,7 @@ package repo
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/richman/backend/internal/model"
@@ -16,6 +17,29 @@ type NotificationLogRepo struct {
 // NewNotificationLogRepo creates a new NotificationLogRepo.
 func NewNotificationLogRepo(pool *pgxpool.Pool) *NotificationLogRepo {
 	return &NotificationLogRepo{pool: pool}
+}
+
+// CountTodayByUser returns the number of notification log entries for a user
+// on today's calendar date (UTC) filtered by channelType. Used by the email
+// push service to enforce the daily per-user push frequency cap.
+func (r *NotificationLogRepo) CountTodayByUser(ctx context.Context, userID int64, channelType string) (int, error) {
+	today := time.Now().UTC().Truncate(24 * time.Hour)
+	tomorrow := today.Add(24 * time.Hour)
+
+	var count int
+	err := r.pool.QueryRow(ctx,
+		`SELECT COUNT(*)
+		 FROM rm_notification_logs
+		 WHERE user_id = $1
+		   AND channel_type = $2
+		   AND created_at >= $3
+		   AND created_at < $4`,
+		userID, channelType, today, tomorrow,
+	).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("count today notification logs: %w", err)
+	}
+	return count, nil
 }
 
 // Create inserts a new notification log entry.
