@@ -58,13 +58,22 @@ PostgreSQL（Supabase 托管或自建）
 
 | 类型 | 规则 | 示例 |
 |------|------|------|
-| 表名 | snake_case 复数 | `holdings`、`decision_cards` |
+| 表名 | `{app}_` 前缀 + snake_case 复数 | `rm_holdings`、`rs_asset_analyses` |
 | 列名 | snake_case | `cost_price`、`asset_code` |
 | 主键 | `{表名单数}_id` | `holding_id` |
 | 外键列 | 与引用的主键同名 | `user_id` |
-| 索引 | `idx_{表}_{列}` | `idx_holdings_user_id` |
-| 复合索引 | `idx_{表缩写}_{列1}_{列2}` | `idx_hld_user_asset` |
-| 唯一约束 | `uq_{表}_{列}` | `uq_users_email` |
+| 索引 | `idx_{表}_{列}` | `idx_rm_holdings_user_id` |
+| 复合索引 | `idx_{表缩写}_{列1}_{列2}` | `idx_rm_hld_user_asset` |
+| 唯一约束 | `uq_{表}_{列}` | `uq_rm_users_email` |
+
+**应用前缀规则：** 多服务共享同一 PostgreSQL 实例时，表名必须以应用缩写加下划线为前缀，用于区分表的归属。
+
+| 应用 | 前缀 | 示例 |
+|------|------|------|
+| richman (Go) | `rm_` | `rm_users`、`rm_holdings`、`rm_decision_cards` |
+| richson (Python) | `rs_` | `rs_asset_analyses`、`rs_analysis_jobs` |
+
+已有表在迁移时统一加前缀。新表必须从创建时就带前缀。跨应用读取允许（如 richson 读 `rm_holdings`），但只有归属应用才能写入自己前缀的表。
 
 **单词原则：** 优先简短列名。外键关系已提供上下文。
 - 用 `name`（不是 `asset_name`，如果表上下文已明确）

@@ -3,8 +3,8 @@
 ## Architecture
 
 Monorepo, frontend and backend separated:
-- Frontend: Vite + React 19 + React Router v7 (SPA) + Ant Design 6 + TanStack Query v5
-- Backend: Go (Gin + sqlc + PostgreSQL) -> Docker + VPS
+- Frontend: Vite 6 + React 19 + React Router v7 (SPA) + Ant Design 5 + TanStack Query v5
+- Backend: Go (Gin + pgxpool + PostgreSQL) -> Docker + VPS
 - API: RESTful JSON, client-agnostic, all clients consume the same API
 - Reference project: /Users/kyle/Studio/Orbiter (frontend patterns)
 
@@ -12,8 +12,8 @@ Monorepo, frontend and backend separated:
 
 | Layer | Stack |
 |-------|-------|
-| Frontend | Vite 7, React 19, React Router v7, Ant Design 6, @ant-design/pro-components, TanStack Query v5, TypeScript strict, Biome, pnpm |
-| Backend | Go, Gin, sqlc, PostgreSQL, Uber zap, golangci-lint |
+| Frontend | Vite 6, React 19, React Router v7, Ant Design 5 (^5.24), @ant-design/pro-components, TanStack Query v5, TypeScript strict, Biome, pnpm |
+| Backend | Go, Gin, pgxpool (hand-written SQL), PostgreSQL, Uber zap, golangci-lint |
 | LLM | Multi-provider abstraction (Claude API / OpenAI API) |
 | Data | AKShare (A-share), Yahoo Finance (US/Gold), Polymarket (events) |
 
@@ -107,3 +107,4 @@ task (see "Design Review Gate" above); the rest are loaded on demand.
 | `logging.md` | Uber zap, log levels, request tracing, rotation, masking |
 | `dev-environment.md` | Startup order, pull-then-migrate discipline, schema drift defenses (Makefile + startup check), observability invariants |
 | `abstraction-reuse.md` | MANDATORY abstraction and reuse principles (frontend + backend): domain layer model, forbidden direct infra calls, interface-first, centralized registries |
+| `trd-review-discipline.md` | MANDATORY TRD review discipline: code-first verification, API name validation, end-to-end data tracing, multi-role checklist, known-issues policy |
