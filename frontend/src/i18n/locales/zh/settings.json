@@ -196,6 +196,63 @@
 		"saveSuccess": "调度策略已保存",
 		"saveError": "保存失败，请稍后重试"
 	},
+	"emailPush": {
+		"label": "邮件推送通知",
+		"hint": "开启后，平台将通过邮件发送每日持仓分析摘要。",
+		"updateSuccess": "邮件推送设置已更新",
+		"updateError": "更新邮件推送设置失败"
+	},
+	"invite": {
+		"myCodesTitle": "我的专属邀请码",
+		"myCodesDesc": "共 {{total}} 个邀请码，已使用 {{used}} 个",
+		"codeAvailable": "可用",
+		"codeUsed": "已使用",
+		"copy": "复制邀请码",
+		"codeAlreadyUsed": "该邀请码已被使用",
+		"copySuccess": "邀请码已复制",
+		"copyError": "复制失败，请手动复制",
+		"unlockProgress": "再连续登录 {{days}} 天即可解锁新邀请码",
+		"unlockReady": "连续登录条件已满足，新邀请码即将解锁",
+		"invitedUsersTitle": "已邀请用户（{{count}} 人）",
+		"noInvitesYet": "暂时还没有邀请任何人"
+	},
+	"deleteAccount": {
+		"title": "注销账户",
+		"description": "注销后账户数据将被永久删除，此操作不可撤销。",
+		"openButton": "注销账户",
+		"success": "账户已注销",
+		"error": "注销失败，请稍后重试",
+		"modal": {
+			"title": "确认注销账户",
+			"warning": "账户注销后，你的所有持仓、分析记录和配置将被永久删除，且无法恢复。请仔细确认后再操作。",
+			"passwordLabel": "请输入当前密码确认",
+			"passwordRequired": "请输入密码",
+			"passwordPlaceholder": "当前登录密码",
+			"confirm": "确认注销",
+			"cancel": "取消"
+		}
+	},
+	"riskPreference": {
+		"pageTitle": "风险偏好",
+		"description": "选择你的风险偏好，Richman 将在分析时调整策略倾向。你可以随时在此页面修改。",
+		"selected": "当前选择",
+		"updateSuccess": "风险偏好已更新",
+		"updateError": "更新风险偏好失败",
+		"cards": {
+			"conservative": {
+				"title": "稳健",
+				"desc": "偏好低风险资产，优先保本，接受较低收益上限。"
+			},
+			"neutral": {
+				"title": "中性",
+				"desc": "兼顾风险与收益，不偏激进也不偏保守。"
+			},
+			"aggressive": {
+				"title": "激进",
+				"desc": "追求较高收益，可承受较大波动，接受潜在亏损。"
+			}
+		}
+	},
 	"llm": {
 		"title": "配置 Provider",
 		"description": "配置你自己的 LLM Provider 以启用 AI 解读能力。未配置时可选择使用系统默认或规则引擎。",

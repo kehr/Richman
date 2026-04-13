@@ -103,4 +103,9 @@ export {
 	CheckCircleOutlined,
 	WarningOutlined,
 	CloseCircleOutlined,
+	CopyOutlined,
+	LockOutlined,
+	MailOutlined,
+	FireOutlined,
+	CalendarOutlined,
 } from "@ant-design/icons";

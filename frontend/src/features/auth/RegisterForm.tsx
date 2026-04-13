@@ -1,5 +1,5 @@
-import { Alert, Button, Form, Input } from "@/ui-kit/eat";
-import { useMemo } from "react";
+import { Alert, Button, Checkbox, Form, Input } from "@/ui-kit/eat";
+import { useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 import type { RegisterInput } from "./api";
@@ -9,13 +9,30 @@ interface RegisterFormProps {
 	// Optional override for the post-register redirect target, mirroring
 	// LoginForm so deep links survive the register pivot.
 	redirectTo?: string;
+	// Optional pre-filled invite code from the ?ref= URL parameter. When
+	// provided the invite code field is pre-populated and the user can still
+	// override it manually.
+	refCode?: string | null;
+}
+
+// RegisterFormValues extends RegisterInput with the required disclaimer checkbox.
+interface RegisterFormValues extends RegisterInput {
+	disclaimerAccepted: boolean;
 }
 
 // RegisterForm mirrors LoginForm layout: width comes from the parent
 // (AuthSplitLayout's form-wrapper), title is left-aligned display style.
-export function RegisterForm({ redirectTo }: RegisterFormProps) {
+export function RegisterForm({ redirectTo, refCode }: RegisterFormProps) {
 	const { t } = useTranslation("auth");
 	const { mutate, isPending, error } = useRegister({ redirectTo });
+	const [form] = Form.useForm<RegisterFormValues>();
+
+	// Auto-fill the invite code field when a ?ref= code is present in the URL.
+	useEffect(() => {
+		if (refCode) {
+			form.setFieldValue("inviteCode", refCode);
+		}
+	}, [form, refCode]);
 
 	const validationRules = useMemo(
 		() => ({
@@ -28,12 +45,22 @@ export function RegisterForm({ redirectTo }: RegisterFormProps) {
 				{ min: 8, message: t("validation.passwordMinLength") },
 			],
 			inviteCode: [{ required: true, message: t("validation.inviteCodeRequired") }],
+			disclaimerAccepted: [
+				{
+					validator: (_: unknown, value: boolean) =>
+						value
+							? Promise.resolve()
+							: Promise.reject(new Error(t("validation.disclaimerRequired"))),
+				},
+			],
 		}),
 		[t],
 	);
 
-	const handleSubmit = (values: RegisterInput) => {
-		mutate(values);
+	const handleSubmit = (values: RegisterFormValues) => {
+		// Strip the disclaimer field before sending to the API.
+		const { disclaimerAccepted: _accepted, ...payload } = values;
+		mutate(payload);
 	};
 
 	return (
@@ -67,7 +94,12 @@ export function RegisterForm({ redirectTo }: RegisterFormProps) {
 				<Alert message={error.message} type="error" showIcon style={{ marginBottom: 16 }} />
 			)}
 
-			<Form layout="vertical" onFinish={handleSubmit} autoComplete="off">
+			<Form<RegisterFormValues>
+				form={form}
+				layout="vertical"
+				onFinish={handleSubmit}
+				autoComplete="off"
+			>
 				<Form.Item name="email" label={t("field.email")} rules={validationRules.email}>
 					<Input placeholder={t("field.emailPlaceholder")} size="large" />
 				</Form.Item>
@@ -82,6 +114,15 @@ export function RegisterForm({ redirectTo }: RegisterFormProps) {
 					rules={validationRules.inviteCode}
 				>
 					<Input placeholder={t("field.inviteCodePlaceholder")} size="large" />
+				</Form.Item>
+
+				<Form.Item
+					name="disclaimerAccepted"
+					valuePropName="checked"
+					rules={validationRules.disclaimerAccepted}
+					style={{ marginBottom: 16 }}
+				>
+					<Checkbox>{t("register.disclaimerText")}</Checkbox>
 				</Form.Item>
 
 				<Form.Item style={{ marginBottom: 16 }}>

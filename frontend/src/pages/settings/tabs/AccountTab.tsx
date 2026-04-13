@@ -25,6 +25,9 @@ import {
 } from "@/ui-kit/eat";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { AccountDeletionSection } from "../components/AccountDeletionSection";
+import { EmailPushToggle } from "../components/EmailPushToggle";
+import { InviteSection } from "../components/InviteSection";
 
 interface CapitalFormValues {
 	amount?: number | null;
@@ -228,6 +231,21 @@ export function AccountTab() {
 					{t("account.logout")}
 				</Button>
 			</Flex>
+
+			<Divider style={{ margin: 0 }} />
+
+			{/* Email push notification toggle */}
+			<EmailPushToggle />
+
+			<Divider style={{ margin: 0 }} />
+
+			{/* Invite codes and invited users */}
+			<InviteSection />
+
+			<Divider style={{ margin: 0 }} />
+
+			{/* Account deletion danger zone */}
+			<AccountDeletionSection />
 		</Flex>
 	);
 }

@@ -18,3 +18,4 @@ export {
 	usePatchUserSettings,
 	useUserSettings,
 } from "./use-user-settings";
+export { usePatchRiskPreference } from "./use-patch-risk-preference";

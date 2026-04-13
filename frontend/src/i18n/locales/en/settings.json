@@ -196,6 +196,63 @@
 		"saveSuccess": "Schedule settings saved",
 		"saveError": "Failed to save, please try again"
 	},
+	"emailPush": {
+		"label": "Email Push Notifications",
+		"hint": "When enabled, the platform will send daily portfolio analysis summaries via email.",
+		"updateSuccess": "Email push setting updated",
+		"updateError": "Failed to update email push setting"
+	},
+	"invite": {
+		"myCodesTitle": "My Personal Invite Codes",
+		"myCodesDesc": "{{total}} codes total, {{used}} used",
+		"codeAvailable": "Available",
+		"codeUsed": "Used",
+		"copy": "Copy invite code",
+		"codeAlreadyUsed": "This code has already been used",
+		"copySuccess": "Invite code copied",
+		"copyError": "Copy failed, please copy manually",
+		"unlockProgress": "{{days}} more consecutive login days to unlock a new invite code",
+		"unlockReady": "Consecutive login requirement met — a new code will be unlocked",
+		"invitedUsersTitle": "Invited Users ({{count}})",
+		"noInvitesYet": "You haven't invited anyone yet"
+	},
+	"deleteAccount": {
+		"title": "Delete Account",
+		"description": "Account deletion is permanent and cannot be undone.",
+		"openButton": "Delete Account",
+		"success": "Account deleted",
+		"error": "Deletion failed, please try again later",
+		"modal": {
+			"title": "Confirm Account Deletion",
+			"warning": "All your holdings, analysis records and settings will be permanently deleted and cannot be recovered. Please review carefully before proceeding.",
+			"passwordLabel": "Enter your current password to confirm",
+			"passwordRequired": "Please enter your password",
+			"passwordPlaceholder": "Current login password",
+			"confirm": "Delete Account",
+			"cancel": "Cancel"
+		}
+	},
+	"riskPreference": {
+		"pageTitle": "Risk Preference",
+		"description": "Choose your risk preference. Richman will adjust its strategy bias during analysis. You can change this at any time.",
+		"selected": "Current",
+		"updateSuccess": "Risk preference updated",
+		"updateError": "Failed to update risk preference",
+		"cards": {
+			"conservative": {
+				"title": "Conservative",
+				"desc": "Favors low-risk assets, prioritizes capital preservation with lower return ceiling."
+			},
+			"neutral": {
+				"title": "Neutral",
+				"desc": "Balances risk and return, neither aggressive nor overly cautious."
+			},
+			"aggressive": {
+				"title": "Aggressive",
+				"desc": "Pursues higher returns, tolerates larger drawdowns and potential losses."
+			}
+		}
+	},
 	"llm": {
 		"title": "Configure Provider",
 		"description": "Configure your own LLM provider to enable AI interpretation. When not configured, you can choose to use the system default or the rules engine.",
