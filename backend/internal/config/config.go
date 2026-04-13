@@ -20,6 +20,7 @@ type Config struct {
 	Log          LogConfig
 	Datasource   DatasourceConfig
 	Analysis     AnalysisConfig
+	Richson      RichsonConfig
 }
 
 // AppConfig holds application-level settings.
@@ -94,6 +95,12 @@ type AnalysisConfig struct {
 	TaskTTLHours          int
 	HoldingTimeoutSeconds int
 	MaxConcurrentHoldings int
+}
+
+// RichsonConfig holds connection settings for the richson Python sidecar.
+type RichsonConfig struct {
+	BaseURL string
+	APIKey  string
 }
 
 // Load reads configuration from .env file and environment variables.
@@ -188,6 +195,10 @@ func Load() (*Config, error) {
 			TaskTTLHours:          taskTTLHours,
 			HoldingTimeoutSeconds: holdingTimeoutSeconds,
 			MaxConcurrentHoldings: maxConcurrentHoldings,
+		},
+		Richson: RichsonConfig{
+			BaseURL: getEnv("RICHSON_BASE_URL", "http://localhost:8100"),
+			APIKey:  getEnv("RICHSON_API_KEY", ""),
 		},
 	}
 
