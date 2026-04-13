@@ -8,7 +8,7 @@ const LoginPage = lazy(() => import("@/pages/auth/LoginPage"));
 const RegisterPage = lazy(() => import("@/pages/auth/RegisterPage"));
 const MarketOverviewPage = lazy(() => import("@/pages/market-overview/market-overview-page"));
 const AssetDetailPage = lazy(() => import("@/pages/market/AssetDetailPage"));
-const DashboardPage = lazy(() => import("@/pages/dashboard/DashboardPage"));
+const BriefingPage = lazy(() => import("@/pages/briefing/briefing-page"));
 const PortfolioListPage = lazy(() => import("@/pages/portfolio/PortfolioListPage"));
 const PortfolioEditPage = lazy(() => import("@/pages/portfolio/PortfolioEditPage"));
 const PortfolioTransactionsPage = lazy(() => import("@/pages/portfolio/PortfolioTransactionsPage"));
@@ -65,7 +65,7 @@ export function AppRoutes() {
 
 				{/* Protected routes — require valid JWT */}
 				<Route element={<AppShell />}>
-					<Route path="/briefing" element={<DashboardPage />} />
+					<Route path="/briefing" element={<BriefingPage />} />
 					<Route path="/portfolio" element={<PortfolioListPage />} />
 					<Route path="/portfolio/:id" element={<PortfolioEditPage />} />
 					<Route path="/portfolio/:id/transactions" element={<PortfolioTransactionsPage />} />

@@ -360,6 +360,52 @@
 				"quantityRequired": "Please enter quantity"
 			}
 		},
+		"modeSelector": {
+			"tag": "Tag",
+			"quick": "Quick",
+			"detail": "Detail"
+		},
+		"tagModeForm": {
+			"hint": "Tag mode: just pick a position tier — cost price is auto-filled from current market price.",
+			"positionTier": "Position Tier",
+			"tier": {
+				"light": "Light (<10%)",
+				"medium": "Medium (10-25%)",
+				"heavy": "Heavy (>25%)"
+			}
+		},
+		"riskPreference": {
+			"title": "Choose Risk Preference",
+			"description": "Your risk preference influences how aggressively the AI recommends adjusting your positions. You can change it any time in Settings.",
+			"option": {
+				"conservative": {
+					"label": "Conservative",
+					"description": "Preserve capital with low volatility, accepting lower returns"
+				},
+				"moderate": {
+					"label": "Moderate",
+					"description": "Balance return and risk, tolerating moderate market swings"
+				},
+				"aggressive": {
+					"label": "Aggressive",
+					"description": "Pursue higher returns, comfortable with significant price swings"
+				}
+			}
+		},
+		"upgradeTag": {
+			"label": "Add Details",
+			"tooltip": "This holding was created in tag mode. Click Edit to add cost and position for more accurate analysis."
+		},
+		"concentrationAlert": {
+			"error": "{{type}} exposure is severely concentrated ({{ratio}}%) — strongly consider reducing",
+			"warning": "{{type}} exposure is elevated ({{ratio}}%) — consider diversifying",
+			"info": "{{type}} allocation reached {{ratio}}% — at the upper end of institutional recommendations"
+		},
+		"llmConfigGuide": {
+			"title": "Unlock AI Deep Analysis",
+			"description": "Configure an LLM provider so Richman can generate AI-powered insights and execution recommendations tailored to your holdings.",
+			"configureButton": "Configure"
+		},
 		"screenshotModal": {
 			"title": "Screenshot Recognition — Review",
 			"recognizedCount": "Recognized {{count}} holdings · Please check highlighted fields before confirming import",
@@ -393,6 +439,34 @@
 			"cost": "Cost",
 			"position": "Position",
 			"removeRow": "Remove this row"
+		}
+	},
+	"briefing": {
+		"title": "Research Briefing",
+		"updatedAt": "Updated {{time}}",
+		"viewMode": {
+			"compact": "Compact",
+			"detailed": "Detailed"
+		},
+		"empty": {
+			"title": "Add your first holding",
+			"description": "After adding your first holding, Richman will generate a daily research briefing based on your real portfolio.",
+			"addButton": "Add Holding"
+		},
+		"card": {
+			"costLabel": "Cost",
+			"positionLabel": "Position",
+			"pnlLabel": "Unr. P&L"
+		},
+		"direction": {
+			"bullish": "Bullish",
+			"bearish": "Bearish",
+			"neutral": "Neutral"
+		},
+		"feedback": {
+			"upTooltip": "Analysis was helpful",
+			"downTooltip": "Analysis was inaccurate",
+			"error": "Failed to submit feedback — please try again later"
 		}
 	},
 	"analysisProgress": {

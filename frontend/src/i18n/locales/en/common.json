@@ -39,6 +39,11 @@
 		"actions": "Actions"
 	},
 	"riskDisclaimer": "All analysis and recommendations provided by this platform are for reference only and do not constitute investment advice. Investing involves risk. Past performance does not guarantee future returns. Please make investment decisions based on your own risk tolerance.",
+	"disclaimer": {
+		"body": "All analysis and recommendations on this platform are for reference only and do not constitute investment advice. Investing involves risk. Past performance does not guarantee future results.",
+		"registerCheckbox": "I have read and understood the disclaimer",
+		"executionPlanNote": "The execution plan below is AI-assisted and for reference only — apply your own judgment before acting."
+	},
 	"assetCategory": {
 		"gold_etf": {
 			"label": "Gold ETF",

@@ -108,4 +108,6 @@ export {
 	MailOutlined,
 	FireOutlined,
 	CalendarOutlined,
+	LikeOutlined,
+	DislikeOutlined,
 } from "@ant-design/icons";

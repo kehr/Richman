@@ -7,6 +7,8 @@ export const StorageKeys = {
 	authUser: "richman_auth_user",
 	themeMode: "richman_theme_mode",
 	lastAnalysisTaskId: "richman_last_task_id",
+	briefingViewMode: "richman_briefing_view_mode",
+	disclaimerConfirmed: "richman_disclaimer_confirmed",
 } as const;
 
 // storageGet reads and JSON-parses a value. Returns null when the key is

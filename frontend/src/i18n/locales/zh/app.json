@@ -360,6 +360,52 @@
 				"quantityRequired": "请输入数量"
 			}
 		},
+		"modeSelector": {
+			"tag": "标记",
+			"quick": "快速",
+			"detail": "明细"
+		},
+		"tagModeForm": {
+			"hint": "标记模式：只需选择仓位档位，成本价自动取当前市价。",
+			"positionTier": "仓位档位",
+			"tier": {
+				"light": "轻仓 (<10%)",
+				"medium": "中仓 (10-25%)",
+				"heavy": "重仓 (>25%)"
+			}
+		},
+		"riskPreference": {
+			"title": "选择风险偏好",
+			"description": "风险偏好将影响 AI 给出的持仓建议力度，可在「设置」中随时调整。",
+			"option": {
+				"conservative": {
+					"label": "保守型",
+					"description": "追求资产保值，接受较低收益换取低波动"
+				},
+				"moderate": {
+					"label": "稳健型",
+					"description": "兼顾收益与风险，接受一定程度的市场波动"
+				},
+				"aggressive": {
+					"label": "进取型",
+					"description": "追求较高收益，能承受较大幅度的价格波动"
+				}
+			}
+		},
+		"upgradeTag": {
+			"label": "补充详情",
+			"tooltip": "当前持仓为标记模式，点击编辑可补充成本价和仓位以获得更精准的分析"
+		},
+		"concentrationAlert": {
+			"error": "{{type}} 配置严重集中（{{ratio}}%），强烈建议控制敞口",
+			"warning": "{{type}} 配置集中度较高（{{ratio}}%），请注意分散风险",
+			"info": "{{type}} 配置已达 {{ratio}}%，处于机构建议区间上限"
+		},
+		"llmConfigGuide": {
+			"title": "解锁 AI 深度分析",
+			"description": "配置 LLM Provider 后，Richman 可为你的持仓生成 AI 个性化解读和执行建议。",
+			"configureButton": "去配置"
+		},
 		"screenshotModal": {
 			"title": "截图识别结果 — 校对",
 			"recognizedCount": "识别出 {{count}} 个标的 · 请检查高亮字段后确认导入",
@@ -393,6 +439,34 @@
 			"cost": "成本",
 			"position": "仓位",
 			"removeRow": "移除该行"
+		}
+	},
+	"briefing": {
+		"title": "投研简报",
+		"updatedAt": "更新于 {{time}}",
+		"viewMode": {
+			"compact": "简洁",
+			"detailed": "详细"
+		},
+		"empty": {
+			"title": "先添加一个持仓",
+			"description": "添加第一笔持仓后，Richman 会基于你的真实持仓生成每日投研简报。",
+			"addButton": "添加持仓"
+		},
+		"card": {
+			"costLabel": "成本",
+			"positionLabel": "仓位",
+			"pnlLabel": "浮盈亏"
+		},
+		"direction": {
+			"bullish": "看涨",
+			"bearish": "看跌",
+			"neutral": "中性"
+		},
+		"feedback": {
+			"upTooltip": "分析有帮助",
+			"downTooltip": "分析不准确",
+			"error": "反馈提交失败，请稍后再试"
 		}
 	},
 	"analysisProgress": {
