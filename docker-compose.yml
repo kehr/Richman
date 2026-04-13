@@ -16,5 +16,27 @@ services:
       timeout: 5s
       retries: 5
 
+  richson:
+    build:
+      context: ./richson
+      dockerfile: Dockerfile
+    container_name: richman-richson
+    expose:
+      - "8001"
+    env_file:
+      - richson/.env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://richman:richman@postgres:5432/richman
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+
 volumes:
   pgdata:

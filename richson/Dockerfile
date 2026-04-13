@@ -6,9 +6,9 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/local/bin/
 WORKDIR /app
 
 # Copy dependency files
-COPY pyproject.toml .
+COPY pyproject.toml uv.lock ./
 
-# Install dependencies (no editable install in prod)
+# Install dependencies using locked versions (no editable install in prod)
 RUN uv pip install --system --no-cache .
 
 # Copy application source
