@@ -1,11 +1,14 @@
 {
 	"nav": {
-		"briefing": "Daily Briefing",
+		"market": "Market",
+		"briefing": "Research Briefing",
 		"portfolio": "Portfolio",
 		"settings": "Settings",
 		"help": "Help",
 		"logout": "Logout",
-		"language": "Language"
+		"language": "Language",
+		"login": "Login",
+		"register": "Register"
 	},
 	"action": {
 		"save": "Save",

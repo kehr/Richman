@@ -1,11 +1,14 @@
 {
 	"nav": {
-		"briefing": "今日研判",
-		"portfolio": "投资组合",
+		"market": "行情",
+		"briefing": "投研简报",
+		"portfolio": "持仓",
 		"settings": "设置",
 		"help": "帮助",
 		"logout": "退出登录",
-		"language": "语言"
+		"language": "语言",
+		"login": "登录",
+		"register": "注册"
 	},
 	"action": {
 		"save": "保存",

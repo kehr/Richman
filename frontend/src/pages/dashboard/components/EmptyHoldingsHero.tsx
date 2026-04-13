@@ -1,28 +1,17 @@
 import { Button, Card, Space, Typography } from "@/ui-kit/eat";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router";
 
-const { Paragraph, Text, Title } = Typography;
+const { Paragraph, Title } = Typography;
 
 interface EmptyHoldingsHeroProps {
 	onAddHolding: () => void;
 }
 
 // EmptyHoldingsHero is the dashboard state shown when the authenticated user
-// has finished onboarding but deleted all their holdings. It is intentionally
-// minimal: a big centered card with a single primary CTA that routes back to
-// the portfolio add flow. PRD §3.1 specifies this as a hero — large type,
-// generous padding, no secondary actions.
-//
-// Step 16 addition: a secondary text link routes back into the onboarding
-// wizard. The link exists so users who dismissed the OnboardingSkippedNudge
-// still have a regret path into /onboarding/welcome; without it an
-// empty-holdings user who hit "不再提示" would be dead-ended from the flow.
-// The OnboardingGuard permits skipped=true users to access onboarding routes
-// directly (step 15), so navigate() needs no special handling here.
+// has no holdings. It is intentionally minimal: a big centered card with a
+// single primary CTA that routes back to the portfolio add flow.
 export function EmptyHoldingsHero({ onAddHolding }: EmptyHoldingsHeroProps) {
 	const { t } = useTranslation("app");
-	const navigate = useNavigate();
 
 	return (
 		<Card
@@ -52,18 +41,6 @@ export function EmptyHoldingsHero({ onAddHolding }: EmptyHoldingsHeroProps) {
 				>
 					{t("dashboard.emptyHero.addButton")}
 				</Button>
-				<Text type="secondary" style={{ fontSize: 13, marginTop: 12, textAlign: "center" }}>
-					{t("dashboard.emptyHero.onboardingHint")}
-					<Button
-						type="link"
-						size="small"
-						style={{ padding: "0 4px" }}
-						onClick={() => navigate("/onboarding/welcome")}
-						data-testid="empty-holdings-hero-onboarding-link"
-					>
-						{t("dashboard.emptyHero.restartOnboarding")}
-					</Button>
-				</Text>
 			</Space>
 		</Card>
 	);

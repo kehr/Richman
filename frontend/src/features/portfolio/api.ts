@@ -1,5 +1,5 @@
 import { getToken } from "@/domain/auth/storage";
-import { API_BASE, ApiError, request } from "@/domain/http/client";
+import { API_V1_BASE, ApiError, requestV1 as request } from "@/domain/http/client";
 import type { ApiResponse } from "@/domain/http/types";
 import type { RecognizeResponse } from "./screenshot-types";
 import type { CreateTradeInput } from "./trade-types";
@@ -100,7 +100,7 @@ export async function importPortfolioScreenshot(
 	const token = getToken();
 	const form = new FormData();
 	form.append("file", file);
-	const response = await fetch(`${API_BASE}/portfolio/import-screenshot`, {
+	const response = await fetch(`${API_V1_BASE}/portfolio/import-screenshot`, {
 		method: "POST",
 		headers: token ? { Authorization: `Bearer ${token}` } : undefined,
 		body: form,

@@ -21,7 +21,6 @@ import { ChangeAnchorList } from "./components/ChangeAnchorList";
 import { DashboardTopStrip, computeNextAnalysisTime } from "./components/DashboardTopStrip";
 import { DecisionCardWall } from "./components/DecisionCardWall";
 import { EmptyHoldingsHero } from "./components/EmptyHoldingsHero";
-import { OnboardingSkippedNudge } from "./components/OnboardingSkippedNudge";
 
 // DashboardPage is the composition root for PRD §3.1 three-region dashboard.
 // Business logic is delegated to existing feature hooks so this file only
@@ -119,7 +118,7 @@ export default function DashboardPage() {
 	};
 
 	const handleCardClick = (card: DecisionCardDTO) => {
-		navigate(`/decision-cards/${card.cardId}`);
+		navigate(`/market/${card.assetCode}`);
 	};
 
 	const handleConfigureCapital = () => {
@@ -185,7 +184,6 @@ export default function DashboardPage() {
 					onReanalyze={handleReanalyzeAll}
 					isReanalyzing={reanalyzeAll.isPending}
 				/>
-				<OnboardingSkippedNudge />
 				{showEmptyHero ? (
 					<EmptyHoldingsHero onAddHolding={handleAddHolding} />
 				) : (

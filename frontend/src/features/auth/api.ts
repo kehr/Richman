@@ -1,5 +1,5 @@
 import type { User } from "@/domain/auth/types";
-import { request } from "@/domain/http/client";
+import { requestV1 as request } from "@/domain/http/client";
 import type { ApiResponse } from "@/domain/http/types";
 
 export interface LoginInput {

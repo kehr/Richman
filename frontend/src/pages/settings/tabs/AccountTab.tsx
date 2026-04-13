@@ -6,7 +6,6 @@ import {
 	type DisplayCurrency,
 	type RiskPreference,
 	usePatchUserSettings,
-	useResetOnboarding,
 	useUserSettings,
 } from "@/features/user-settings";
 import {
@@ -17,7 +16,6 @@ import {
 	Flex,
 	Form,
 	InputNumber,
-	Popconfirm,
 	Radio,
 	Select,
 	Space,
@@ -27,7 +25,6 @@ import {
 } from "@/ui-kit/eat";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router";
 
 interface CapitalFormValues {
 	amount?: number | null;
@@ -49,10 +46,8 @@ export function AccountTab() {
 	const { message } = App.useApp();
 	const settingsQuery = useUserSettings();
 	const patchMutation = usePatchUserSettings();
-	const resetOnboarding = useResetOnboarding();
 	const logout = useLogout();
 	const currentUser = useCurrentUser();
-	const navigate = useNavigate();
 	const { rates } = useExchangeRates();
 
 	const [capitalForm] = Form.useForm<CapitalFormValues>();
@@ -139,19 +134,6 @@ export function AccountTab() {
 			message.success(t("account.message.riskUpdated"));
 		} catch {
 			message.error(t("account.message.riskUpdateError"));
-		}
-	};
-
-	const handleResetOnboarding = async () => {
-		try {
-			await resetOnboarding.mutateAsync();
-			// useResetOnboarding's onSuccess already clears the sessionStorage
-			// draft, the localStorage nudge-dismissed flag, and refetches
-			// onboarding status — we just need to navigate once the mutation
-			// has settled so the guard sees the fresh not-completed status.
-			navigate("/onboarding/welcome");
-		} catch {
-			message.error(t("account.message.resetError"));
 		}
 	};
 
@@ -245,17 +227,6 @@ export function AccountTab() {
 				<Button danger onClick={logout} data-testid="account-logout">
 					{t("account.logout")}
 				</Button>
-				<Popconfirm
-					title={t("account.resetOnboardingConfirm.title")}
-					description={t("account.resetOnboardingConfirm.description")}
-					okText={t("account.resetOnboardingConfirm.ok")}
-					cancelText={t("account.resetOnboardingConfirm.cancel")}
-					onConfirm={handleResetOnboarding}
-				>
-					<Button loading={resetOnboarding.isPending} data-testid="account-reset-onboarding">
-						{t("account.resetOnboarding")}
-					</Button>
-				</Popconfirm>
 			</Flex>
 		</Flex>
 	);

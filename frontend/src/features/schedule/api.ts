@@ -1,4 +1,4 @@
-import { request } from "@/domain/http/client";
+import { requestV1 as request } from "@/domain/http/client";
 import type { ApiResponse } from "@/domain/http/types";
 
 // Frequency controls how often analysis is triggered for a holding or market.
