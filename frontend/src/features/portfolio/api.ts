@@ -20,6 +20,7 @@ export interface HoldingDto {
 	positionRatio: number;
 	positionAmount?: number | null;
 	quantity: number;
+	entryMode?: "tag" | "quick" | "detail" | null;
 	createdAt: string;
 	updatedAt: string;
 }

@@ -469,6 +469,186 @@
 			"error": "Failed to submit feedback — please try again later"
 		}
 	},
+	"market": {
+		"regime": {
+			"riskOn": "Risk-On",
+			"neutral": "Neutral",
+			"riskOff": "Risk-Off"
+		},
+		"card": {
+			"comingSoon": "Coming Soon",
+			"score": "Overall Score"
+		},
+		"registerCTA": "Sign up for Richman and get a personalized investment execution plan"
+	},
+	"assetDetail": {
+		"tab": {
+			"analysis": "Analysis",
+			"risk": "Risk",
+			"execution": "Execution"
+		},
+		"loading": "Loading asset data...",
+		"loadError": "Failed to load, please retry",
+		"notFound": "Asset not found",
+		"retry": "Retry",
+		"freshness": {
+			"mild": "Price has moved {{percent}}% since last analysis — current score may not reflect the latest trend",
+			"moderate": "Price has moved significantly by {{percent}}% — current analysis may be outdated, use with caution",
+			"severe": "Price has moved {{percent}}% — current analysis is no longer reliable, do not trade based on this score"
+		},
+		"scoreSummary": {
+			"score": "Overall Score",
+			"signal": {
+				"strong_bullish": "Strong Bullish",
+				"bullish": "Bullish",
+				"neutral": "Neutral",
+				"bearish": "Bearish",
+				"strong_bearish": "Strong Bearish"
+			},
+			"percentile": {
+				"veryHigh": "High in past year",
+				"high": "Mid-high in past year",
+				"mid": "Mid in past year",
+				"low": "Mid-low in past year",
+				"veryLow": "Low in past year"
+			}
+		},
+		"changeSummary": {
+			"title": "Today's Change"
+		},
+		"majorChangeRecap": {
+			"title": "Major Change"
+		},
+		"conflict": {
+			"warning": "Dimension signal conflict"
+		},
+		"scoreBar": {
+			"bandLabel": "Confidence Band"
+		},
+		"ohlcvChart": {
+			"period": {
+				"1D": "1D",
+				"1W": "1W",
+				"1M": "1M",
+				"3M": "3M",
+				"1Y": "1Y"
+			},
+			"sma200": "200-day MA",
+			"support": "Support",
+			"resistance": "Resistance",
+			"loading": "Loading chart data...",
+			"error": "Failed to load chart"
+		},
+		"interpretation": {
+			"title": "Market Interpretation"
+		},
+		"dimension": {
+			"title": "Four-Dimension Analysis",
+			"score": "Score",
+			"weight": "Weight",
+			"baseScore": "Quant Base",
+			"llmAdjustment": "LLM Adjustment",
+			"subIndicators": {
+				"name": "Indicator",
+				"rawValue": "Raw Value",
+				"percentile": "Percentile",
+				"normalizedScore": "Normalized Score",
+				"weight": "Weight"
+			},
+			"d1": {
+				"name": "Macro Rates",
+				"explanation": "TIPS yield (real interest rate net of inflation) directly impacts the pricing of non-yielding assets like gold."
+			},
+			"d2": {
+				"name": "USD Liquidity",
+				"explanation": "The USD index and global liquidity conditions affect gold's relative attractiveness."
+			},
+			"d3": {
+				"name": "Structural Demand",
+				"explanation": "Central bank purchases and ETF flow changes reflect institutional allocation intent for gold over the medium-to-long term."
+			},
+			"d4": {
+				"name": "Technical Position",
+				"explanation": "Price position relative to moving averages and historical support/resistance reflects short-term market momentum."
+			}
+		},
+		"scoreTrend": {
+			"title": "Score Trend",
+			"days": {
+				"30": "30 days",
+				"90": "90 days",
+				"180": "180 days",
+				"240": "240 days"
+			},
+			"versionChange": "Model version updated",
+			"loading": "Loading trend data...",
+			"error": "Failed to load trend chart"
+		},
+		"risk": {
+			"factors": {
+				"title": "Risk Factors",
+				"severity": {
+					"high": "High",
+					"medium": "Medium",
+					"low": "Low"
+				}
+			},
+			"keyPriceLevels": {
+				"title": "Key Price Levels",
+				"support": "Support",
+				"resistance": "Resistance",
+				"distance": "Distance",
+				"usdEquiv": "~${{price}}"
+			},
+			"drawdown": {
+				"title": "Drawdown Reference",
+				"currentBull": "Current bull cycle max drawdown",
+				"historicalAvg": "Historical average",
+				"date": "on {{date}}"
+			},
+			"events": {
+				"title": "Recent Events"
+			}
+		},
+		"execution": {
+			"demoPlan": {
+				"disclaimer": "Based on a demo holding — not personalized for you",
+				"registerCTA": "Sign up to get your personalized execution plan",
+				"addHoldingCTA": "Add a holding to get your personalized execution plan"
+			},
+			"fullPlan": {
+				"title": "Execution Plan",
+				"holdingSummary": "Current Holding",
+				"cost": "Cost",
+				"position": "Position",
+				"pnl": "Unrealized P&L",
+				"recommendation": "Recommendation",
+				"defaultAdvice": "Default Advice",
+				"scenarios": "Conditional Scenarios",
+				"priorityLabel": "Priority",
+				"stopLoss": "Stop-loss",
+				"takeProfit": "Take-profit",
+				"notSet": "Not set",
+				"validDays": "This plan applies for the next {{days}} day(s)",
+				"concentrationWarning": "Concentration Warning",
+				"disclaimer": "For reference only, not investment advice",
+				"stale": "Execution plan may be outdated",
+				"refresh": "Refresh Analysis",
+				"refreshing": "Analyzing...",
+				"jobTimeout": "Analysis timed out — please retry later",
+				"jobError": "Analysis failed — please retry"
+			},
+			"noHolding": {
+				"addButton": "Add Holding"
+			},
+			"unauthenticated": {
+				"registerButton": "Sign Up"
+			}
+		},
+		"disclaimer": "All analysis and recommendations are for reference only and do not constitute investment advice. Invest at your own risk.",
+		"share": "Copy Link",
+		"shareCopied": "Link copied"
+	},
 	"analysisProgress": {
 		"title": "Analysis Progress",
 		"overall": "Overall",

@@ -1,5 +1,3 @@
-// AssetDetailPage shows sticky header + three tabs (analysis, risk, execution)
-// for a single asset identified by :code. Full implementation in Step 16.
-export default function AssetDetailPage() {
-	return <div />;
-}
+// AssetDetailPage re-exports from the canonical implementation in pages/asset-detail/.
+// The route continues to lazy-import this file; all logic lives under pages/asset-detail/.
+export { default } from "@/pages/asset-detail";

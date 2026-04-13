@@ -1,3 +1,4 @@
+export { useHoldingByAssetCode } from "./use-holding-by-asset-code";
 export { HoldingForm } from "./HoldingForm";
 export type { SelectedAsset } from "./HoldingForm";
 export { TradeRecordList } from "./TradeRecordList";

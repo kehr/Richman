@@ -469,6 +469,186 @@
 			"error": "反馈提交失败，请稍后再试"
 		}
 	},
+	"market": {
+		"regime": {
+			"riskOn": "风险偏好",
+			"neutral": "中性",
+			"riskOff": "风险规避"
+		},
+		"card": {
+			"comingSoon": "即将开放",
+			"score": "综合评分"
+		},
+		"registerCTA": "注册 百万 Richman，获取个性化投资执行计划"
+	},
+	"assetDetail": {
+		"tab": {
+			"analysis": "分析",
+			"risk": "风险",
+			"execution": "执行"
+		},
+		"loading": "加载标的数据...",
+		"loadError": "加载失败，请重试",
+		"notFound": "未找到该标的",
+		"retry": "重试",
+		"freshness": {
+			"mild": "价格自上次分析后已变动 {{percent}}%，当前评分可能未反映最新走势",
+			"moderate": "价格大幅变动 {{percent}}%，当前分析可能已失效，请谨慎参考",
+			"severe": "价格剧烈波动 {{percent}}%，当前分析不再可靠，请勿基于此评分做交易决策"
+		},
+		"scoreSummary": {
+			"score": "综合评分",
+			"signal": {
+				"strong_bullish": "强势看涨",
+				"bullish": "看涨",
+				"neutral": "中性",
+				"bearish": "看空",
+				"strong_bearish": "强势看空"
+			},
+			"percentile": {
+				"veryHigh": "近一年偏高",
+				"high": "近一年中高",
+				"mid": "近一年中位",
+				"low": "近一年中低",
+				"veryLow": "近一年偏低"
+			}
+		},
+		"changeSummary": {
+			"title": "今日变化"
+		},
+		"majorChangeRecap": {
+			"title": "重大变化"
+		},
+		"conflict": {
+			"warning": "维度信号冲突"
+		},
+		"scoreBar": {
+			"bandLabel": "置信区间"
+		},
+		"ohlcvChart": {
+			"period": {
+				"1D": "日线",
+				"1W": "周线",
+				"1M": "月线",
+				"3M": "近3月",
+				"1Y": "近1年"
+			},
+			"sma200": "200日均线",
+			"support": "支撑",
+			"resistance": "阻力",
+			"loading": "加载K线数据...",
+			"error": "K线加载失败"
+		},
+		"interpretation": {
+			"title": "市场解读"
+		},
+		"dimension": {
+			"title": "四维分析",
+			"score": "得分",
+			"weight": "权重",
+			"baseScore": "量化基础",
+			"llmAdjustment": "LLM 调整",
+			"subIndicators": {
+				"name": "指标",
+				"rawValue": "原始值",
+				"percentile": "百分位",
+				"normalizedScore": "归一化得分",
+				"weight": "权重"
+			},
+			"d1": {
+				"name": "宏观利率",
+				"explanation": "TIPS 收益率是扣除通胀后的真实利率，对黄金等非收益资产定价有直接影响。"
+			},
+			"d2": {
+				"name": "美元流动性",
+				"explanation": "美元指数与全球流动性环境影响黄金的相对吸引力。"
+			},
+			"d3": {
+				"name": "结构性需求",
+				"explanation": "央行购金、ETF 持仓变动反映机构对黄金的中长期配置意愿。"
+			},
+			"d4": {
+				"name": "技术位置",
+				"explanation": "价格相对于均线与历史支撑阻力的位置，反映市场短期情绪与动量。"
+			}
+		},
+		"scoreTrend": {
+			"title": "评分趋势",
+			"days": {
+				"30": "近30天",
+				"90": "近90天",
+				"180": "近180天",
+				"240": "近240天"
+			},
+			"versionChange": "模型版本更新",
+			"loading": "加载趋势数据...",
+			"error": "趋势图加载失败"
+		},
+		"risk": {
+			"factors": {
+				"title": "风险因子",
+				"severity": {
+					"high": "高",
+					"medium": "中",
+					"low": "低"
+				}
+			},
+			"keyPriceLevels": {
+				"title": "关键价位",
+				"support": "支撑位",
+				"resistance": "阻力位",
+				"distance": "距离",
+				"usdEquiv": "约 ${{price}}"
+			},
+			"drawdown": {
+				"title": "回撤参考",
+				"currentBull": "当前轮牛市最大回撤",
+				"historicalAvg": "历史均值",
+				"date": "发生于 {{date}}"
+			},
+			"events": {
+				"title": "近期事件"
+			}
+		},
+		"execution": {
+			"demoPlan": {
+				"disclaimer": "以上基于示范持仓，非为您定制",
+				"registerCTA": "注册获取专属执行计划",
+				"addHoldingCTA": "录入持仓获取专属执行计划"
+			},
+			"fullPlan": {
+				"title": "执行计划",
+				"holdingSummary": "当前持仓",
+				"cost": "成本",
+				"position": "仓位",
+				"pnl": "浮盈亏",
+				"recommendation": "建议",
+				"defaultAdvice": "默认建议",
+				"scenarios": "条件场景",
+				"priorityLabel": "优先级",
+				"stopLoss": "止损",
+				"takeProfit": "止盈",
+				"notSet": "未设置",
+				"validDays": "本计划适用未来 {{days}} 天",
+				"concentrationWarning": "集中度警告",
+				"disclaimer": "仅供参考，不构成投资建议",
+				"stale": "执行计划可能已过时",
+				"refresh": "刷新分析",
+				"refreshing": "分析中...",
+				"jobTimeout": "分析超时，请稍后重试",
+				"jobError": "分析失败，请重试"
+			},
+			"noHolding": {
+				"addButton": "录入持仓"
+			},
+			"unauthenticated": {
+				"registerButton": "注册"
+			}
+		},
+		"disclaimer": "以上分析和建议仅供参考，不构成投资建议。投资有风险，决策需谨慎。",
+		"share": "复制链接",
+		"shareCopied": "链接已复制"
+	},
 	"analysisProgress": {
 		"title": "分析进度",
 		"overall": "总进度",
