@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import time
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from typing import AsyncIterator
 
 import structlog
 from fastapi import FastAPI, Request, Response
@@ -12,6 +12,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from richson.config import settings
+from richson.logging_config import configure_logging
+
+# Configure structlog before any logger is used
+configure_logging(settings.log_level)
 
 logger = structlog.get_logger()
 
@@ -21,6 +25,7 @@ logger = structlog.get_logger()
 
 _engine = None
 _session_factory: async_sessionmaker[AsyncSession] | None = None
+_scheduler_tasks: list = []
 
 
 def get_engine():  # type: ignore[return]
@@ -34,13 +39,13 @@ def get_session_factory() -> async_sessionmaker[AsyncSession]:
 
 
 # ---------------------------------------------------------------------------
-# Lifespan: DB pool setup and teardown
+# Lifespan: DB pool setup, scheduler start, and teardown
 # ---------------------------------------------------------------------------
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-    global _engine, _session_factory
+    global _engine, _session_factory, _scheduler_tasks
 
     logger.info("startup: initializing database pool", url=settings.database_url.split("@")[-1])
     _engine = create_async_engine(
@@ -57,7 +62,23 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     )
     logger.info("startup: database pool ready")
 
+    # Start background scheduler
+    try:
+        from richson.tasks.scheduler import start_scheduler  # noqa: PLC0415
+        _scheduler_tasks = await start_scheduler(_session_factory)
+        logger.info("startup: scheduler started")
+    except Exception as exc:
+        logger.warning("startup: scheduler failed to start", error=str(exc))
+
     yield
+
+    # Shutdown: cancel scheduler tasks
+    for task in _scheduler_tasks:
+        task.cancel()
+    if _scheduler_tasks:
+        import asyncio  # noqa: PLC0415
+        await asyncio.gather(*_scheduler_tasks, return_exceptions=True)
+        logger.info("shutdown: scheduler tasks cancelled")
 
     logger.info("shutdown: disposing database pool")
     await _engine.dispose()
@@ -75,12 +96,12 @@ def create_app() -> FastAPI:
         version="0.1.0",
         description="Quantitative computation and LLM orchestration service",
         lifespan=lifespan,
-        # Disable default OpenAPI auth UI – internal service only
+        # Internal service only; disable interactive docs in production
         docs_url="/docs",
         redoc_url=None,
     )
 
-    # CORS – only allow configured origins
+    # CORS - only allow configured origins
     if settings.cors_origins_list:
         app.add_middleware(
             CORSMiddleware,
@@ -90,24 +111,56 @@ def create_app() -> FastAPI:
             allow_headers=["*"],
         )
 
-    # Request logging middleware
+    # Request ID tracing middleware (TRD SS4.3)
+    from richson.middleware.tracing import RequestTracingMiddleware  # noqa: PLC0415
+    app.add_middleware(RequestTracingMiddleware)
+
+    # Request logging middleware (keep existing pattern, enhanced with request_id)
     @app.middleware("http")
     async def log_requests(request: Request, call_next: object) -> Response:
         start = time.perf_counter()
         response: Response = await call_next(request)  # type: ignore[operator]
         duration_ms = round((time.perf_counter() - start) * 1000)
         logger.info(
-            "http request",
+            "http_request",
             method=request.method,
             path=request.url.path,
             status_code=response.status_code,
             duration_ms=duration_ms,
-            request_id=request.headers.get("x-request-id"),
         )
         return response
 
-    # Business routers will be registered in later steps (Step 6)
-    # e.g. app.include_router(health_router) etc.
+    # ---------------------------------------------------------------------------
+    # Register routers
+    # ---------------------------------------------------------------------------
+
+    # Health check - no auth required (TRD SS5.4)
+    from richson.api.health import router as health_router  # noqa: PLC0415
+    app.include_router(health_router)
+
+    # Job management (Mode A: async asset analysis)
+    from richson.api.jobs import router as jobs_router  # noqa: PLC0415
+    app.include_router(jobs_router)
+
+    # Synchronous analysis (Mode B: holding, Mode C: demo-plan)
+    from richson.api.analysis import router as analysis_router  # noqa: PLC0415
+    app.include_router(analysis_router)
+
+    # Market data (Mode C: regime, OHLCV)
+    from richson.api.market import router as market_router  # noqa: PLC0415
+    app.include_router(market_router)
+
+    # Asset score history
+    from richson.api.assets import router as assets_router  # noqa: PLC0415
+    app.include_router(assets_router)
+
+    # Event radar
+    from richson.api.events import router as events_router  # noqa: PLC0415
+    app.include_router(events_router)
+
+    # Content generation (weekly insight)
+    from richson.api.content import router as content_router  # noqa: PLC0415
+    app.include_router(content_router)
 
     return app
 
