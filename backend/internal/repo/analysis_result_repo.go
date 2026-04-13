@@ -24,7 +24,7 @@ func (r *AnalysisResultRepo) CreateAnalysisResult(
 ) (*model.AnalysisResultRecord, error) {
 	var rec model.AnalysisResultRecord
 	err := r.pool.QueryRow(ctx,
-		`INSERT INTO analysis_results (user_id, holding_id, asset_code, raw_data)
+		`INSERT INTO rm_analysis_results (user_id, holding_id, asset_code, raw_data)
 		 VALUES ($1, $2, $3, $4)
 		 RETURNING analysis_result_id, user_id, holding_id, asset_code, raw_data, created_at`,
 		userID, holdingID, assetCode, rawData,

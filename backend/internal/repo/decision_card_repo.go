@@ -117,7 +117,7 @@ type insertDecisionCardQuerier interface {
 	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
 }
 
-const insertDecisionCardSQL = `INSERT INTO decision_cards
+const insertDecisionCardSQL = `INSERT INTO rm_decision_cards
 	 (user_id, holding_id, asset_code, asset_name, asset_type,
 	  cost_price, current_price, quantity, position_ratio,
 	  trend_direction, trend_summary,
@@ -195,7 +195,7 @@ func (r *DecisionCardRepo) GetLatestByHolding(
 ) (*model.DecisionCard, error) {
 	row := r.pool.QueryRow(ctx,
 		`SELECT `+cardColumns+`
-		 FROM decision_cards
+		 FROM rm_decision_cards
 		 WHERE holding_id = $1 AND is_deleted = 0
 		 ORDER BY analyzed_at DESC
 		 LIMIT 1`,
@@ -219,7 +219,7 @@ func (r *DecisionCardRepo) GetLatestByHoldingTx(
 ) (*model.DecisionCard, error) {
 	row := tx.QueryRow(ctx,
 		`SELECT `+cardColumns+`
-		 FROM decision_cards
+		 FROM rm_decision_cards
 		 WHERE holding_id = $1 AND is_deleted = 0
 		 ORDER BY analyzed_at DESC
 		 LIMIT 1
@@ -240,7 +240,7 @@ func (r *DecisionCardRepo) GetLatestByHoldingTx(
 func (r *DecisionCardRepo) GetByID(ctx context.Context, cardID int64) (*model.DecisionCard, error) {
 	row := r.pool.QueryRow(ctx,
 		`SELECT `+cardColumns+`
-		 FROM decision_cards
+		 FROM rm_decision_cards
 		 WHERE decision_card_id = $1 AND is_deleted = 0`,
 		cardID,
 	)
@@ -258,7 +258,7 @@ func (r *DecisionCardRepo) GetByID(ctx context.Context, cardID int64) (*model.De
 func (r *DecisionCardRepo) ListLatestByUser(ctx context.Context, userID int64) ([]model.DecisionCard, error) {
 	rows, err := r.pool.Query(ctx,
 		`SELECT DISTINCT ON (holding_id) `+cardColumns+`
-		 FROM decision_cards
+		 FROM rm_decision_cards
 		 WHERE user_id = $1 AND is_deleted = 0
 		 ORDER BY holding_id, created_at DESC`,
 		userID,
@@ -289,7 +289,7 @@ func (r *DecisionCardRepo) NeedsReanalysis(ctx context.Context, userID int64) (b
 	var needs bool
 	err := r.pool.QueryRow(ctx,
 		`SELECT EXISTS (
-		   SELECT 1 FROM decision_cards
+		   SELECT 1 FROM rm_decision_cards
 		   WHERE user_id = $1
 		     AND is_deleted = 0
 		     AND synthesis_source IN ('template', 'mixed')
@@ -309,7 +309,7 @@ func (r *DecisionCardRepo) ListHistory(ctx context.Context, userID int64, limit 
 	}
 	rows, err := r.pool.Query(ctx,
 		`SELECT `+cardColumns+`
-		 FROM decision_cards
+		 FROM rm_decision_cards
 		 WHERE user_id = $1 AND is_deleted = 0
 		 ORDER BY created_at DESC
 		 LIMIT $2`,
@@ -341,7 +341,7 @@ func (r *DecisionCardRepo) ListHistoryByHolding(
 	}
 	rows, err := r.pool.Query(ctx,
 		`SELECT `+cardColumns+`
-		 FROM decision_cards
+		 FROM rm_decision_cards
 		 WHERE user_id = $1 AND holding_id = $2 AND is_deleted = 0
 		 ORDER BY created_at DESC
 		 LIMIT $3`,
@@ -361,4 +361,38 @@ func (r *DecisionCardRepo) ListHistoryByHolding(
 		cards = append(cards, *card)
 	}
 	return cards, nil
+}
+
+// GetLatestByHoldings returns the most recent decision card for each holding in
+// the provided holding ID list. The result is keyed by holding_id. Holdings
+// with no card are absent from the returned map. An empty holdingIDs slice
+// returns an empty map without querying the database.
+func (r *DecisionCardRepo) GetLatestByHoldings(
+	ctx context.Context, holdingIDs []int64,
+) (map[int64]*model.DecisionCard, error) {
+	if len(holdingIDs) == 0 {
+		return map[int64]*model.DecisionCard{}, nil
+	}
+
+	rows, err := r.pool.Query(ctx,
+		`SELECT DISTINCT ON (holding_id) `+cardColumns+`
+		 FROM rm_decision_cards
+		 WHERE holding_id = ANY($1) AND is_deleted = 0
+		 ORDER BY holding_id, analyzed_at DESC`,
+		holdingIDs,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("query latest cards by holdings: %w", err)
+	}
+	defer rows.Close()
+
+	result := make(map[int64]*model.DecisionCard, len(holdingIDs))
+	for rows.Next() {
+		card, scanErr := r.scanCardRow(rows)
+		if scanErr != nil {
+			return nil, fmt.Errorf("scan decision card: %w", scanErr)
+		}
+		result[card.HoldingID] = card
+	}
+	return result, nil
 }

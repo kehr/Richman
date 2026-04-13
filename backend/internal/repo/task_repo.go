@@ -23,7 +23,7 @@ func NewAnalysisTaskRepo(pool *pgxpool.Pool) *AnalysisTaskRepo {
 // Upsert creates or updates a task status.
 func (r *AnalysisTaskRepo) Upsert(ctx context.Context, task *model.TaskStatus) error {
 	_, err := r.pool.Exec(ctx,
-		`INSERT INTO analysis_tasks (task_id, user_id, status, progress, error, started_at, done_at)
+		`INSERT INTO rm_analysis_tasks (task_id, user_id, status, progress, error, started_at, done_at)
 		 VALUES ($1, $2, $3, $4, NULLIF($5, ''), $6, $7)
 		 ON CONFLICT (task_id) DO UPDATE SET
 		 status = EXCLUDED.status,
@@ -45,7 +45,7 @@ func (r *AnalysisTaskRepo) Upsert(ctx context.Context, task *model.TaskStatus) e
 func (r *AnalysisTaskRepo) GetByID(ctx context.Context, taskID string) (*model.TaskStatus, error) {
 	row := r.pool.QueryRow(ctx,
 		`SELECT task_id, user_id, status, progress, COALESCE(error, ''), started_at, done_at
-		 FROM analysis_tasks WHERE task_id = $1`, taskID,
+		 FROM rm_analysis_tasks WHERE task_id = $1`, taskID,
 	)
 	var task model.TaskStatus
 	if err := row.Scan(
@@ -76,7 +76,7 @@ func (r *AnalysisTaskRepo) GetByID(ctx context.Context, taskID string) (*model.T
 func (r *AnalysisTaskRepo) FailOrphaned(ctx context.Context) (int64, error) {
 	now := time.Now()
 	tag, err := r.pool.Exec(ctx,
-		`UPDATE analysis_tasks
+		`UPDATE rm_analysis_tasks
 		 SET status = 'failed',
 		     error  = 'interrupted: server restarted',
 		     done_at = $1
@@ -92,7 +92,7 @@ func (r *AnalysisTaskRepo) FailOrphaned(ctx context.Context) (int64, error) {
 // DeleteOlderThan removes persisted tasks older than the cutoff (only completed/failed).
 func (r *AnalysisTaskRepo) DeleteOlderThan(ctx context.Context, cutoff time.Time) error {
 	_, err := r.pool.Exec(ctx,
-		`DELETE FROM analysis_tasks WHERE done_at IS NOT NULL AND done_at < $1`, cutoff,
+		`DELETE FROM rm_analysis_tasks WHERE done_at IS NOT NULL AND done_at < $1`, cutoff,
 	)
 	return err
 }

@@ -26,7 +26,7 @@ func (r *NotificationLogRepo) Create(
 ) (*model.NotificationLog, error) {
 	var log model.NotificationLog
 	err := r.pool.QueryRow(ctx,
-		`INSERT INTO notification_logs
+		`INSERT INTO rm_notification_logs
 		 (user_id, channel_type, message_type, status, error_message, creator, modifier)
 		 VALUES ($1, $2, $3, $4, $5, 'system', 'system')
 		 RETURNING notification_log_id, user_id, channel_type, message_type,

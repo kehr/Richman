@@ -91,7 +91,7 @@ func (r *ScheduleRepo) GetUserScheduleSettings(
 	var s model.UserScheduleSettings
 	row := r.pool.QueryRow(ctx,
 		`SELECT `+scheduleSettingsColumns+`
-		 FROM user_schedule_settings
+		 FROM rm_user_schedule_settings
 		 WHERE user_id = $1 AND is_deleted = 0`,
 		userID,
 	)
@@ -113,7 +113,7 @@ func (r *ScheduleRepo) UpsertUserScheduleSettings(
 ) (*model.UserScheduleSettings, error) {
 	var s model.UserScheduleSettings
 	row := r.pool.QueryRow(ctx,
-		`INSERT INTO user_schedule_settings (
+		`INSERT INTO rm_user_schedule_settings (
 			user_id,
 			global_frequency, global_frequency_days,
 			a_share_pre_enabled, a_share_pre_time, a_share_pre_custom,
@@ -180,7 +180,7 @@ func (r *ScheduleRepo) ListActiveUserScheduleSettings(
 ) ([]model.UserScheduleSettings, error) {
 	rows, err := r.pool.Query(ctx,
 		`SELECT `+scheduleSettingsColumns+`
-		 FROM user_schedule_settings
+		 FROM rm_user_schedule_settings
 		 WHERE is_deleted = 0
 		 ORDER BY user_id ASC`,
 	)
@@ -248,7 +248,7 @@ func (r *ScheduleRepo) GetHoldingScheduleOverride(
 	var h model.HoldingScheduleOverride
 	row := r.pool.QueryRow(ctx,
 		`SELECT `+holdingOverrideColumns+`
-		 FROM holding_schedule_overrides
+		 FROM rm_holding_schedule_overrides
 		 WHERE user_id = $1 AND holding_id = $2 AND is_deleted = 0`,
 		userID, holdingID,
 	)
@@ -270,7 +270,7 @@ func (r *ScheduleRepo) UpsertHoldingScheduleOverride(
 ) (*model.HoldingScheduleOverride, error) {
 	var h model.HoldingScheduleOverride
 	row := r.pool.QueryRow(ctx,
-		`INSERT INTO holding_schedule_overrides (
+		`INSERT INTO rm_holding_schedule_overrides (
 			user_id, holding_id,
 			frequency, frequency_days, "window",
 			creator, modifier

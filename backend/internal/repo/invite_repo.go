@@ -25,7 +25,7 @@ func (r *InviteRepo) GetInviteCodeByCode(ctx context.Context, code string) (*mod
 	var ic model.InviteCode
 	err := r.pool.QueryRow(ctx,
 		`SELECT invite_code_id, code, max_uses, used_count, created_at, updated_at
-		 FROM invite_codes
+		 FROM rm_invite_codes
 		 WHERE code = $1 AND is_deleted = 0`,
 		code,
 	).Scan(&ic.InviteCodeID, &ic.Code, &ic.MaxUses, &ic.UsedCount, &ic.CreatedAt, &ic.UpdatedAt)
@@ -41,7 +41,7 @@ func (r *InviteRepo) GetInviteCodeByCode(ctx context.Context, code string) (*mod
 // IncrementInviteCodeUsage atomically increments the used_count of an invite code.
 func (r *InviteRepo) IncrementInviteCodeUsage(ctx context.Context, inviteCodeID int64) error {
 	_, err := r.pool.Exec(ctx,
-		`UPDATE invite_codes
+		`UPDATE rm_invite_codes
 		 SET used_count = used_count + 1, updated_at = NOW()
 		 WHERE invite_code_id = $1 AND is_deleted = 0`,
 		inviteCodeID,

@@ -25,7 +25,7 @@ func (r *NotificationChannelRepo) ListByUser(ctx context.Context, userID int64) 
 	rows, err := r.pool.Query(ctx,
 		`SELECT notification_channel_id, user_id, channel_type, config, enabled,
 		        created_at, updated_at
-		 FROM notification_channels
+		 FROM rm_notification_channels
 		 WHERE user_id = $1 AND is_deleted = 0
 		 ORDER BY created_at DESC`,
 		userID,
@@ -58,7 +58,7 @@ func (r *NotificationChannelRepo) GetByID(ctx context.Context, channelID int64) 
 	err := r.pool.QueryRow(ctx,
 		`SELECT notification_channel_id, user_id, channel_type, config, enabled,
 		        created_at, updated_at
-		 FROM notification_channels
+		 FROM rm_notification_channels
 		 WHERE notification_channel_id = $1 AND is_deleted = 0`,
 		channelID,
 	).Scan(
@@ -83,7 +83,7 @@ func (r *NotificationChannelRepo) Create(
 	var ch model.NotificationChannel
 	var enabledSmall int16
 	err := r.pool.QueryRow(ctx,
-		`INSERT INTO notification_channels
+		`INSERT INTO rm_notification_channels
 		 (user_id, channel_type, config, creator, modifier)
 		 VALUES ($1, $2, $3, $4, $4)
 		 RETURNING notification_channel_id, user_id, channel_type, config, enabled,
@@ -118,7 +118,7 @@ func (r *NotificationChannelRepo) Update(
 	var ch model.NotificationChannel
 	var enabledSmall int16
 	err := r.pool.QueryRow(ctx,
-		`UPDATE notification_channels SET
+		`UPDATE rm_notification_channels SET
 			config = COALESCE($1, config),
 			enabled = COALESCE($2, enabled),
 			modifier = $3,
@@ -144,7 +144,7 @@ func (r *NotificationChannelRepo) Update(
 // SoftDelete marks a notification channel as deleted.
 func (r *NotificationChannelRepo) SoftDelete(ctx context.Context, channelID int64, modifier string) error {
 	tag, err := r.pool.Exec(ctx,
-		`UPDATE notification_channels SET is_deleted = 1, modifier = $1, updated_at = NOW()
+		`UPDATE rm_notification_channels SET is_deleted = 1, modifier = $1, updated_at = NOW()
 		 WHERE notification_channel_id = $2 AND is_deleted = 0`,
 		modifier, channelID,
 	)
@@ -168,7 +168,7 @@ func (r *NotificationChannelRepo) ListEnabledByUserIDs(
 	rows, err := r.pool.Query(ctx,
 		`SELECT notification_channel_id, user_id, channel_type, config, enabled,
 		        created_at, updated_at
-		 FROM notification_channels
+		 FROM rm_notification_channels
 		 WHERE user_id = ANY($1) AND enabled = 1 AND is_deleted = 0`,
 		userIDs,
 	)

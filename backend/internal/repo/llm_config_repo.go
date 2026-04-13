@@ -72,7 +72,7 @@ func (r *LLMConfigRepo) GetActiveByUserID(
 	var c model.LLMConfig
 	row := r.pool.QueryRow(ctx,
 		`SELECT `+llmConfigColumns+`
-		 FROM llm_configs
+		 FROM rm_llm_configs
 		 WHERE user_id = $1 AND is_deleted = 0`,
 		userID,
 	)
@@ -117,7 +117,7 @@ func (r *LLMConfigRepo) Upsert(ctx context.Context, cfg *model.LLMConfig) error 
 	// Step 1: soft-delete any currently active row for this user so the
 	// partial unique index is free before INSERT.
 	if _, err = tx.Exec(ctx,
-		`UPDATE llm_configs
+		`UPDATE rm_llm_configs
 		 SET is_deleted = 1,
 		     modifier = $2,
 		     updated_at = NOW()
@@ -130,7 +130,7 @@ func (r *LLMConfigRepo) Upsert(ctx context.Context, cfg *model.LLMConfig) error 
 	// Step 2: insert the new active row. RETURNING pulls the db-assigned
 	// config_id and the default timestamps back into the caller's struct.
 	row := tx.QueryRow(ctx,
-		`INSERT INTO llm_configs (
+		`INSERT INTO rm_llm_configs (
 			user_id, provider_type, base_url,
 			api_key_cipher, api_key_nonce, api_key_hint, model,
 			use_system_default_when_unconfigured, fallback_to_system_default_on_failure,
@@ -165,7 +165,7 @@ func (r *LLMConfigRepo) Upsert(ctx context.Context, cfg *model.LLMConfig) error 
 // it on a user with no active row is a no-op (UPDATE affects 0 rows).
 func (r *LLMConfigRepo) SoftDelete(ctx context.Context, userID int64, modifier string) error {
 	_, err := r.pool.Exec(ctx,
-		`UPDATE llm_configs
+		`UPDATE rm_llm_configs
 		 SET is_deleted = 1,
 		     modifier = $2,
 		     updated_at = NOW()
@@ -192,7 +192,7 @@ func (r *LLMConfigRepo) UpdateHealth(
 	lastError *string,
 ) error {
 	_, err := r.pool.Exec(ctx,
-		`UPDATE llm_configs
+		`UPDATE rm_llm_configs
 		 SET health_status = $2,
 		     last_probe_at = NOW(),
 		     last_probe_error = $3,

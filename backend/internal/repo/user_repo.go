@@ -80,7 +80,7 @@ func (r *UserRepo) CreateUser(
 ) (*model.User, error) {
 	var u model.User
 	row := r.pool.QueryRow(ctx,
-		`INSERT INTO users (email, password_hash, role, plan_id, creator, modifier)
+		`INSERT INTO rm_users (email, password_hash, role, plan_id, creator, modifier)
 		 VALUES ($1, $2, $3, $4, $5, $5)
 		 RETURNING `+userSelectColumns,
 		email, passwordHash, role, planID, email,
@@ -96,7 +96,7 @@ func (r *UserRepo) GetUserByEmail(ctx context.Context, email string) (*model.Use
 	var u model.User
 	row := r.pool.QueryRow(ctx,
 		`SELECT `+userSelectColumns+`
-		 FROM users
+		 FROM rm_users
 		 WHERE email = $1 AND is_deleted = 0`,
 		email,
 	)
@@ -114,7 +114,7 @@ func (r *UserRepo) GetUserByID(ctx context.Context, userID int64) (*model.User, 
 	var u model.User
 	row := r.pool.QueryRow(ctx,
 		`SELECT `+userSelectColumns+`
-		 FROM users
+		 FROM rm_users
 		 WHERE user_id = $1 AND is_deleted = 0`,
 		userID,
 	)
@@ -134,7 +134,7 @@ func (r *UserRepo) GetRiskPreference(ctx context.Context, userID int64) (string,
 	var pref string
 	err := r.pool.QueryRow(ctx,
 		`SELECT risk_preference
-		 FROM users
+		 FROM rm_users
 		 WHERE user_id = $1 AND is_deleted = 0`,
 		userID,
 	).Scan(&pref)
@@ -154,7 +154,7 @@ func (r *UserRepo) GetLanguage(ctx context.Context, userID int64) (string, error
 	var lang string
 	err := r.pool.QueryRow(ctx,
 		`SELECT language
-		 FROM users
+		 FROM rm_users
 		 WHERE user_id = $1 AND is_deleted = 0`,
 		userID,
 	).Scan(&lang)
@@ -176,7 +176,7 @@ func (r *UserRepo) GetTotalCapitalCNY(ctx context.Context, userID int64) (*float
 	var capDec decimal.NullDecimal
 	err := r.pool.QueryRow(ctx,
 		`SELECT total_capital_cny
-		 FROM users
+		 FROM rm_users
 		 WHERE user_id = $1 AND is_deleted = 0`,
 		userID,
 	).Scan(&capDec)
@@ -250,7 +250,7 @@ func (r *UserRepo) UpdateUserSettings(
 		capExpr = "NULL"
 	}
 
-	query := `UPDATE users
+	query := `UPDATE rm_users
 		SET total_capital_cny = ` + capExpr + `,
 		    risk_preference   = COALESCE($2::VARCHAR, risk_preference),
 		    categories        = COALESCE($3::JSONB, categories),
@@ -279,7 +279,7 @@ func (r *UserRepo) MarkOnboardingCompleted(
 ) (*model.User, error) {
 	var u model.User
 	row := r.pool.QueryRow(ctx,
-		`UPDATE users
+		`UPDATE rm_users
 		 SET onboarding_completed_at = COALESCE(onboarding_completed_at, NOW()),
 		     onboarding_skipped_at = NULL,
 		     updated_at = NOW()
@@ -304,7 +304,7 @@ func (r *UserRepo) MarkOnboardingSkipped(
 ) (*model.User, error) {
 	var u model.User
 	row := r.pool.QueryRow(ctx,
-		`UPDATE users
+		`UPDATE rm_users
 		 SET onboarding_skipped_at = COALESCE(onboarding_skipped_at, NOW()),
 		     onboarding_completed_at = NULL,
 		     updated_at = NOW()
@@ -332,7 +332,7 @@ func (r *UserRepo) ResetOnboarding(
 ) (*model.User, error) {
 	var u model.User
 	row := r.pool.QueryRow(ctx,
-		`UPDATE users
+		`UPDATE rm_users
 		 SET onboarding_completed_at = NULL,
 		     onboarding_skipped_at = NULL,
 		     updated_at = NOW()
@@ -364,7 +364,7 @@ func (r *UserRepo) GetUseSystemDefaultConsent(
 	var consent bool
 	err := r.pool.QueryRow(ctx,
 		`SELECT use_system_default_llm_consent
-		 FROM users
+		 FROM rm_users
 		 WHERE user_id = $1 AND is_deleted = 0`,
 		userID,
 	).Scan(&consent)
@@ -387,7 +387,7 @@ func (r *UserRepo) SetUseSystemDefaultConsent(
 	ctx context.Context, userID int64, consent bool,
 ) error {
 	tag, err := r.pool.Exec(ctx,
-		`UPDATE users
+		`UPDATE rm_users
 		 SET use_system_default_llm_consent = $2,
 		     updated_at = NOW()
 		 WHERE user_id = $1 AND is_deleted = 0`,
@@ -400,4 +400,92 @@ func (r *UserRepo) SetUseSystemDefaultConsent(
 		return fmt.Errorf("update use_system_default_llm_consent: user %d not found", userID)
 	}
 	return nil
+}
+
+// UpdateRiskPreference sets the risk_preference column for a user. Returns an
+// error if the user does not exist so the caller can surface a 404 response.
+func (r *UserRepo) UpdateRiskPreference(ctx context.Context, userID int64, preference string) error {
+	tag, err := r.pool.Exec(ctx,
+		`UPDATE rm_users
+		 SET risk_preference = $2,
+		     updated_at = NOW()
+		 WHERE user_id = $1 AND is_deleted = 0`,
+		userID, preference,
+	)
+	if err != nil {
+		return fmt.Errorf("update risk preference: %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		return fmt.Errorf("update risk preference: user %d not found", userID)
+	}
+	return nil
+}
+
+// UpdateEmailPush sets the email_push_enabled column for a user. Returns an
+// error if the user does not exist.
+func (r *UserRepo) UpdateEmailPush(ctx context.Context, userID int64, enabled bool) error {
+	tag, err := r.pool.Exec(ctx,
+		`UPDATE rm_users
+		 SET email_push_enabled = $2,
+		     updated_at = NOW()
+		 WHERE user_id = $1 AND is_deleted = 0`,
+		userID, enabled,
+	)
+	if err != nil {
+		return fmt.Errorf("update email push: %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		return fmt.Errorf("update email push: user %d not found", userID)
+	}
+	return nil
+}
+
+// UpdateLoginStreak atomically updates login_streak and last_login_date using a
+// single UPDATE to avoid read-modify-write race conditions in multi-device
+// login scenarios. Returns the new streak value so the caller can check if
+// a new invite code should be generated (streak % 7 == 0).
+func (r *UserRepo) UpdateLoginStreak(ctx context.Context, userID int64) (int, error) {
+	var streak int
+	err := r.pool.QueryRow(ctx,
+		`UPDATE rm_users SET
+		   login_streak = CASE
+		     WHEN last_login_date = CURRENT_DATE - INTERVAL '1 day' THEN login_streak + 1
+		     WHEN last_login_date = CURRENT_DATE THEN login_streak
+		     ELSE 1
+		   END,
+		   last_login_date = CURRENT_DATE,
+		   updated_at = NOW()
+		 WHERE user_id = $1 AND is_deleted = 0
+		 RETURNING login_streak`,
+		userID,
+	).Scan(&streak)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return 0, nil
+		}
+		return 0, fmt.Errorf("update login streak: %w", err)
+	}
+	return streak, nil
+}
+
+// ListAllEmails returns all active user email addresses. Used by the v2 email
+// push service for platform-level broadcast emails.
+func (r *UserRepo) ListAllEmails(ctx context.Context) ([]string, error) {
+	rows, err := r.pool.Query(ctx,
+		`SELECT email FROM rm_users WHERE is_deleted = 0 ORDER BY user_id ASC`,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("query all emails: %w", err)
+	}
+	defer rows.Close()
+
+	var emails []string
+	for rows.Next() {
+		var email string
+		if err := rows.Scan(&email); err != nil {
+			return nil, fmt.Errorf("scan email: %w", err)
+		}
+		emails = append(emails, email)
+	}
+	return emails, nil
 }

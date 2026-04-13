@@ -27,7 +27,7 @@ func (r *HoldingRepo) ListHoldingsByUser(ctx context.Context, userID int64) ([]m
 	rows, err := r.pool.Query(ctx,
 		`SELECT holding_id, user_id, asset_code, asset_name, asset_type, category,
 		        cost_price, position_ratio, quantity, created_at, updated_at
-		 FROM holdings
+		 FROM rm_holdings
 		 WHERE user_id = $1 AND is_deleted = 0
 		 ORDER BY holding_id ASC`,
 		userID,
@@ -64,7 +64,7 @@ func (r *HoldingRepo) GetHoldingByID(ctx context.Context, holdingID int64) (*mod
 	err := r.pool.QueryRow(ctx,
 		`SELECT holding_id, user_id, asset_code, asset_name, asset_type, category,
 		        cost_price, position_ratio, quantity, created_at, updated_at
-		 FROM holdings
+		 FROM rm_holdings
 		 WHERE holding_id = $1 AND is_deleted = 0`,
 		holdingID,
 	).Scan(
@@ -89,7 +89,7 @@ func (r *HoldingRepo) GetHoldingByID(ctx context.Context, holdingID int64) (*mod
 func (r *HoldingRepo) CountHoldingsByUser(ctx context.Context, userID int64) (int, error) {
 	var count int
 	err := r.pool.QueryRow(ctx,
-		`SELECT COUNT(*) FROM holdings WHERE user_id = $1 AND is_deleted = 0`,
+		`SELECT COUNT(*) FROM rm_holdings WHERE user_id = $1 AND is_deleted = 0`,
 		userID,
 	).Scan(&count)
 	if err != nil {
@@ -112,7 +112,7 @@ func (r *HoldingRepo) CreateHolding(
 		categoryArg = sql.NullString{String: *input.Category, Valid: true}
 	}
 	err := r.pool.QueryRow(ctx,
-		`INSERT INTO holdings
+		`INSERT INTO rm_holdings
 		 (user_id, asset_code, asset_name, asset_type, category,
 		  cost_price, position_ratio, quantity, creator, modifier)
 		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $9)
@@ -151,7 +151,7 @@ func (r *HoldingRepo) UpdateHolding(
 		categoryArg = sql.NullString{String: *input.Category, Valid: true}
 	}
 	err := r.pool.QueryRow(ctx,
-		`UPDATE holdings SET
+		`UPDATE rm_holdings SET
 			cost_price = COALESCE($1, cost_price),
 			position_ratio = COALESCE($2, position_ratio),
 			quantity = COALESCE($3, quantity),
@@ -187,7 +187,7 @@ func (r *HoldingRepo) UpdateHoldingCost(
 	costPrice, quantity decimal.Decimal, modifier string,
 ) error {
 	_, err := r.pool.Exec(ctx,
-		`UPDATE holdings SET cost_price = $1, quantity = $2, modifier = $3, updated_at = NOW()
+		`UPDATE rm_holdings SET cost_price = $1, quantity = $2, modifier = $3, updated_at = NOW()
 		 WHERE holding_id = $4 AND is_deleted = 0`,
 		costPrice, quantity, modifier, holdingID,
 	)
@@ -200,7 +200,7 @@ func (r *HoldingRepo) UpdateHoldingCost(
 // SoftDeleteHolding marks a holding as deleted.
 func (r *HoldingRepo) SoftDeleteHolding(ctx context.Context, holdingID int64, modifier string) error {
 	tag, err := r.pool.Exec(ctx,
-		`UPDATE holdings SET is_deleted = 1, modifier = $1, updated_at = NOW()
+		`UPDATE rm_holdings SET is_deleted = 1, modifier = $1, updated_at = NOW()
 		 WHERE holding_id = $2 AND is_deleted = 0`,
 		modifier, holdingID,
 	)
@@ -218,7 +218,7 @@ func (r *HoldingRepo) SoftDeleteHolding(ctx context.Context, holdingID int64, mo
 // with holdings gets cron entries, even if they have no saved schedule settings.
 func (r *HoldingRepo) ListUsersWithHoldings(ctx context.Context) ([]int64, error) {
 	rows, err := r.pool.Query(ctx,
-		`SELECT DISTINCT user_id FROM holdings WHERE is_deleted = 0 ORDER BY user_id ASC`,
+		`SELECT DISTINCT user_id FROM rm_holdings WHERE is_deleted = 0 ORDER BY user_id ASC`,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("query users with holdings: %w", err)
@@ -241,7 +241,7 @@ func (r *HoldingRepo) ListHoldingsByAssetType(ctx context.Context, assetType str
 	rows, err := r.pool.Query(ctx,
 		`SELECT holding_id, user_id, asset_code, asset_name, asset_type, category,
 		        cost_price, position_ratio, quantity, created_at, updated_at
-		 FROM holdings
+		 FROM rm_holdings
 		 WHERE asset_type = $1 AND is_deleted = 0
 		 ORDER BY user_id, created_at DESC`,
 		assetType,
@@ -269,4 +269,23 @@ func (r *HoldingRepo) ListHoldingsByAssetType(ctx context.Context, assetType str
 		holdings = append(holdings, h)
 	}
 	return holdings, nil
+}
+
+// GetExposureByAssetType returns the sum of position_ratio for all active
+// holdings of a given asset type for a user. This is used to calculate total
+// portfolio exposure per asset class.
+func (r *HoldingRepo) GetExposureByAssetType(
+	ctx context.Context, userID int64, assetType string,
+) (float64, error) {
+	var exposure float64
+	err := r.pool.QueryRow(ctx,
+		`SELECT COALESCE(SUM(position_ratio), 0)
+		 FROM rm_holdings
+		 WHERE user_id = $1 AND asset_type = $2 AND is_deleted = 0`,
+		userID, assetType,
+	).Scan(&exposure)
+	if err != nil {
+		return 0, fmt.Errorf("query exposure by asset type: %w", err)
+	}
+	return exposure, nil
 }

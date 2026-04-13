@@ -25,7 +25,7 @@ func (r *PlanRepo) GetPlanByID(ctx context.Context, planID int64) (*model.Plan, 
 	var p model.Plan
 	err := r.pool.QueryRow(ctx,
 		`SELECT plan_id, name, max_holdings, max_daily_analysis, max_push_channels, created_at, updated_at
-		 FROM plans
+		 FROM rm_plans
 		 WHERE plan_id = $1 AND is_deleted = 0`,
 		planID,
 	).Scan(&p.PlanID, &p.Name, &p.MaxHoldings, &p.MaxDailyAnalysis, &p.MaxPushChannels, &p.CreatedAt, &p.UpdatedAt)
@@ -43,7 +43,7 @@ func (r *PlanRepo) GetPlanByName(ctx context.Context, name string) (*model.Plan,
 	var p model.Plan
 	err := r.pool.QueryRow(ctx,
 		`SELECT plan_id, name, max_holdings, max_daily_analysis, max_push_channels, created_at, updated_at
-		 FROM plans
+		 FROM rm_plans
 		 WHERE name = $1 AND is_deleted = 0`,
 		name,
 	).Scan(&p.PlanID, &p.Name, &p.MaxHoldings, &p.MaxDailyAnalysis, &p.MaxPushChannels, &p.CreatedAt, &p.UpdatedAt)

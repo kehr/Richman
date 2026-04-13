@@ -22,7 +22,7 @@ func NewTradeRepo(pool *pgxpool.Pool) *TradeRepo {
 func (r *TradeRepo) ListTradesByHolding(ctx context.Context, holdingID int64) ([]model.Trade, error) {
 	rows, err := r.pool.Query(ctx,
 		`SELECT trade_id, holding_id, user_id, direction, price, quantity, traded_at, created_at, updated_at
-		 FROM trades
+		 FROM rm_trades
 		 WHERE holding_id = $1 AND is_deleted = 0
 		 ORDER BY traded_at ASC`,
 		holdingID,
@@ -54,7 +54,7 @@ func (r *TradeRepo) CreateTrade(
 ) (*model.Trade, error) {
 	var t model.Trade
 	err := r.pool.QueryRow(ctx,
-		`INSERT INTO trades (holding_id, user_id, direction, price, quantity, traded_at, creator, modifier)
+		`INSERT INTO rm_trades (holding_id, user_id, direction, price, quantity, traded_at, creator, modifier)
 		 VALUES ($1, $2, $3, $4, $5, $6, $7, $7)
 		 RETURNING trade_id, holding_id, user_id, direction, price, quantity, traded_at, created_at, updated_at`,
 		holdingID, userID, input.Direction, input.Price, input.Quantity, input.TradedAt, creator,
