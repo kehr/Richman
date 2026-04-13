@@ -12,11 +12,18 @@ import (
 	"go.uber.org/zap"
 )
 
+// BulkEmailSender is a minimal interface for sending bulk HTML email to a list
+// of recipients. The emailpush.Sender type satisfies this interface.
+type BulkEmailSender interface {
+	SendBatch(ctx context.Context, recipients []string, subject, htmlBody string) error
+}
+
 // Service handles notification business logic.
 type Service struct {
 	channelRepo *repo.NotificationChannelRepo
 	logRepo     *repo.NotificationLogRepo
 	dispatcher  *notification.Dispatcher
+	bulkSender  BulkEmailSender // optional; used by SendBroadcast
 	logger      *zap.Logger
 }
 
@@ -33,6 +40,13 @@ func NewService(
 		dispatcher:  dispatcher,
 		logger:      logger,
 	}
+}
+
+// WithBulkSender sets the bulk email sender used by SendBroadcast. This is
+// optional; if not set, SendBroadcast logs a warning and returns nil.
+func (s *Service) WithBulkSender(sender BulkEmailSender) *Service {
+	s.bulkSender = sender
+	return s
 }
 
 // ListChannels returns all notification channels for a user.
@@ -157,4 +171,32 @@ func (s *Service) SendToUsers(
 			)
 		}
 	}
+}
+
+// SendBroadcast delivers an HTML email to a list of recipients using the
+// configured BulkEmailSender. It is a thin wrapper that logs progress and
+// delegates batching to the sender implementation.
+//
+// Returns nil without sending when no bulk sender has been configured
+// (WithBulkSender was not called), so the caller does not need to guard.
+func (s *Service) SendBroadcast(
+	ctx context.Context, recipients []string, subject, htmlBody string,
+) error {
+	if s.bulkSender == nil {
+		s.logger.Warn("SendBroadcast called but no bulk sender configured; skipping",
+			zap.String("subject", subject),
+			zap.Int("recipients", len(recipients)),
+		)
+		return nil
+	}
+
+	s.logger.Info("broadcasting email",
+		zap.String("subject", subject),
+		zap.Int("recipients", len(recipients)),
+	)
+
+	if err := s.bulkSender.SendBatch(ctx, recipients, subject, htmlBody); err != nil {
+		return fmt.Errorf("broadcast email: %w", err)
+	}
+	return nil
 }

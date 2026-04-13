@@ -58,6 +58,14 @@ func (f *fakeSettingsRepo) UpdateUserSettings(
 	return &cp, nil
 }
 
+func (f *fakeSettingsRepo) UpdateRiskPreference(_ context.Context, _ int64, _ string) error {
+	return nil
+}
+
+func (f *fakeSettingsRepo) UpdateEmailPush(_ context.Context, _ int64, _ bool) error {
+	return nil
+}
+
 func newSettingsTestRouter(svc *usersettings.Service, authedUserID int64) *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()

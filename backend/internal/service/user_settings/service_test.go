@@ -74,6 +74,14 @@ func (f *fakeUserRepo) UpdateUserSettings(
 	return &u, nil
 }
 
+func (f *fakeUserRepo) UpdateRiskPreference(_ context.Context, _ int64, _ string) error {
+	return nil
+}
+
+func (f *fakeUserRepo) UpdateEmailPush(_ context.Context, _ int64, _ bool) error {
+	return nil
+}
+
 func baseUser() *model.User {
 	return &model.User{
 		UserID:         42,

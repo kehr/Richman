@@ -60,6 +60,8 @@ type UserRepo interface {
 	UpdateUserSettings(
 		ctx context.Context, userID int64, patch *repo.UserSettingsPatch,
 	) (*model.User, error)
+	UpdateRiskPreference(ctx context.Context, userID int64, preference string) error
+	UpdateEmailPush(ctx context.Context, userID int64, enabled bool) error
 }
 
 // UserSettings is the read-model exposed to callers. It mirrors the writable
@@ -257,4 +259,28 @@ func toUserSettings(u *model.User) *UserSettings {
 		out.OnboardingCompletedAt = &s
 	}
 	return out
+}
+
+// UpdateRiskPreference validates the preference value and persists it for the
+// given user. Returns a 400 AppError when the value is not in the whitelist and
+// a 404-wrapped error when the user does not exist.
+func (s *Service) UpdateRiskPreference(ctx context.Context, userID int64, preference string) error {
+	if _, ok := allowedRiskPreferences[preference]; !ok {
+		return model.NewAppError(http.StatusBadRequest,
+			"INVALID_RISK_PREFERENCE",
+			fmt.Sprintf("risk_preference %q is not allowed", preference))
+	}
+	if err := s.users.UpdateRiskPreference(ctx, userID, preference); err != nil {
+		return fmt.Errorf("update risk preference: %w", err)
+	}
+	return nil
+}
+
+// UpdateEmailPush sets the email_push_enabled flag for the given user.
+// Returns a wrapped error when the user does not exist.
+func (s *Service) UpdateEmailPush(ctx context.Context, userID int64, enabled bool) error {
+	if err := s.users.UpdateEmailPush(ctx, userID, enabled); err != nil {
+		return fmt.Errorf("update email push: %w", err)
+	}
+	return nil
 }
