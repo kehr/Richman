@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/richman/backend/internal/model"
 )
@@ -42,6 +43,35 @@ func (r *InviteRewardRepo) Create(
 	).Scan(&rewardID)
 	if err != nil {
 		return 0, fmt.Errorf("insert invite reward: %w", err)
+	}
+	return rewardID, nil
+}
+
+// CreateWithTx inserts a new reward record inside an existing transaction.
+// Semantics are identical to Create; the caller is responsible for
+// committing or rolling back the transaction.
+func (r *InviteRewardRepo) CreateWithTx(
+	ctx context.Context,
+	tx pgx.Tx,
+	userID int64,
+	rewardType string,
+	rewardDetail json.RawMessage,
+	sourceInviteID int64,
+	creator string,
+) (int64, error) {
+	var rewardID int64
+	var detailArg any
+	if len(rewardDetail) > 0 {
+		detailArg = []byte(rewardDetail)
+	}
+	err := tx.QueryRow(ctx,
+		`INSERT INTO rm_invite_rewards (user_id, reward_type, reward_detail, source_invite_id, creator, modifier)
+		 VALUES ($1, $2, $3, $4, $5, $5)
+		 RETURNING reward_id`,
+		userID, rewardType, detailArg, sourceInviteID, creator,
+	).Scan(&rewardID)
+	if err != nil {
+		return 0, fmt.Errorf("insert invite reward (tx): %w", err)
 	}
 	return rewardID, nil
 }

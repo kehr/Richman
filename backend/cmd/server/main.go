@@ -37,6 +37,7 @@ import (
 	wechatAdapter "github.com/richman/backend/internal/notification/adapter/wechat"
 	"github.com/richman/backend/internal/repo"
 	"github.com/richman/backend/internal/service/auth"
+	inviteSvc "github.com/richman/backend/internal/service/invite"
 	"github.com/richman/backend/internal/service/portfolio"
 	scheduleSvc "github.com/richman/backend/internal/service/schedule"
 	"go.uber.org/zap"
@@ -103,6 +104,8 @@ func main() {
 	userRepo := repo.NewUserRepo(dbPool)
 	planRepo := repo.NewPlanRepo(dbPool)
 	inviteRepo := repo.NewInviteRepo(dbPool)
+	userInviteCodeRepo := repo.NewUserInviteCodeRepo(dbPool)
+	inviteRewardRepo := repo.NewInviteRewardRepo(dbPool)
 	assetRepo := repo.NewAssetRepo(dbPool)
 	holdingRepo := repo.NewHoldingRepo(dbPool)
 	tradeRepo := repo.NewTradeRepo(dbPool)
@@ -115,7 +118,8 @@ func main() {
 	scheduleRepo := repo.NewScheduleRepo(dbPool)
 
 	// Initialize services
-	authService := auth.NewService(userRepo, planRepo, inviteRepo, cfg)
+	inviteService := inviteSvc.NewService(userInviteCodeRepo, inviteRewardRepo, userRepo, dbPool, zapLogger)
+	authService := auth.NewServiceWithInvite(userRepo, planRepo, inviteRepo, inviteService, cfg)
 	portfolioService := portfolio.NewService(holdingRepo, tradeRepo)
 
 	// Initialize LLM provider (optional; analysis works in degraded mode

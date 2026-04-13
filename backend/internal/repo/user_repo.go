@@ -91,6 +91,24 @@ func (r *UserRepo) CreateUser(
 	return &u, nil
 }
 
+// CreateUserWithTx inserts a new user inside an existing transaction and
+// returns the created user. Semantics are identical to CreateUser.
+func (r *UserRepo) CreateUserWithTx(
+	ctx context.Context, tx pgx.Tx, email, passwordHash, role string, planID int64,
+) (*model.User, error) {
+	var u model.User
+	row := tx.QueryRow(ctx,
+		`INSERT INTO rm_users (email, password_hash, role, plan_id, creator, modifier)
+		 VALUES ($1, $2, $3, $4, $5, $5)
+		 RETURNING `+userSelectColumns,
+		email, passwordHash, role, planID, email,
+	)
+	if err := scanUser(row, &u); err != nil {
+		return nil, fmt.Errorf("insert user (tx): %w", err)
+	}
+	return &u, nil
+}
+
 // GetUserByEmail finds a user by email address. Returns nil if not found.
 func (r *UserRepo) GetUserByEmail(ctx context.Context, email string) (*model.User, error) {
 	var u model.User
@@ -440,6 +458,24 @@ func (r *UserRepo) UpdateEmailPush(ctx context.Context, userID int64, enabled bo
 	return nil
 }
 
+// GetLoginStreak reads the user's current login_streak value. Returns 0 when
+// the user does not exist so callers can safely treat a missing user as having
+// no streak without a second null check.
+func (r *UserRepo) GetLoginStreak(ctx context.Context, userID int64) (int, error) {
+	var streak int
+	err := r.pool.QueryRow(ctx,
+		`SELECT login_streak FROM rm_users WHERE user_id = $1 AND is_deleted = 0`,
+		userID,
+	).Scan(&streak)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return 0, nil
+		}
+		return 0, fmt.Errorf("query login streak: %w", err)
+	}
+	return streak, nil
+}
+
 // UpdateLoginStreak atomically updates login_streak and last_login_date using a
 // single UPDATE to avoid read-modify-write race conditions in multi-device
 // login scenarios. Returns the new streak value so the caller can check if
@@ -466,6 +502,67 @@ func (r *UserRepo) UpdateLoginStreak(ctx context.Context, userID int64) (int, er
 		return 0, fmt.Errorf("update login streak: %w", err)
 	}
 	return streak, nil
+}
+
+// ListEmailPushEnabled returns up to limit users with email_push_enabled=TRUE
+// and user_id > afterID, ordered by user_id ASC. Used by the email push
+// service for cursor pagination over the full user set.
+func (r *UserRepo) ListEmailPushEnabled(ctx context.Context, afterID int64, limit int) ([]model.User, error) {
+	rows, err := r.pool.Query(ctx,
+		`SELECT `+userSelectColumns+`
+		 FROM rm_users
+		 WHERE user_id > $1
+		   AND email_push_enabled = TRUE
+		   AND is_deleted = 0
+		 ORDER BY user_id ASC
+		 LIMIT $2`,
+		afterID, limit,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("list email push enabled users: %w", err)
+	}
+	defer rows.Close()
+
+	var users []model.User
+	for rows.Next() {
+		var u model.User
+		if err := scanUser(rows, &u); err != nil {
+			return nil, fmt.Errorf("scan user: %w", err)
+		}
+		users = append(users, u)
+	}
+	return users, nil
+}
+
+// ListEmailPushEnabledByLocale returns up to limit users with
+// email_push_enabled=TRUE and language=$locale and user_id > afterID, ordered
+// by user_id ASC. Used by the weekly insight push to send locale-specific emails.
+func (r *UserRepo) ListEmailPushEnabledByLocale(ctx context.Context, locale string, afterID int64, limit int) ([]model.User, error) {
+	rows, err := r.pool.Query(ctx,
+		`SELECT `+userSelectColumns+`
+		 FROM rm_users
+		 WHERE user_id > $1
+		   AND email_push_enabled = TRUE
+		   AND language = $2
+		   AND is_deleted = 0
+		 ORDER BY user_id ASC
+		 LIMIT $3`,
+		afterID, locale, limit,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("list email push enabled users by locale: %w", err)
+	}
+	defer rows.Close()
+
+	var users []model.User
+	for rows.Next() {
+		var u model.User
+		if err := scanUser(rows, &u); err != nil {
+			return nil, fmt.Errorf("scan user: %w", err)
+		}
+		users = append(users, u)
+	}
+	return users, nil
 }
 
 // ListAllEmails returns all active user email addresses. Used by the v2 email

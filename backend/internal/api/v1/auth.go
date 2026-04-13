@@ -31,9 +31,10 @@ func (h *AuthHandler) RegisterRoutes(rg *gin.RouterGroup, authMiddleware gin.Han
 }
 
 type registerRequest struct {
-	Email      string `json:"email" binding:"required,email"`
-	Password   string `json:"password" binding:"required,min=6,max=128"`
-	InviteCode string `json:"inviteCode" binding:"required"`
+	Email               string `json:"email" binding:"required,email"`
+	Password            string `json:"password" binding:"required,min=6,max=128"`
+	InviteCode          string `json:"inviteCode" binding:"required"`
+	DisclaimerAccepted  bool   `json:"disclaimerAccepted"`
 }
 
 // Register handles POST /api/v1/auth/register.
@@ -49,7 +50,9 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		return
 	}
 
-	result, err := h.authService.Register(c.Request.Context(), req.Email, req.Password, req.InviteCode)
+	result, err := h.authService.Register(
+		c.Request.Context(), req.Email, req.Password, req.InviteCode, req.DisclaimerAccepted,
+	)
 	if err != nil {
 		handleServiceError(c, err)
 		return

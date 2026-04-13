@@ -49,6 +49,24 @@ func (r *UserInviteCodeRepo) Create(
 	return &c, nil
 }
 
+// CreateWithTx inserts a new invite code for a user inside an existing
+// transaction. Semantics are identical to Create.
+func (r *UserInviteCodeRepo) CreateWithTx(
+	ctx context.Context, tx pgx.Tx, userID int64, code, creator string,
+) (*model.UserInviteCode, error) {
+	var c model.UserInviteCode
+	row := tx.QueryRow(ctx,
+		`INSERT INTO rm_user_invite_codes (user_id, code, creator, modifier)
+		 VALUES ($1, $2, $3, $3)
+		 RETURNING `+userInviteCodeColumns,
+		userID, code, creator,
+	)
+	if err := scanUserInviteCode(row, &c); err != nil {
+		return nil, fmt.Errorf("insert user invite code (tx): %w", err)
+	}
+	return &c, nil
+}
+
 // GetByCode finds an active (is_deleted = 0) invite code by its code string.
 // Returns nil if not found.
 func (r *UserInviteCodeRepo) GetByCode(
