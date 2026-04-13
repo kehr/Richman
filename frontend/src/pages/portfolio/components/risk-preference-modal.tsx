@@ -22,6 +22,7 @@ export function RiskPreferenceModal({
 	loading,
 }: RiskPreferenceModalProps) {
 	const { t } = useTranslation("app");
+	const { t: tCommon } = useTranslation("common");
 	const [selected, setSelected] = useState<RiskPreference>("moderate");
 
 	const options: Array<{ value: RiskPreference; emoji: string }> = [
@@ -37,9 +38,9 @@ export function RiskPreferenceModal({
 			onCancel={onCancel}
 			footer={
 				<Flex justify="flex-end" gap={8}>
-					<Button onClick={onCancel}>{t("common:action.cancel")}</Button>
+					<Button onClick={onCancel}>{tCommon("action.cancel")}</Button>
 					<Button type="primary" loading={loading} onClick={() => onConfirm(selected)}>
-						{t("common:action.confirm")}
+						{tCommon("action.confirm")}
 					</Button>
 				</Flex>
 			}
