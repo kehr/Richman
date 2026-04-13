@@ -286,3 +286,11 @@ func (s *Service) InvalidatePercentileCache(code string) {
 	s.cacheMu.Unlock()
 }
 
+// GetLatestAnalysisForDemoPlan returns the latest asset analysis record for the
+// given asset code. Used by the demo-plan endpoint to check whether the DB already
+// holds a cached demo_plan JSON before falling back to richson.
+// Returns nil when no analysis exists (not an error).
+func (s *Service) GetLatestAnalysisForDemoPlan(ctx context.Context, code string) (*model.AssetAnalysis, error) {
+	return s.analysisRepo.GetLatestByAssetCode(ctx, code)
+}
+

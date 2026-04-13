@@ -3,6 +3,8 @@ package v1
 import (
 	"errors"
 	"net/http"
+	"sync"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/richman/backend/internal/api/middleware"
@@ -22,12 +24,66 @@ func NewAuthHandler(authService *auth.Service) *AuthHandler {
 }
 
 // RegisterRoutes registers auth routes on the given router group.
-// Register and Login are public; Me requires authentication.
+// Register and Login are public with IP rate limiting (5 req/min);
+// Me and DeleteAccount require authentication.
 func (h *AuthHandler) RegisterRoutes(rg *gin.RouterGroup, authMiddleware gin.HandlerFunc) {
 	authGroup := rg.Group("/auth")
-	authGroup.POST("/register", h.Register)
-	authGroup.POST("/login", h.Login)
+	authRL := authIPRateLimit(5, time.Minute)
+	authGroup.POST("/register", authRL, h.Register)
+	authGroup.POST("/login", authRL, h.Login)
 	authGroup.GET("/me", authMiddleware, h.Me)
+	authGroup.DELETE("/account", authMiddleware, h.DeleteAccount)
+}
+
+// authIPRateLimit is a lightweight in-process sliding-window rate limiter for
+// the auth endpoints. Separate from the v2 middleware package to avoid import
+// cycles while reusing the same algorithm.
+func authIPRateLimit(maxPerWindow int, window time.Duration) gin.HandlerFunc {
+	type entry struct {
+		mu         sync.Mutex
+		timestamps []time.Time
+	}
+	var (
+		mu      sync.Mutex
+		entries = make(map[string]*entry)
+	)
+	return func(c *gin.Context) {
+		ip := c.ClientIP()
+
+		mu.Lock()
+		e, ok := entries[ip]
+		if !ok {
+			e = &entry{}
+			entries[ip] = e
+		}
+		mu.Unlock()
+
+		e.mu.Lock()
+		now := time.Now()
+		cutoff := now.Add(-window)
+		valid := e.timestamps[:0]
+		for _, ts := range e.timestamps {
+			if ts.After(cutoff) {
+				valid = append(valid, ts)
+			}
+		}
+		e.timestamps = valid
+
+		if len(e.timestamps) >= maxPerWindow {
+			e.mu.Unlock()
+			c.AbortWithStatusJSON(http.StatusTooManyRequests, gin.H{
+				"error": gin.H{
+					"code":    "RATE_LIMIT_EXCEEDED",
+					"message": "too many requests",
+				},
+			})
+			return
+		}
+		e.timestamps = append(e.timestamps, now)
+		e.mu.Unlock()
+
+		c.Next()
+	}
 }
 
 type registerRequest struct {
@@ -104,6 +160,38 @@ func (h *AuthHandler) Me(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"data": user,
+	})
+}
+
+// deleteAccountRequest is the request body for DELETE /api/v1/auth/account.
+type deleteAccountRequest struct {
+	Password string `json:"password" binding:"required"`
+}
+
+// DeleteAccount handles DELETE /api/v1/auth/account.
+// Requires the authenticated user to confirm their password. On success the
+// user record is soft-deleted and the client must discard the JWT token.
+func (h *AuthHandler) DeleteAccount(c *gin.Context) {
+	userID := middleware.GetUserID(c)
+
+	var req deleteAccountRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": gin.H{
+				"code":    "VALIDATION_ERROR",
+				"message": err.Error(),
+			},
+		})
+		return
+	}
+
+	if err := h.authService.DeleteAccount(c.Request.Context(), userID, req.Password); err != nil {
+		handleServiceError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"data": gin.H{"message": "account deleted"},
 	})
 }
 

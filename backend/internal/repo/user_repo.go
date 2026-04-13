@@ -565,6 +565,44 @@ func (r *UserRepo) ListEmailPushEnabledByLocale(ctx context.Context, locale stri
 	return users, nil
 }
 
+// SoftDeleteUser marks a user as deleted (is_deleted = 1). The user row
+// remains in the database for audit and foreign-key integrity. Returns an
+// error when the user does not exist or is already deleted.
+func (r *UserRepo) SoftDeleteUser(ctx context.Context, userID int64, modifier string) error {
+	tag, err := r.pool.Exec(ctx,
+		`UPDATE rm_users
+		 SET is_deleted = 1,
+		     modifier   = $2,
+		     updated_at = NOW()
+		 WHERE user_id = $1 AND is_deleted = 0`,
+		userID, modifier,
+	)
+	if err != nil {
+		return fmt.Errorf("soft delete user: %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		return fmt.Errorf("soft delete user: user %d not found or already deleted", userID)
+	}
+	return nil
+}
+
+// GetPasswordHash retrieves the bcrypt password hash for the given user.
+// Returns an empty string when the user does not exist or is deleted.
+func (r *UserRepo) GetPasswordHash(ctx context.Context, userID int64) (string, error) {
+	var hash string
+	err := r.pool.QueryRow(ctx,
+		`SELECT password_hash FROM rm_users WHERE user_id = $1 AND is_deleted = 0`,
+		userID,
+	).Scan(&hash)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return "", nil
+		}
+		return "", fmt.Errorf("query password hash: %w", err)
+	}
+	return hash, nil
+}
+
 // ListAllEmails returns all active user email addresses. Used by the v2 email
 // push service for platform-level broadcast emails.
 func (r *UserRepo) ListAllEmails(ctx context.Context) ([]string, error) {

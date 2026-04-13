@@ -201,6 +201,23 @@ func (r *UserInviteCodeRepo) GetFirstAvailable(
 	return &c, nil
 }
 
+// ClearUsedByForUser nullifies used_by_user_id on all invite codes that were
+// consumed by the given user. Called during account deletion so that the
+// invite codes are no longer linked to the soft-deleted user record.
+func (r *UserInviteCodeRepo) ClearUsedByForUser(ctx context.Context, userID int64) error {
+	_, err := r.pool.Exec(ctx,
+		`UPDATE rm_user_invite_codes
+		 SET used_by_user_id = NULL,
+		     updated_at      = NOW()
+		 WHERE used_by_user_id = $1`,
+		userID,
+	)
+	if err != nil {
+		return fmt.Errorf("clear used_by_user_id for user %d: %w", userID, err)
+	}
+	return nil
+}
+
 // ListInvitedUsers returns basic info about users who were invited by the
 // given user (i.e. used_by_user_id records joined to rm_users for display).
 // The email is masked via model.MaskName before being set on InvitedUserName.

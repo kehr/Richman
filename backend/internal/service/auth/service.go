@@ -290,6 +290,40 @@ func (s *Service) Login(ctx context.Context, email, password string) (*AuthResul
 	return &AuthResult{User: user, Token: token}, nil
 }
 
+// DeleteAccount soft-deletes the authenticated user after verifying the
+// provided password. Invite code back-references (used_by_user_id) are
+// cleared as a best-effort follow-up; their failure does not block deletion.
+func (s *Service) DeleteAccount(ctx context.Context, userID int64, password string) error {
+	// Verify password before deletion.
+	hash, err := s.userRepo.GetPasswordHash(ctx, userID)
+	if err != nil {
+		return fmt.Errorf("load password hash: %w", err)
+	}
+	if hash == "" {
+		return model.NewAppError(http.StatusNotFound, "NOT_FOUND", "user not found")
+	}
+	if bcryptErr := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password)); bcryptErr != nil {
+		return model.NewAppError(http.StatusUnauthorized, "UNAUTHORIZED", "incorrect password")
+	}
+
+	modifier := fmt.Sprintf("user:%d:self-delete", userID)
+	if delErr := s.userRepo.SoftDeleteUser(ctx, userID, modifier); delErr != nil {
+		return fmt.Errorf("soft delete user: %w", delErr)
+	}
+
+	// Clear invite code back-references; non-fatal on failure.
+	if s.inviteService != nil {
+		if clearErr := s.inviteService.ClearUsedByForUser(ctx, userID); clearErr != nil {
+			zap.L().Warn("clear invite code used_by_user_id failed after account deletion",
+				zap.Int64("user_id", userID),
+				zap.Error(clearErr),
+			)
+		}
+	}
+
+	return nil
+}
+
 // GetCurrentUser retrieves a user by ID.
 func (s *Service) GetCurrentUser(ctx context.Context, userID int64) (*model.User, error) {
 	user, err := s.userRepo.GetUserByID(ctx, userID)

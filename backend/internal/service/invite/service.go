@@ -350,3 +350,11 @@ func (s *Service) GetLoginStreak(ctx context.Context, userID int64) (int, error)
 func (s *Service) Pool() *pgxpool.Pool {
 	return s.pool
 }
+
+// ClearUsedByForUser nullifies used_by_user_id on all invite codes that were
+// consumed by the given user. Called during account deletion so the invite codes
+// are no longer linked to the soft-deleted user record. Thin pass-through to
+// the underlying repo method.
+func (s *Service) ClearUsedByForUser(ctx context.Context, userID int64) error {
+	return s.userInviteCodeRepo.ClearUsedByForUser(ctx, userID)
+}
