@@ -1,0 +1,46 @@
+{
+	"overview": {
+		"title": "Market Overview",
+		"metaDescription": "Track market conditions, regime signals, and macro event radar",
+		"regime": {
+			"risk_on": "Risk On",
+			"neutral": "Neutral",
+			"risk_off": "Risk Off",
+			"loadError": "Market regime data unavailable"
+		},
+		"assetCard": {
+			"comingSoon": "Coming Soon",
+			"score": "Score",
+			"signal": {
+				"strong_bullish": "Strong Bullish",
+				"bullish": "Bullish",
+				"neutral": "Neutral",
+				"bearish": "Bearish",
+				"strong_bearish": "Strong Bearish"
+			}
+		},
+		"eventRadar": {
+			"title": "Event Radar",
+			"subtitle": "Key macro events in the next 7 days",
+			"impactLevel": {
+				"high": "High",
+				"medium": "Medium",
+				"low": "Low"
+			},
+			"goldDirection": {
+				"bullish": "Gold Positive",
+				"bearish": "Gold Negative",
+				"neutral": "Neutral"
+			},
+			"probability": "Probability",
+			"change24h": "24h Change",
+			"noEvents": "No upcoming events",
+			"loadError": "Failed to load event data",
+			"retry": "Retry"
+		},
+		"registerCta": {
+			"text": "Register for Richman to get personalized investment execution plans",
+			"button": "Register Now"
+		}
+	}
+}
