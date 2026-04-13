@@ -68,9 +68,7 @@ export function AssetCard({ asset }: AssetCardProps) {
 				<Text strong style={{ fontSize: 13, color: token.colorText }}>
 					{displayName}
 				</Text>
-				<Text
-					style={{ fontSize: 11, color: token.colorTextTertiary, marginLeft: 6 }}
-				>
+				<Text style={{ fontSize: 11, color: token.colorTextTertiary, marginLeft: 6 }}>
 					{asset.code}
 				</Text>
 			</div>

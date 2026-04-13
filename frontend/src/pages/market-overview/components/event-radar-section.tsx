@@ -14,11 +14,7 @@ function EventRow({ event }: EventRowProps) {
 	const { token } = useToken();
 
 	const impactTagColor =
-		event.impactLevel === "high"
-			? "error"
-			: event.impactLevel === "medium"
-				? "warning"
-				: "default";
+		event.impactLevel === "high" ? "error" : event.impactLevel === "medium" ? "warning" : "default";
 
 	const goldTagColor =
 		event.goldDirection === "bullish"
@@ -98,8 +94,7 @@ function EventRow({ event }: EventRowProps) {
 										: token.colorTextTertiary,
 						}}
 					>
-						{t("overview.eventRadar.change24h")}{" "}
-						{change24hSign}
+						{t("overview.eventRadar.change24h")} {change24hSign}
 						{(event.polymarketChange24h * 100).toFixed(1)}pp
 					</Text>
 				)}
@@ -122,14 +117,13 @@ export function EventRadarSection({ data, isLoading, isError, onRetry }: EventRa
 	const { token } = useToken();
 
 	return (
-		<Card
-			styles={{ body: { padding: "16px" } }}
-			style={{ marginTop: 24 }}
-		>
+		<Card styles={{ body: { padding: "16px" } }} style={{ marginTop: 24 }}>
 			<Title level={5} style={{ marginBottom: 4, marginTop: 0, fontSize: 14, fontWeight: 600 }}>
 				{t("overview.eventRadar.title")}
 			</Title>
-			<Text style={{ fontSize: 12, color: token.colorTextTertiary, display: "block", marginBottom: 12 }}>
+			<Text
+				style={{ fontSize: 12, color: token.colorTextTertiary, display: "block", marginBottom: 12 }}
+			>
 				{t("overview.eventRadar.subtitle")}
 			</Text>
 
@@ -148,21 +142,20 @@ export function EventRadarSection({ data, isLoading, isError, onRetry }: EventRa
 				/>
 			)}
 
-			{!isLoading && !isError && data && (
-				<>
-					{data.events.length === 0 ? (
-						<Text style={{ fontSize: 13, color: token.colorTextTertiary }}>
-							{t("overview.eventRadar.noEvents")}
-						</Text>
-					) : (
-						<div>
-							{data.events.map((event) => (
-								<EventRow key={event.id} event={event} />
-							))}
-						</div>
-					)}
-				</>
-			)}
+			{!isLoading &&
+				!isError &&
+				data &&
+				(data.events.length === 0 ? (
+					<Text style={{ fontSize: 13, color: token.colorTextTertiary }}>
+						{t("overview.eventRadar.noEvents")}
+					</Text>
+				) : (
+					<div>
+						{data.events.map((event) => (
+							<EventRow key={event.id} event={event} />
+						))}
+					</div>
+				))}
 		</Card>
 	);
 }

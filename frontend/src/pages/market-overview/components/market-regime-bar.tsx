@@ -96,10 +96,7 @@ export function MarketRegimeBar({ data, isLoading, isError }: MarketRegimeBarPro
 
 	if (isLoading) {
 		return (
-			<Card
-				style={{ marginBottom: 16 }}
-				styles={{ body: { padding: "12px 16px" } }}
-			>
+			<Card style={{ marginBottom: 16 }} styles={{ body: { padding: "12px 16px" } }}>
 				<Spin size="small" />
 			</Card>
 		);
@@ -110,10 +107,7 @@ export function MarketRegimeBar({ data, isLoading, isError }: MarketRegimeBarPro
 	const regimeLabel = t(`overview.regime.${data.regime}`);
 
 	return (
-		<Card
-			style={{ marginBottom: 16 }}
-			styles={{ body: { padding: "12px 16px" } }}
-		>
+		<Card style={{ marginBottom: 16 }} styles={{ body: { padding: "12px 16px" } }}>
 			<div
 				style={{
 					display: "flex",

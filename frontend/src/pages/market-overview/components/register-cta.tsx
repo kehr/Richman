@@ -30,9 +30,7 @@ export function RegisterCTA() {
 				boxShadow: "0 -2px 8px rgba(0,0,0,0.06)",
 			}}
 		>
-			<Text style={{ fontSize: 13, color: token.colorText }}>
-				{t("overview.registerCta.text")}
-			</Text>
+			<Text style={{ fontSize: 13, color: token.colorText }}>{t("overview.registerCta.text")}</Text>
 			<Button type="primary" size="small" onClick={() => navigate("/register")}>
 				{t("overview.registerCta.button")}
 			</Button>
