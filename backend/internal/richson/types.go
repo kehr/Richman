@@ -317,6 +317,29 @@ type WeeklyInsightResponse struct {
 	GeneratedAt time.Time              `json:"generatedAt"`
 }
 
+// ---- Request types for async job triggers ----
+
+// TriggerAssetAnalysisRequest is sent to POST /jobs/analyze-asset.
+type TriggerAssetAnalysisRequest struct {
+	AssetCode string     `json:"assetCode"`
+	Locale    string     `json:"locale"`
+	LLMConfig *LLMConfig `json:"llmConfig"`
+	RequestID string     `json:"requestId,omitempty"`
+}
+
+// BatchAnalyzeAsset is a single entry within a batch analyze request.
+type BatchAnalyzeAsset struct {
+	AssetCode string `json:"assetCode"`
+	Locale    string `json:"locale"`
+}
+
+// TriggerBatchAnalysisRequest is sent to POST /jobs/batch-analyze.
+type TriggerBatchAnalysisRequest struct {
+	Assets    []BatchAnalyzeAsset `json:"assets"`
+	LLMConfig *LLMConfig          `json:"llmConfig"`
+	RequestID string              `json:"requestId,omitempty"`
+}
+
 // ---- Health ----
 
 // HealthResponse is returned by GET /health.

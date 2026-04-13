@@ -235,9 +235,9 @@ func IsRichsonError(err error) (*RichsonError, bool) {
 // ---- Public Methods ----
 
 // TriggerAssetAnalysis sends POST /jobs/analyze-asset and returns a JobResponse.
-func (c *Client) TriggerAssetAnalysis(ctx context.Context, assetCode string) (*JobResponse, error) {
-	payload := map[string]string{"assetCode": assetCode}
-	body, err := marshalBody(payload)
+func (c *Client) TriggerAssetAnalysis(ctx context.Context, req TriggerAssetAnalysisRequest) (*JobResponse, error) {
+	req.RequestID = extractRequestID(ctx)
+	body, err := marshalBody(req)
 	if err != nil {
 		return nil, err
 	}
@@ -255,9 +255,9 @@ func (c *Client) TriggerAssetAnalysis(ctx context.Context, assetCode string) (*J
 }
 
 // TriggerBatchAnalysis sends POST /jobs/batch-analyze and returns a BatchJobResponse.
-func (c *Client) TriggerBatchAnalysis(ctx context.Context, assetCodes []string) (*BatchJobResponse, error) {
-	payload := map[string][]string{"assetCodes": assetCodes}
-	body, err := marshalBody(payload)
+func (c *Client) TriggerBatchAnalysis(ctx context.Context, req TriggerBatchAnalysisRequest) (*BatchJobResponse, error) {
+	req.RequestID = extractRequestID(ctx)
+	body, err := marshalBody(req)
 	if err != nil {
 		return nil, err
 	}
