@@ -22,6 +22,29 @@ func NewAnalysisJobReadRepo(pool *pgxpool.Pool) *AnalysisJobReadRepo {
 	return &AnalysisJobReadRepo{pool: pool}
 }
 
+// FailExpiredJobs sets status='failed' on any rs_analysis_jobs rows that are
+// still pending or running but whose expires_at has passed. This is the sole
+// cross-service write that richman makes to rs_analysis_jobs; it is triggered
+// by a cron task every 10 minutes to prevent stale jobs from blocking dashboards.
+// Returns the number of rows updated.
+func (r *AnalysisJobReadRepo) FailExpiredJobs(ctx context.Context) (int64, error) {
+	tag, err := r.pool.Exec(ctx,
+		`UPDATE rs_analysis_jobs
+		 SET status        = 'failed',
+		     error_message = 'job expired',
+		     error_code    = 'JOB_EXPIRED',
+		     updated_at    = NOW(),
+		     modifier      = 'richman_cron'
+		 WHERE status IN ('pending', 'running')
+		   AND expires_at < NOW()
+		   AND is_deleted  = 0`,
+	)
+	if err != nil {
+		return 0, fmt.Errorf("fail expired jobs: %w", err)
+	}
+	return tag.RowsAffected(), nil
+}
+
 // GetByJobID returns a job by its UUID string. Returns nil if not found.
 func (r *AnalysisJobReadRepo) GetByJobID(
 	ctx context.Context, jobID string,
