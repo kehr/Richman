@@ -31,12 +31,18 @@ func NewAnalysisHandler(analysisSvc *analysisService.Service) *AnalysisHandler {
 // RegisterRoutes registers analysis routes on the given router group.
 // Reanalyze-all is installed behind a per-user 1/10min rate limit so the
 // dashboard banner CTA cannot be used to hammer the synthesis pipeline.
+//
+// The /trigger and /tasks/:taskId endpoints are superseded by v2
+// /analysis/trigger-asset and /analysis/jobs/:jobId respectively. They carry
+// Deprecation/Sunset headers to signal the sunset date to API consumers.
 func (h *AnalysisHandler) RegisterRoutes(rg *gin.RouterGroup, authMiddleware gin.HandlerFunc) {
 	group := rg.Group("/analysis", authMiddleware)
-	group.POST("/trigger", h.Trigger)
+	// Deprecated: superseded by POST /api/v2/analysis/trigger-asset
+	group.POST("/trigger", middleware.Deprecation(), h.Trigger)
 	group.POST("/reanalyze-all", middleware.PerUserRateLimit(reanalyzeAllWindow), h.ReanalyzeAll)
 	group.POST("/reanalyze/:holdingId", h.ReanalyzeSingle)
-	group.GET("/tasks/:taskId", h.GetTask)
+	// Deprecated: superseded by GET /api/v2/analysis/jobs/:jobId
+	group.GET("/tasks/:taskId", middleware.Deprecation(), h.GetTask)
 }
 
 // Trigger handles POST /api/v1/analysis/trigger.

@@ -12,15 +12,18 @@ import (
 
 // Config holds all application configuration.
 type Config struct {
-	App          AppConfig
-	Database     DatabaseConfig
-	JWT          JWTConfig
-	LLM          LLMConfig
-	Notification NotificationConfig
-	Log          LogConfig
-	Datasource   DatasourceConfig
-	Analysis     AnalysisConfig
-	Richson      RichsonConfig
+	App              AppConfig
+	Database         DatabaseConfig
+	JWT              JWTConfig
+	LLM              LLMConfig
+	PlatformLLM      PlatformLLMConfig
+	CORS             CORSConfig
+	Notification     NotificationConfig
+	NotificationExt  NotificationExtConfig
+	Log              LogConfig
+	Datasource       DatasourceConfig
+	Analysis         AnalysisConfig
+	Richson          RichsonConfig
 }
 
 // AppConfig holds application-level settings.
@@ -101,6 +104,27 @@ type AnalysisConfig struct {
 type RichsonConfig struct {
 	BaseURL string
 	APIKey  string
+}
+
+// PlatformLLMConfig holds the platform-level LLM used for batch analysis and
+// weekly insight jobs (separate from per-user LLM configs).
+type PlatformLLMConfig struct {
+	Provider string // "claude" or "openai"
+	APIKey   string
+	Model    string
+	APIBase  string // optional override for openai_compatible endpoints
+}
+
+// CORSConfig holds allowed origin settings for CORS middleware.
+type CORSConfig struct {
+	AllowedOrigins []string
+}
+
+// NotificationExtConfig holds additional notification settings beyond the core
+// adapters (SMTP, WeChat, Feishu).
+type NotificationExtConfig struct {
+	AppBaseURL string // public-facing base URL for unsubscribe links
+	SMTPFrom   string // formatted From address (e.g. "Richman <noreply@richman.app>")
 }
 
 // Load reads configuration from .env file and environment variables.
@@ -200,6 +224,19 @@ func Load() (*Config, error) {
 			BaseURL: getEnv("RICHSON_BASE_URL", "http://localhost:8100"),
 			APIKey:  getEnv("RICHSON_API_KEY", ""),
 		},
+		PlatformLLM: PlatformLLMConfig{
+			Provider: getEnv("PLATFORM_LLM_PROVIDER", "claude"),
+			APIKey:   getEnv("PLATFORM_LLM_API_KEY", ""),
+			Model:    getEnv("PLATFORM_LLM_MODEL", "claude-sonnet-4-20250514"),
+			APIBase:  getEnv("PLATFORM_LLM_API_BASE", ""),
+		},
+		CORS: CORSConfig{
+			AllowedOrigins: parseCommaSeparated(getEnv("CORS_ALLOWED_ORIGINS", "http://localhost:3000")),
+		},
+		NotificationExt: NotificationExtConfig{
+			AppBaseURL: getEnv("APP_BASE_URL", ""),
+			SMTPFrom:   getEnv("SMTP_FROM", ""),
+		},
 	}
 
 	if err := cfg.validate(); err != nil {
@@ -252,4 +289,20 @@ func getEnv(key, fallback string) string {
 		return val
 	}
 	return fallback
+}
+
+// parseCommaSeparated splits a comma-separated string into a trimmed slice,
+// filtering out empty entries.
+func parseCommaSeparated(s string) []string {
+	if s == "" {
+		return nil
+	}
+	parts := strings.Split(s, ",")
+	out := make([]string, 0, len(parts))
+	for _, p := range parts {
+		if t := strings.TrimSpace(p); t != "" {
+			out = append(out, t)
+		}
+	}
+	return out
 }

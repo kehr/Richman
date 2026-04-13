@@ -21,6 +21,7 @@ import (
 	"github.com/richman/backend/internal/analysis/weight"
 	"github.com/richman/backend/internal/api/middleware"
 	v1 "github.com/richman/backend/internal/api/v1"
+	v2 "github.com/richman/backend/internal/api/v2"
 	"github.com/richman/backend/internal/config"
 	"github.com/richman/backend/internal/datasource"
 	akshare "github.com/richman/backend/internal/datasource/akshare"
@@ -36,10 +37,12 @@ import (
 	feishuAdapter "github.com/richman/backend/internal/notification/adapter/feishu"
 	wechatAdapter "github.com/richman/backend/internal/notification/adapter/wechat"
 	"github.com/richman/backend/internal/repo"
+	"github.com/richman/backend/internal/richson"
 	"github.com/richman/backend/internal/service/auth"
 	inviteSvc "github.com/richman/backend/internal/service/invite"
 	"github.com/richman/backend/internal/service/portfolio"
 	scheduleSvc "github.com/richman/backend/internal/service/schedule"
+	"github.com/robfig/cron/v3"
 	"go.uber.org/zap"
 
 	// Note: claude and openai packages register provider factories via
@@ -48,8 +51,13 @@ import (
 	// can find them without needing a separate blank import.
 
 	analysisService "github.com/richman/backend/internal/service/analysis"
+	briefingSvc "github.com/richman/backend/internal/service/briefing"
 	decisioncard "github.com/richman/backend/internal/service/decision_card"
+	emailpush "github.com/richman/backend/internal/service/emailpush"
+	emailpushtemplate "github.com/richman/backend/internal/service/emailpush/template"
 	"github.com/richman/backend/internal/service/exchangerate"
+	feedbackSvc "github.com/richman/backend/internal/service/feedback"
+	marketSvc "github.com/richman/backend/internal/service/market"
 	notificationSvc "github.com/richman/backend/internal/service/notification"
 	onboardingSvc "github.com/richman/backend/internal/service/onboarding"
 	quoteSvc "github.com/richman/backend/internal/service/quote"
@@ -76,6 +84,19 @@ func main() {
 		zap.String("env", cfg.App.Env),
 		zap.Int("port", cfg.App.Port),
 	)
+
+	// Startup config validation: warn or fatal on missing required settings.
+	if cfg.Richson.BaseURL == "" {
+		zapLogger.Fatal("RICHSON_BASE_URL is required")
+	}
+	if !cfg.IsDev() {
+		if cfg.Richson.APIKey == "" {
+			zapLogger.Fatal("RICHSON_API_KEY is required in non-dev environments")
+		}
+		if cfg.PlatformLLM.APIKey == "" {
+			zapLogger.Fatal("PLATFORM_LLM_API_KEY is required in non-dev environments")
+		}
+	}
 
 	// Connect to database
 	ctx := context.Background()
@@ -116,6 +137,13 @@ func main() {
 	notifLogRepo := repo.NewNotificationLogRepo(dbPool)
 	llmConfigRepo := repo.NewLLMConfigRepo(dbPool)
 	scheduleRepo := repo.NewScheduleRepo(dbPool)
+
+	// v2 read-only repos (rs_* tables)
+	assetAnalysisReadRepo := repo.NewAssetAnalysisReadRepo(dbPool)
+	analysisDimensionReadRepo := repo.NewAnalysisDimensionReadRepo(dbPool)
+	analysisJobReadRepo := repo.NewAnalysisJobReadRepo(dbPool)
+	eventAlertReadRepo := repo.NewEventAlertReadRepo(dbPool)
+	userFeedbackRepo := repo.NewUserFeedbackRepo(dbPool)
 
 	// Initialize services
 	inviteService := inviteSvc.NewService(userInviteCodeRepo, inviteRewardRepo, userRepo, dbPool, zapLogger)
@@ -279,12 +307,81 @@ func main() {
 
 	notifService := notificationSvc.NewService(notifChannelRepo, notifLogRepo, dispatcher, zapLogger)
 
-	// Initialize scheduler
+	// Initialize v1 scheduler (manages per-user cron entries for analysis windows)
 	scheduler := analysisService.NewScheduler(
 		analysisSvc, notifService, holdingRepo, cardRepo, userRepo, scheduleService, zapLogger,
 	)
 
-	// Initialize handlers
+	// Initialize richson client
+	richsonClient := richson.NewClient(cfg.Richson, zapLogger)
+
+	// Async startup health check for richson (non-blocking)
+	go func() {
+		if _, err := richsonClient.HealthCheck(context.Background()); err != nil {
+			zapLogger.Warn("richson not reachable at startup", zap.Error(err))
+		} else {
+			zapLogger.Info("richson connected")
+		}
+	}()
+
+	// Initialize v2 services
+	marketService := marketSvc.NewService(assetRepo, assetAnalysisReadRepo, analysisDimensionReadRepo, zapLogger)
+	briefingService := briefingSvc.NewService(holdingRepo, assetAnalysisReadRepo, cardRepo, zapLogger)
+	feedbackService := feedbackSvc.NewService(userFeedbackRepo, zapLogger)
+
+	// v2 holding analyzer (richson-backed, per-holding analysis)
+	v2HoldingAnalyzer := analysisService.NewV2HoldingAnalyzer(&analysisService.V2HoldingAnalyzerDeps{
+		HoldingRepo:   holdingRepo,
+		AnalysisRepo:  assetAnalysisReadRepo,
+		UserRepo:      userRepo,
+		LLMConfigRepo: llmConfigRepo,
+		CardRepo:      cardRepo,
+		RichsonClient: richsonClient,
+		Crypto:        llmCrypto,
+		Logger:        zapLogger,
+	})
+
+	// Initialize email push service
+	emailSender := emailpush.NewSender(
+		cfg.Notification.SMTPHost,
+		cfg.Notification.SMTPPort,
+		cfg.Notification.SMTPUser,
+		cfg.Notification.SMTPPassword,
+		cfg.NotificationExt.SMTPFrom,
+		zapLogger,
+	)
+	templateEngine, err := emailpushtemplate.NewEngine(
+		filepath.Join("internal", "service", "emailpush", "template"),
+		zapLogger,
+	)
+	if err != nil {
+		if cfg.IsDev() {
+			zapLogger.Warn("email template engine failed to initialize; email push disabled in dev",
+				zap.Error(err),
+			)
+			templateEngine = nil
+		} else {
+			zapLogger.Fatal("email template engine failed to initialize", zap.Error(err))
+		}
+	}
+	var emailPushService *emailpush.Service
+	if templateEngine != nil {
+		emailPushService = emailpush.NewService(
+			userRepo,
+			assetAnalysisReadRepo,
+			holdingRepo,
+			cardRepo,
+			eventAlertReadRepo,
+			richsonClient,
+			emailSender,
+			templateEngine,
+			notifLogRepo,
+			cfg.NotificationExt.AppBaseURL,
+			zapLogger,
+		)
+	}
+
+	// Initialize handlers (v1)
 	authHandler := v1.NewAuthHandler(authService)
 	assetCatalogHandler := v1.NewAssetCatalogHandler(assetRepo)
 	portfolioHandler := v1.NewPortfolioHandler(portfolioService, userSettingsService)
@@ -331,9 +428,28 @@ func main() {
 	router.Use(middleware.CORS(cfg))
 	router.Use(middleware.AccessLog())
 
-	// Health check
+	// Content-Security-Policy header (G2.7)
+	router.Use(func(c *gin.Context) {
+		c.Header("Content-Security-Policy", "default-src 'self'; script-src 'self'; object-src 'none'")
+		c.Next()
+	})
+
+	// Health check (enriched with richson status)
 	router.GET("/health", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{"status": "ok"})
+		healthCtx, cancel := context.WithTimeout(c.Request.Context(), 3*time.Second)
+		defer cancel()
+
+		richsonStatus := "ok"
+		if _, err := richsonClient.HealthCheck(healthCtx); err != nil {
+			richsonStatus = "degraded"
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"status": "ok",
+			"dependencies": gin.H{
+				"richson": richsonStatus,
+			},
+		})
 	})
 
 	// API v1 routes
@@ -355,8 +471,47 @@ func main() {
 	quoteHandler.RegisterRoutes(apiV1, authMiddleware)
 	scheduleHandler.RegisterRoutes(apiV1, authMiddleware)
 
-	// Start scheduler
+	// API v2 routes
+	v2.RegisterV2Routes(
+		router,
+		richsonClient,
+		marketService,
+		briefingService,
+		feedbackService,
+		v2HoldingAnalyzer,
+		userSettingsService,
+		inviteService,
+		analysisJobReadRepo,
+		assetAnalysisReadRepo,
+		authMiddleware,
+		zapLogger,
+	)
+
+	// Start v1 scheduler
 	scheduler.Start()
+
+	// Start v2 cron (separate cron instance from the v1 per-user scheduler)
+	v2Cron := cron.New()
+	if emailPushService != nil {
+		scheduleSvc.RegisterV2CronJobs(
+			v2Cron,
+			richsonClient,
+			emailPushService,
+			v2HoldingAnalyzer,
+			eventAlertReadRepo,
+			analysisJobReadRepo,
+			assetRepo,
+			assetAnalysisReadRepo,
+			holdingRepo,
+			userRepo,
+			notifLogRepo,
+			cfg,
+			zapLogger,
+		)
+	} else {
+		zapLogger.Warn("email push service not initialized; v2 cron jobs skipped")
+	}
+	v2Cron.Start()
 
 	// Start server
 	srv := &http.Server{
@@ -378,8 +533,22 @@ func main() {
 
 	zapLogger.Info("shutting down server...")
 
-	// Stop scheduler
+	// Stop v1 scheduler
 	scheduler.Stop()
+
+	// Stop v2 cron and wait for running jobs (max 60s)
+	v2CronCtx := v2Cron.Stop()
+	cronDone := make(chan struct{})
+	go func() {
+		<-v2CronCtx.Done()
+		close(cronDone)
+	}()
+	select {
+	case <-cronDone:
+		zapLogger.Info("v2 cron jobs finished")
+	case <-time.After(60 * time.Second):
+		zapLogger.Warn("v2 cron jobs did not finish within 60s")
+	}
 
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()

@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/richman/backend/internal/api/middleware"
 	analysisService "github.com/richman/backend/internal/service/analysis"
 )
 
@@ -18,8 +19,9 @@ func NewTaskHandler(taskStore *analysisService.TaskStore) *TaskHandler {
 }
 
 // RegisterRoutes registers task routes on the given router group.
+// Deprecated: task status is superseded by GET /api/v2/analysis/jobs/:jobId.
 func (h *TaskHandler) RegisterRoutes(rg *gin.RouterGroup, authMiddleware gin.HandlerFunc) {
-	group := rg.Group("/tasks", authMiddleware)
+	group := rg.Group("/tasks", authMiddleware, middleware.Deprecation())
 	group.GET("/:taskId", h.GetStatus)
 }
 
