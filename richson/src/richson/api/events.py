@@ -1,112 +1,135 @@
 """Event radar endpoint.
 
-GET /events/radar - upcoming macro events with Polymarket probabilities
+GET /events/radar - upcoming macro events from FRED + Polymarket.
 """
 
 from __future__ import annotations
 
 import asyncio
 from datetime import UTC, datetime, timedelta
+from typing import Any
 
 import structlog
 from fastapi import APIRouter, Depends
 
 from richson.api.auth import require_api_key
+from richson.config import settings
+from richson.config.event_metadata import (
+    FRED_RELEASE_METADATA,
+    fred_release_url,
+    polymarket_event_url,
+)
+from richson.datasources.fred import FREDClient, FREDReleaseDate
+from richson.datasources.polymarket import PolymarketClient
 
 router = APIRouter(prefix="/events", dependencies=[Depends(require_api_key)])
 logger = structlog.get_logger()
 
-# Built-in economic calendar (fixed scheduled events)
-# Each entry: (day_offset_from_today, title, category, impact, gold_direction)
-_FIXED_EVENTS: list[tuple[int, str, str, str, str]] = [
-    # These represent typical event windows; real deployment would use a calendar API
-    (3, "FOMC Meeting Minutes Release", "monetary_policy", "high", "bullish"),
-    (5, "US CPI Data Release", "inflation", "high", "bullish"),
-    (7, "US Non-Farm Payrolls", "employment", "high", "neutral"),
-    (10, "US PPI Data", "inflation", "medium", "neutral"),
-    (14, "FOMC Member Speeches", "monetary_policy", "medium", "neutral"),
-]
+# Keep in sync with frontend i18n market.overview.eventRadar.subtitle
+# ("Upcoming key macro events in the next 7 days").
+EVENT_WINDOW_DAYS = 7
+
+# Cap Polymarket entries to keep the radar focused on the highest-volume
+# markets, matching the prior implementation.
+_MAX_POLYMARKET_ENTRIES = 5
 
 
 @router.get("/radar")
-async def get_event_radar() -> dict:
-    """Return upcoming macro events with Polymarket probabilities.
+async def get_event_radar() -> dict[str, Any]:
+    """Return upcoming macro events with optional Polymarket probabilities.
 
-    Events are sourced from the built-in economic calendar plus Polymarket.
-    When Polymarket is unavailable, events are shown without probability data.
+    FRED entries come from the official release calendar within a fixed
+    7-day horizon; Polymarket entries come from gold-relevant markets whose
+    end_date falls in the same horizon. Each source degrades independently.
     """
-    from richson.datasources.polymarket import PolymarketClient  # noqa: PLC0415
-
+    fred_client = FREDClient(api_key=settings.fred_api_key)
     poly_client = PolymarketClient()
 
-    # Fetch Polymarket data (non-blocking)
-    polymarket_markets: list[dict] = []
-    try:
-        polymarket_markets = await asyncio.to_thread(poly_client.get_gold_relevant_markets)
-    except Exception as exc:
-        logger.warning("polymarket_unavailable", error=str(exc))
+    fred_task = asyncio.to_thread(fred_client.get_upcoming_releases, EVENT_WINDOW_DAYS)
+    poly_task = asyncio.to_thread(poly_client.get_gold_relevant_markets)
 
-    # Build probability lookup from Polymarket
-    poly_by_keyword: dict[str, tuple[float, float | None]] = {}
-    for market in polymarket_markets:
-        prob = market.get("yes_probability")
-        question = market.get("question", "").lower()
-        if prob is not None:
-            poly_by_keyword[question] = (float(prob), None)  # second item = 24h change (unknown)
+    fred_result, poly_result = await asyncio.gather(
+        fred_task, poly_task, return_exceptions=True
+    )
+
+    fred_releases: list[FREDReleaseDate] = []
+    if isinstance(fred_result, BaseException):
+        logger.warning("fred unavailable for event radar", error=str(fred_result))
+    else:
+        fred_releases = fred_result
+
+    poly_markets: list[dict[str, Any]] = []
+    if isinstance(poly_result, BaseException):
+        logger.warning("polymarket unavailable for event radar", error=str(poly_result))
+    else:
+        poly_markets = poly_result
 
     today = datetime.now(tz=UTC)
-    events: list[dict] = []
+    horizon = today + timedelta(days=EVENT_WINDOW_DAYS)
+    events: list[dict[str, Any]] = []
 
-    # Fixed calendar events
-    for day_offset, title, category, impact, gold_direction in _FIXED_EVENTS:
-        event_date = today + timedelta(days=day_offset)
-
-        # Try to match with Polymarket
-        probability = None
-        probability_source = None
-        probability_change_24h = None
-
-        title_lower = title.lower()
-        for question, (prob, delta) in poly_by_keyword.items():
-            if any(kw in question for kw in title_lower.split()[:3] if len(kw) > 3):
-                probability = round(prob, 4)
-                probability_source = "polymarket"
-                probability_change_24h = delta
-                break
-
+    # Build FRED entries from the whitelisted release metadata.
+    for release in fred_releases:
+        meta = FRED_RELEASE_METADATA.get(release.release_id)
+        if meta is None:
+            # Defensive: the client also filters by the whitelist.
+            continue
         events.append({
-            "date": event_date.strftime("%Y-%m-%d"),
-            "title": title,
-            "category": category,
-            "impact": impact,
-            "goldDirection": gold_direction,
-            "probability": probability,
-            "probabilitySource": probability_source,
-            "probabilityChange24h": probability_change_24h,
+            "date": release.date,
+            "title": meta.en_title,
+            "category": meta.category,
+            "impact": meta.impact,
+            "goldDirection": meta.gold_direction,
+            "probability": None,
+            "probabilitySource": None,
+            "probabilityChange24h": None,
+            "sourceUrl": fred_release_url(release.release_id),
+            "sourceName": "FRED",
+            "releaseId": release.release_id,
         })
 
-    # Add Polymarket-only events (events without a calendar match)
-    for market in polymarket_markets[:5]:  # limit to top 5
-        question = market.get("question", "")
-        if not question:
+    # Build Polymarket entries: highest-volume markets within the horizon.
+    # polymarket.py:143 stores `market.get("endDate")` under key `"end_date"`.
+    # The previous events.py used `"end_date_iso"` which never existed
+    # (latent bug); read the correct key here.
+    for market in poly_markets[:_MAX_POLYMARKET_ENTRIES]:
+        slug = market.get("slug")
+        question = market.get("question") or ""
+        end_date_raw = market.get("end_date") or ""
+        if not slug or not question:
+            continue
+        date_str = end_date_raw[:10] if end_date_raw else today.strftime("%Y-%m-%d")
+        try:
+            event_dt = datetime.fromisoformat(date_str).replace(tzinfo=UTC)
+        except ValueError:
+            continue
+        if event_dt < today or event_dt > horizon:
             continue
         prob = market.get("yes_probability")
-        end_date = market.get("end_date_iso", "")
-        gold_direction = _infer_gold_direction(question)
-
         events.append({
-            "date": end_date[:10] if end_date else today.strftime("%Y-%m-%d"),
+            "date": date_str,
             "title": question,
             "category": "market_event",
             "impact": "medium",
-            "goldDirection": gold_direction,
+            "goldDirection": None,
             "probability": round(float(prob), 4) if prob is not None else None,
             "probabilitySource": "polymarket" if prob is not None else None,
             "probabilityChange24h": None,
+            "sourceUrl": polymarket_event_url(str(slug)),
+            "sourceName": "Polymarket",
+            "releaseId": None,
         })
 
-    # Sort by date
     events.sort(key=lambda e: e["date"])
+
+    fred_count = sum(1 for e in events if e["sourceName"] == "FRED")
+    polymarket_count = sum(1 for e in events if e["sourceName"] == "Polymarket")
+    logger.info(
+        "event radar built",
+        fred_count=fred_count,
+        polymarket_count=polymarket_count,
+        total=len(events),
+    )
 
     return {
         "data": {
@@ -114,14 +137,3 @@ async def get_event_radar() -> dict:
             "updatedAt": today.isoformat(),
         }
     }
-
-
-def _infer_gold_direction(question: str) -> str | None:
-    q = question.lower()
-    bullish_kw = ["rate cut", "easing", "war", "conflict", "recession", "crisis", "geopolitical"]
-    bearish_kw = ["rate hike", "hawkish", "risk on", "growth"]
-    if any(kw in q for kw in bullish_kw):
-        return "bullish"
-    if any(kw in q for kw in bearish_kw):
-        return "bearish"
-    return None

@@ -22,6 +22,9 @@ class EventItem(BaseModel):
     probability_change_24h: float | None = Field(
         default=None, alias="probabilityChange24h"
     )
+    source_url: str | None = Field(default=None, alias="sourceUrl")
+    source_name: str | None = Field(default=None, alias="sourceName")
+    release_id: int | None = Field(default=None, alias="releaseId")
 
     model_config = {"populate_by_name": True}
 
