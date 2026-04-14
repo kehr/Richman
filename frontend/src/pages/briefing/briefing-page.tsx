@@ -51,11 +51,18 @@ export default function BriefingPage() {
 	};
 
 	const handleFeedback = async (card: BriefingCardDto, rating: FeedbackRating) => {
+		// The backend feedback row references rs_asset_analyses.asset_analysis_id,
+		// so a card without a backing analysis cannot be rated. The card UI
+		// already hides feedback buttons in that case; this guard keeps the page
+		// defensive in case future code paths call this directly.
+		if (card.assetAnalysisId == null) {
+			message.info(t("briefing.feedback.unavailable"));
+			return;
+		}
 		setFeedbackPendingId(card.holdingId);
 		try {
 			await feedbackMutation.mutateAsync({
-				target: "briefing_card",
-				targetId: card.holdingId,
+				assetAnalysisId: card.assetAnalysisId,
 				rating,
 			});
 		} catch {
@@ -72,7 +79,7 @@ export default function BriefingPage() {
 					<BriefingHeader
 						viewMode={viewMode}
 						onViewModeChange={setViewMode}
-						generatedAt={briefing?.generatedAt}
+						updatedAt={briefing?.updatedAt}
 					/>
 				)}
 

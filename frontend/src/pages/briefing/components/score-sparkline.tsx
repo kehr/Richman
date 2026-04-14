@@ -2,13 +2,9 @@
 // This is a deliberate lightweight alternative to echarts to avoid adding a
 // heavy dependency for a small inline preview chart.
 
-interface ScoreTrendPoint {
-	date: string;
-	score: number;
-}
-
 interface ScoreSparklineProps {
-	data: ScoreTrendPoint[];
+	// Oldest-first list of composite scores (0-100) emitted by richson.
+	data: number[];
 	width?: number;
 	height?: number;
 }
@@ -16,20 +12,19 @@ interface ScoreSparklineProps {
 export function ScoreSparkline({ data, width = 240, height = 48 }: ScoreSparklineProps) {
 	if (data.length < 2) return null;
 
-	const scores = data.map((d) => d.score);
-	const minScore = Math.min(...scores);
-	const maxScore = Math.max(...scores);
+	const minScore = Math.min(...data);
+	const maxScore = Math.max(...data);
 	const range = maxScore - minScore || 1;
 
 	// Normalize score to SVG y coordinate (top = high score).
 	const toY = (score: number) => height - ((score - minScore) / range) * (height - 8) - 4;
 	const toX = (index: number) => (index / (data.length - 1)) * width;
 
-	const points = data.map((d, i) => `${toX(i).toFixed(1)},${toY(d.score).toFixed(1)}`);
+	const points = data.map((score, i) => `${toX(i).toFixed(1)},${toY(score).toFixed(1)}`);
 	const polyline = points.join(" ");
 
 	// Color the line by last score level: green >= 60, orange >= 40, red < 40.
-	const lastScore = scores[scores.length - 1];
+	const lastScore = data[data.length - 1];
 	const lineColor =
 		lastScore >= 60
 			? "var(--ant-color-success)"

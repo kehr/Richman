@@ -68,7 +68,7 @@ export function GlobalFrequencySelector({
 											onChange={handleDaysChange}
 											size="small"
 											style={{ width: 80 }}
-											addonAfter="天"
+											addonAfter={t("schedule.globalFrequency.customDaysUnit")}
 											onClick={(e) => e.stopPropagation()}
 										/>
 									)}

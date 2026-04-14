@@ -3,7 +3,8 @@ import { useMoney } from "@/domain/money/useMoney";
 import { Card, Divider, Space, Typography } from "@/ui-kit/eat";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import type { DecisionCardDTO, HoldingAnalysisStatus } from "../types";
+import { isV2Card } from "../types";
+import type { Action, DecisionCardDTO, HoldingAnalysisStatus } from "../types";
 import { ChangeBadge } from "./ChangeBadge";
 import { DimensionBadges } from "./DimensionBadges";
 import { ExecutionPlanStrip } from "./ExecutionPlanStrip";
@@ -202,15 +203,26 @@ export function DecisionCardSummary({
 				}}
 				data-testid="card-recommendation-box"
 			>
-				<Title level={5} style={{ margin: 0, marginBottom: 8 }}>
-					{t(`decisionCard.recommendation.${card.recommendation.action}`)}
-				</Title>
-				<ExecutionPlanStrip
-					execution={card.recommendation.execution}
-					onShowAll={onShowFullPlan ? () => onShowFullPlan(card) : undefined}
-					positionAmountCny={card.positionAmount}
-					positionRatioPct={card.positionRatio}
-				/>
+				{isV2Card(card) ? (
+					<>
+						<Title level={5} style={{ margin: 0, marginBottom: 8 }}>
+							{t(`decisionCard.recommendation.${card.recommendation.action as Action}`)}
+						</Title>
+						<ExecutionPlanStrip
+							execution={card.recommendation.execution}
+							onShowAll={onShowFullPlan ? () => onShowFullPlan(card) : undefined}
+							positionAmountCny={card.positionAmount}
+							positionRatioPct={card.positionRatio}
+						/>
+					</>
+				) : (
+					<div data-testid="card-legacy-recommendation">
+						<Title level={5} style={{ margin: 0, marginBottom: 8 }}>
+							{t("decisionCard.legacyCard.title")}
+						</Title>
+						<Text>{card.actionAdvice || t("decisionCard.legacyCard.empty")}</Text>
+					</div>
+				)}
 			</div>
 
 			{card.todayHighlights && (

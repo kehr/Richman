@@ -26,8 +26,9 @@ interface BriefingCardProps {
 }
 
 // BriefingCard renders one holding's briefing summary (TRD SS6.2).
-// Compact mode shows: header + position info + action summary.
-// Detailed mode adds: sparkline, change attribution, conflict warning, feedback.
+// Compact mode shows: header (asset name + score + direction) + position info.
+// Detailed mode adds: sparkline, change attribution, conflict warning,
+// concentration banner, feedback buttons.
 export function BriefingCard({
 	card,
 	viewMode,
@@ -39,6 +40,12 @@ export function BriefingCard({
 	const [localRating, setLocalRating] = useState<FeedbackRating | null>(null);
 
 	const isDetailed = viewMode === "detailed";
+
+	// Backend serialises decimal fields (cost_price, position_ratio) as strings;
+	// parse once here so layout code can format/compare numerically. parseFloat
+	// returns NaN for empty strings which we treat as "value unavailable".
+	const costPriceNum = parseDecimalOrNull(card.costPrice);
+	const positionRatioNum = parseDecimalOrNull(card.positionRatio);
 
 	// Direction badge color
 	const directionColor =
@@ -104,25 +111,25 @@ export function BriefingCard({
 
 			{/* Position info: cost + ratio + PnL */}
 			<Flex gap={16} style={{ marginTop: 10 }}>
-				{card.costPrice != null && (
+				{costPriceNum != null && (
 					<Flex vertical gap={0}>
 						<Typography.Text type="secondary" style={{ fontSize: 11 }}>
 							{t("briefing.card.costLabel")}
 						</Typography.Text>
-						<Typography.Text style={{ fontSize: 13 }}>{card.costPrice.toFixed(3)}</Typography.Text>
+						<Typography.Text style={{ fontSize: 13 }}>{costPriceNum.toFixed(3)}</Typography.Text>
 					</Flex>
 				)}
-				{card.positionRatio != null && (
+				{positionRatioNum != null && (
 					<Flex vertical gap={0}>
 						<Typography.Text type="secondary" style={{ fontSize: 11 }}>
 							{t("briefing.card.positionLabel")}
 						</Typography.Text>
 						<Typography.Text style={{ fontSize: 13 }}>
-							{card.positionRatio.toFixed(1)}%
+							{positionRatioNum.toFixed(1)}%
 						</Typography.Text>
 					</Flex>
 				)}
-				{card.unrealizedPnlPct != null && (
+				{card.pnlPercent != null && (
 					<Flex vertical gap={0}>
 						<Typography.Text type="secondary" style={{ fontSize: 11 }}>
 							{t("briefing.card.pnlLabel")}
@@ -131,29 +138,29 @@ export function BriefingCard({
 							style={{
 								fontSize: 13,
 								color:
-									card.unrealizedPnlPct > 0
+									card.pnlPercent > 0
 										? "var(--ant-color-success)"
-										: card.unrealizedPnlPct < 0
+										: card.pnlPercent < 0
 											? "var(--ant-color-error)"
 											: undefined,
 							}}
 						>
-							{card.unrealizedPnlPct > 0 ? "+" : ""}
-							{card.unrealizedPnlPct.toFixed(2)}%
+							{card.pnlPercent > 0 ? "+" : ""}
+							{card.pnlPercent.toFixed(2)}%
 						</Typography.Text>
 					</Flex>
 				)}
 			</Flex>
 
 			{/* Sparkline — only in detailed mode */}
-			{isDetailed && card.scoreTrend.length > 1 && (
+			{isDetailed && card.sparklineScores.length > 1 && (
 				<div
 					style={{ marginTop: 10 }}
 					onClick={(e) => e.stopPropagation()}
 					onKeyDown={(e) => e.stopPropagation()}
 					role="presentation"
 				>
-					<ScoreSparkline data={card.scoreTrend} />
+					<ScoreSparkline data={card.sparklineScores} />
 				</div>
 			)}
 
@@ -180,19 +187,15 @@ export function BriefingCard({
 				</Typography.Text>
 			)}
 
-			{/* Action summary — always shown */}
-			{card.actionSummary && (
-				<Typography.Text
-					type="secondary"
-					style={{ fontSize: 12, display: "block", marginTop: 8 }}
-					ellipsis={!isDetailed}
-				>
-					{card.actionSummary}
+			{/* Concentration banner — detailed only, non-green */}
+			{isDetailed && card.concentrationLevel !== "green" && (
+				<Typography.Text type="secondary" style={{ fontSize: 12, display: "block", marginTop: 6 }}>
+					{card.concentrationMessage}
 				</Typography.Text>
 			)}
 
-			{/* Feedback buttons — detailed mode only */}
-			{isDetailed && (
+			{/* Feedback buttons — detailed mode only, requires a backing analysis row. */}
+			{isDetailed && card.assetAnalysisId != null && (
 				<Flex
 					align="center"
 					justify="flex-end"
@@ -229,4 +232,13 @@ export function BriefingCard({
 			)}
 		</Card>
 	);
+}
+
+// parseDecimalOrNull converts a backend decimal string (e.g. "12.345", "0")
+// to a number. Returns null for empty/invalid values so callers can render an
+// "unavailable" placeholder instead of NaN.
+function parseDecimalOrNull(raw: string | null | undefined): number | null {
+	if (raw == null || raw === "") return null;
+	const n = Number.parseFloat(raw);
+	return Number.isFinite(n) ? n : null;
 }

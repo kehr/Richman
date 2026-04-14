@@ -100,13 +100,27 @@ export interface Execution {
 }
 
 // Recommendation is the full structured recommendation surfaced on a card.
+// v1 decision cards (pre-migration 022) are persisted with recommendation_json
+// either NULL or a zero-valued object — at the wire level their `action` field
+// collapses to an empty string, so callers must treat the union as possibly
+// empty when rendering legacy rows. See isV2Card below for the version probe.
 export interface Recommendation {
-	action: Action;
+	action: Action | "";
 	actionLevel: number;
 	label: string;
 	currentPositionPct: number;
 	targetPositionPct: number;
 	execution: Execution;
+}
+
+// isV2Card returns true when the decision card carries a populated
+// recommendation.action — i.e. it was produced by the v2 analysis pipeline
+// (migration 022 onwards). v1 rows pre-date structured recommendations and
+// serialize `action` as an empty string because the backend zero-value of the
+// Go `Action` type is "". Per frontend-v2-trd SS16.3, the two rendering
+// paths live in a single component and branch on this probe.
+export function isV2Card(card: Pick<DecisionCardDTO, "recommendation">): boolean {
+	return Boolean(card.recommendation?.action);
 }
 
 // DecisionCardDTO mirrors backend v1.DecisionCardDTO.

@@ -174,7 +174,7 @@
 		"source": {
 			"llm": "AI",
 			"llmTooltip": "由 AI 解读生成（{{provider}}）",
-			"mixed": "Mixed",
+			"mixed": "混合",
 			"mixedTooltip": "文案由 AI 解读生成，建议动作由规则引擎兜底（{{provider}}）",
 			"template": "规则引擎",
 			"templateTooltip": "由规则引擎生成 · 配置 LLM Provider 可启用 AI 解读"
@@ -191,6 +191,10 @@
 			"hold": "持有观望",
 			"gradual_reduce": "逐步减仓",
 			"control_position": "控制仓位"
+		},
+		"legacyCard": {
+			"title": "历史决策建议",
+			"empty": "该历史卡片没有保留详细建议内容。"
 		},
 		"viewFullReasoning": "查看完整推理 →",
 		"confidenceLabel": "信心度",
@@ -466,7 +470,8 @@
 		"feedback": {
 			"upTooltip": "分析有帮助",
 			"downTooltip": "分析不准确",
-			"error": "反馈提交失败，请稍后再试"
+			"error": "反馈提交失败，请稍后再试",
+			"unavailable": "首次分析完成后才能反馈"
 		}
 	},
 	"market": {

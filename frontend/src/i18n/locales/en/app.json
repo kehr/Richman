@@ -192,6 +192,10 @@
 			"gradual_reduce": "Gradual Reduce",
 			"control_position": "Control Position"
 		},
+		"legacyCard": {
+			"title": "Legacy recommendation",
+			"empty": "No detailed recommendation was recorded for this archived card."
+		},
 		"viewFullReasoning": "View full reasoning →",
 		"confidenceLabel": "Confidence",
 		"costLabel": "Cost",
@@ -466,7 +470,8 @@
 		"feedback": {
 			"upTooltip": "Analysis was helpful",
 			"downTooltip": "Analysis was inaccurate",
-			"error": "Failed to submit feedback — please try again later"
+			"error": "Failed to submit feedback — please try again later",
+			"unavailable": "Feedback becomes available after the first analysis runs"
 		}
 	},
 	"market": {

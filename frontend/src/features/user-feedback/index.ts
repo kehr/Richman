@@ -3,4 +3,4 @@
 
 export { submitFeedback } from "./api";
 export { useSubmitFeedback } from "./use-submit-feedback";
-export type { FeedbackTarget, FeedbackRating, SubmitFeedbackInput, FeedbackDto } from "./types";
+export type { FeedbackRating, SubmitFeedbackInput, FeedbackDto } from "./types";

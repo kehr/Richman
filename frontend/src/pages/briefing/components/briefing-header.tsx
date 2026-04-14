@@ -6,21 +6,23 @@ export type BriefingViewMode = "compact" | "detailed";
 interface BriefingHeaderProps {
 	viewMode: BriefingViewMode;
 	onViewModeChange: (mode: BriefingViewMode) => void;
-	generatedAt?: string;
+	// ISO timestamp from BriefingDto.updatedAt. Optional because the payload
+	// can be empty (no holdings) during the initial render frame.
+	updatedAt?: string;
 }
 
 // BriefingHeader renders the page title, last-updated timestamp, and
 // compact/detailed mode toggle (TRD SS6.3).
-export function BriefingHeader({ viewMode, onViewModeChange, generatedAt }: BriefingHeaderProps) {
+export function BriefingHeader({ viewMode, onViewModeChange, updatedAt }: BriefingHeaderProps) {
 	const { t } = useTranslation("app");
 
-	const formattedDate = generatedAt
+	const formattedDate = updatedAt
 		? new Intl.DateTimeFormat(undefined, {
 				month: "short",
 				day: "numeric",
 				hour: "2-digit",
 				minute: "2-digit",
-			}).format(new Date(generatedAt))
+			}).format(new Date(updatedAt))
 		: null;
 
 	return (
