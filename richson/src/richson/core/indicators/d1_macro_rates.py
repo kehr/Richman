@@ -16,14 +16,13 @@ Output: dict with per-indicator raw values, percentiles, and weighted score.
 
 from __future__ import annotations
 
-import logging
-
 import numpy as np
 import pandas as pd
+import structlog
 
 from richson.core.scoring import blended_percentile, weighted_dimension_score
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 # Sub-indicator weights (must sum to 1.0)
 _WEIGHTS = {

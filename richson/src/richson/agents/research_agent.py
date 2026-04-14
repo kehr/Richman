@@ -10,12 +10,12 @@ into the numeric adjustment calculation.
 
 from __future__ import annotations
 
-import logging
 from typing import Literal
 
+import structlog
 from pydantic import BaseModel, Field, field_validator
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 # ---------------------------------------------------------------------------
 # Output schemas
@@ -68,8 +68,8 @@ class ResearchResult(BaseModel):
         valid = [e for e in events if e.source_url and e.source_url.startswith("http")]
         if len(valid) < len(events):
             logger.warning(
-                "Filtered %d research events lacking valid source_url",
-                len(events) - len(valid),
+                "research_events_filtered_missing_url",
+                filtered_count=len(events) - len(valid),
             )
         return valid
 
@@ -77,10 +77,10 @@ class ResearchResult(BaseModel):
         """Downgrade 'major' to 'moderate' if fewer than 2 independent sources."""
         if self.judgment.magnitude == "major" and len(self.events) < 2:
             logger.warning(
-                "Downgrading magnitude from 'major' to 'moderate' for %s: "
-                "only %d source(s) found (minimum 2 required)",
-                self.dimension,
-                len(self.events),
+                "magnitude_downgraded_insufficient_sources",
+                dimension=self.dimension,
+                source_count=len(self.events),
+                minimum_required=2,
             )
             self.judgment.magnitude = "moderate"  # type: ignore[assignment]
         return self

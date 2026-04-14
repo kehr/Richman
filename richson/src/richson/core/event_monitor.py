@@ -10,10 +10,11 @@ The caller (pipeline or scheduler) is responsible for persistence.
 
 from __future__ import annotations
 
-import logging
 from typing import Any
 
-logger = logging.getLogger(__name__)
+import structlog
+
+logger = structlog.get_logger(__name__)
 
 # Default change threshold for triggering an alert
 _DEFAULT_THRESHOLD = 0.20  # 20 percentage points

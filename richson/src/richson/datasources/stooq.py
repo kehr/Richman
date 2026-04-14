@@ -13,14 +13,14 @@ Typical usage: GLD (maps to GLD.US on Stooq).
 from __future__ import annotations
 
 import io
-import logging
 
 import httpx
 import pandas as pd
+import structlog
 
 from richson.datasources.cache import cache_get, cache_set
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 _STOOQ_BASE = "https://stooq.com/q/d/l/"
 _HISTORY_YEARS = 5

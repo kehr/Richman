@@ -15,11 +15,10 @@ Output: dict with regime label, VIX level, and reasoning.
 
 from __future__ import annotations
 
-import logging
-
 import pandas as pd
+import structlog
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 # Regime thresholds
 _VIX_HIGH = 25.0      # risk-off threshold

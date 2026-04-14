@@ -12,14 +12,14 @@ Primary use cases:
 
 from __future__ import annotations
 
-import logging
 from typing import Any
 
 import pandas as pd
+import structlog
 
 from richson.datasources.cache import cache_get, cache_set
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 # How many calendar days of OHLCV history to fetch for percentile calculation
 _OHLCV_HISTORY_DAYS = 365 * 5 + 30  # 5 years + buffer

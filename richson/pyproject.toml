@@ -16,8 +16,8 @@ dependencies = [
     "pydantic-settings>=2.3",
     # logging
     "structlog>=24.2",
-    # http client
-    "httpx>=0.27",
+    # http client (socks extra covers users behind SOCKS proxies like clash)
+    "httpx[socks]>=0.27",
     # LLM orchestration
     "google-adk>=1.0",
     "litellm>=1.40",

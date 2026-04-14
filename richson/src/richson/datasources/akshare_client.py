@@ -10,13 +10,12 @@ Key symbols:
 
 from __future__ import annotations
 
-import logging
-
 import pandas as pd
+import structlog
 
 from richson.datasources.cache import cache_get, cache_set
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 _HISTORY_YEARS = 5
 

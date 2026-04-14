@@ -13,15 +13,15 @@ resolution and model injection via LiteLlm.
 from __future__ import annotations
 
 import json
-import logging
 import uuid
 from typing import Any
 
+import structlog
 from pydantic import BaseModel
 
 from richson.schemas.common import LLMConfig
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 # ---------------------------------------------------------------------------
 # LLM provider -> LiteLlm model string resolution
@@ -61,7 +61,7 @@ def _resolve_model(llm_config: LLMConfig) -> Any:
     else:
         # Fallback: pass through as-is; LiteLlm will attempt to resolve
         model_str = llm_config.model
-        logger.warning("Unknown provider '%s'; passing model string as-is", provider)
+        logger.warning("unknown_llm_provider", provider=provider)
 
     kwargs: dict[str, Any] = {}
     if llm_config.api_key:
@@ -177,9 +177,9 @@ async def run_agent(
         await asyncio.wait_for(_collect_events(), timeout=timeout_seconds)
     except TimeoutError:
         logger.error(
-            "Agent '%s' timed out after %.0fs",
-            getattr(agent, "name", "unknown"),
-            timeout_seconds,
+            "agent_timeout",
+            agent=getattr(agent, "name", "unknown"),
+            timeout_seconds=timeout_seconds,
         )
         raise RuntimeError(
             f"Agent '{getattr(agent, 'name', 'unknown')}' timed out after {timeout_seconds}s"

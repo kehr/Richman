@@ -14,14 +14,14 @@ On error or missing data, methods return None rather than raising.
 from __future__ import annotations
 
 import datetime
-import logging
 from typing import Any
 
 import pandas as pd
+import structlog
 
 from richson.datasources.cache import cache_get, cache_set
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 # Series to fetch in bulk and their cache keys
 SERIES_IDS = ["FEDFUNDS", "T10Y2Y", "DFII10", "DGS10", "M2SL"]

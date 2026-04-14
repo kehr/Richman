@@ -11,12 +11,11 @@ Output: dict with drawdown metrics for rs_asset_analyses.analysis_metadata.
 
 from __future__ import annotations
 
-import logging
-
 import numpy as np
 import pandas as pd
+import structlog
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 _BULL_RUN_START_THRESHOLD = -0.20  # -20% drawdown from peak = bull-run start marker
 

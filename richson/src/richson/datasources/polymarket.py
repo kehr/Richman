@@ -16,14 +16,14 @@ Results are cached for 15 minutes.
 
 from __future__ import annotations
 
-import logging
 from typing import Any
 
 import httpx
+import structlog
 
 from richson.datasources.cache import cache_get, cache_set
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 _CLOB_BASE = "https://clob.polymarket.com"
 _GAMMA_BASE = "https://gamma-api.polymarket.com"

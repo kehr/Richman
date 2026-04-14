@@ -345,3 +345,81 @@ func NewLogger(cfg *config.Config) (*zap.Logger, error) {
 	return logger, nil
 }
 ```
+
+
+## Python / richson 日志规范（强制）
+
+richson 是 v2 引入的 Python 侧车，统一使用 `structlog` 输出与 richman Go 端格式对齐的结构化 JSON。以下为强制纪律，目的是堵住 stdlib logger 与 structlog 混用导致的静默失败。
+
+### 强制规则
+
+1. **禁止在业务代码中使用 `logging.getLogger`**
+   - 只能写 `logger = structlog.get_logger(__name__)`
+   - 一旦写成 `logger = logging.getLogger(__name__)`，调用点只要出现 structlog 风格 kwargs（`logger.warning("event", url=url)`），运行时会抛 `Logger._log() got an unexpected keyword argument 'url'`，该条日志丢失且上层任务静默降级
+   - 例外：`logging_config.py` 本身配置 stdlib basicConfig / level 时允许 import logging，其余模块一律改用 structlog
+
+2. **日志 event 使用 snake_case 标识符，不是自然语言句子**
+   - 正：`logger.warning("polymarket_request_failed", url=url, attempt=i, error=str(exc))`
+   - 误：`logger.warning("polymarket: request failed", url=url, ...)` —— 标识符中含空格/冒号会让结构化检索变形
+   - 历史遗留不一致由下次接触时顺带矫正，不必单独起清理 PR
+
+3. **禁止 `%s` / `%d` 占位符 + 位置参数**
+   - structlog 默认 processors 不含 `PositionalArgumentsFormatter`，`logger.info("foo %s", name)` 会原样保留 `foo %s` 字符串并丢掉 name
+   - 一律改为 kwargs：`logger.info("foo", name=name)`
+
+4. **logging_config.py 必须用 `structlog.stdlib.LoggerFactory()`**
+   - 如果 processors 里包含 `structlog.stdlib.add_logger_name`，`logger_factory` 必须是 `LoggerFactory`（stdlib backend）
+   - 用 `PrintLoggerFactory()` 会让 `add_logger_name` 在第一次调用时抛 `AttributeError: 'PrintLogger' object has no attribute 'name'`，进程启动失败
+   - 修改 processors 时成对检查 factory 兼容性
+
+5. **httpx 在代理环境下必须带 socks extra**
+   - `pyproject.toml` 依赖声明为 `httpx[socks]>=0.27`，而不是裸 `httpx`
+   - 理由：richson 对外抓取数据源（Polymarket / Yahoo / Stooq / FRED / AKShare / WGC），开发者本机常开 SOCKS5 代理；不带 socks extra 时所有外部抓取抛 `Using SOCKS proxy, but the 'socksio' package is not installed` 并返回空数据，行情页静默降级
+   - 即使生产环境不用 socks 代理，额外依赖体积可接受，保持该 extra 是本地与生产部署的一致性保障
+
+### 代码审查 checklist
+
+提交 richson PR 前必须自查以下项，review 阶段也可直接套用：
+
+- [ ] `grep -r "logging.getLogger" src/` 除 `logging_config.py` 外应为空
+- [ ] `grep -rn 'logger\\.\\(info\\|warning\\|error\\|debug\\|critical\\|exception\\)([^)]*%[sdfr]' src/` 应为空（无 %s 风格日志）
+- [ ] `ruff check src` 全绿（会挡住 `import logging` 未使用的情况，是发现 logger 类型不对的第一道防线）
+- [ ] 新增依赖时如涉及 httpx / aiohttp，优先使用带代理 extras 的形态
+
+### 结构化日志样板
+
+```python
+from __future__ import annotations
+
+import structlog
+
+logger = structlog.get_logger(__name__)
+
+
+def fetch_polymarket(url: str) -> dict | None:
+    try:
+        resp = httpx.get(url, timeout=10)
+        resp.raise_for_status()
+        return resp.json()
+    except Exception as exc:
+        logger.warning(
+            "polymarket_request_failed",
+            url=url,
+            error=str(exc),
+        )
+        return None
+```
+
+输出示例：
+
+```json
+{
+  "url": "https://gamma-api.polymarket.com/markets",
+  "error": "timeout",
+  "event": "polymarket_request_failed",
+  "level": "warning",
+  "logger": "richson.datasources.polymarket",
+  "ts": "2026-04-14T21:35:25.472030Z"
+}
+```
+

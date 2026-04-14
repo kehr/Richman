@@ -16,16 +16,16 @@ COT Contract Name for COMEX Gold: GOLD - COMMODITY EXCHANGE INC.
 from __future__ import annotations
 
 import io
-import logging
 import zipfile
 from typing import Any
 
 import httpx
 import pandas as pd
+import structlog
 
 from richson.datasources.cache import cache_get, cache_set
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 # CFTC combined futures-and-options CSV (current year)
 _CFTC_COMBINED_URL = (

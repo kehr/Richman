@@ -40,6 +40,9 @@ def configure_logging(log_level: str = "info") -> None:
         ],
         wrapper_class=structlog.make_filtering_bound_logger(level),
         context_class=dict,
-        logger_factory=structlog.PrintLoggerFactory(),
+        # LoggerFactory (stdlib) is required so that add_logger_name can read
+        # logger.name. PrintLoggerFactory lacks the .name attribute and triggers
+        # AttributeError at the first log call.
+        logger_factory=structlog.stdlib.LoggerFactory(),
         cache_logger_on_first_use=True,
     )
