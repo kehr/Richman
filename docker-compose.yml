@@ -38,5 +38,26 @@ services:
       start_period: 30s
     restart: unless-stopped
 
+  richman:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: richman-backend
+    ports:
+      - "8080:8080"
+    env_file:
+      - backend/.env
+    environment:
+      # Override host-only defaults so the backend reaches services on the
+      # compose network instead of localhost.
+      DATABASE_URL: postgres://richman:richman@postgres:5432/richman?sslmode=disable
+      RICHSON_BASE_URL: http://richson:8001
+    depends_on:
+      postgres:
+        condition: service_healthy
+      richson:
+        condition: service_healthy
+    restart: unless-stopped
+
 volumes:
   pgdata:
