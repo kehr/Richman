@@ -459,6 +459,52 @@ ProTable 的 request prop 直接对接 feature API：
 ```
 
 
+## react-helmet 子节点纪律（MANDATORY）
+
+所有走 `@dr.pogodin/react-helmet`（或同族 `react-helmet-async`）的 `<Helmet>` 块，都必须保证传给 `<title>` / `<meta>` 等标签的子节点是「非空字符串」或「真正的元素」。空字符串 `""`、`null`、`undefined`、`false` 在运行时会触发 `'string' is not a valid <Helmet> descendant`，把整页打挂。
+
+**易踩的坑**
+
+```tsx
+// 错：JSX 短路渲染会把空字符串作为子节点丢进 Helmet
+<Helmet>
+  <title>{title}</title>
+  {description && <meta name="description" content={description} />}
+  {ogTitle && <meta property="og:title" content={ogTitle} />}
+</Helmet>
+```
+
+当 `description = ""` 时，`"" && <meta />` 返回 `""`，不是 `false`/`null`。Helmet 会把这个 `""` 作为子节点尝试渲染，立即 throw。
+
+**统一防御写法**
+
+1. 用 `||` 把空字符串折叠为 `undefined`，绝不要保留 `""`：
+
+```tsx
+const description = raw?.slice(0, 160) || undefined;  // 不要写 ?? ""
+const ogTitle = parts.length > 0 ? parts.join(" ") : undefined;
+```
+
+2. 短路渲染的左侧必须是「真布尔」，不允许把字符串当布尔用：
+
+```tsx
+{Boolean(description) && <meta name="description" content={description!} />}
+```
+
+或等价的 `description ? <meta .../> : null`。
+
+3. `<title>` 子节点拼接前用 type-guard 过滤所有 falsy：
+
+```tsx
+const titleSegments = [name, scoreText, signalLabel, "Richman"].filter(
+  (s): s is string => Boolean(s),
+);
+const pageTitle = titleSegments.join(" | ");
+```
+
+**为什么强制：** 该问题在 dev 环境通常表现为整页白屏 + console error，没有任何编译期保护；React Server Components / SSR 路径下还会把错误冒泡到顶层 ErrorBoundary。被这种 hidden bug 阻塞过两次（最近一次见于 `pages/asset-detail/index.tsx` 的 marketInterpretation 兜底）。规则机械执行可以拦死。
+
+
 ## 代码风格（Biome）
 
 | 项 | 值 |
