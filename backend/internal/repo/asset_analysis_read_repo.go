@@ -168,6 +168,11 @@ func (r *AssetAnalysisReadRepo) GetLatestByAssetCodes(
 // GetScoresForPercentile returns the overall_score values for an asset over
 // the past N days, ordered oldest first. Used by the service layer to compute
 // percentile labels (e.g. "近一年偏高").
+//
+// Excludes rows with generated_by != 'full' (i.e. backfill / l1_only rows).
+// Backfill rows are computed from a single dimension and are not comparable
+// to the four-dimension production scores, so mixing them would distort the
+// percentile rank (richson TRD SS21.7 / richman TRD SS22 percentile spec).
 func (r *AssetAnalysisReadRepo) GetScoresForPercentile(
 	ctx context.Context, code string, days int,
 ) ([]float64, error) {
@@ -176,6 +181,7 @@ func (r *AssetAnalysisReadRepo) GetScoresForPercentile(
 		 FROM rs_asset_analyses
 		 WHERE asset_code = $1
 		   AND is_deleted = 0
+		   AND generated_by = 'full'
 		   AND analyzed_at >= NOW() - ($2 || ' days')::INTERVAL
 		 ORDER BY analyzed_at ASC`,
 		code, days,
