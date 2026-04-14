@@ -11,8 +11,11 @@
 -- Excluded (reference / admin data): plans (already seeded at 100000),
 -- invite_codes (admin-managed), asset_catalog (seed reference data),
 -- analysis_tasks (UUID primary key, not sequential).
-
-BEGIN;
+--
+-- No explicit BEGIN/COMMIT here: the migration runner already wraps each file
+-- in pool.Begin()/tx.Commit() (see backend/internal/migration/runner.go execFile).
+-- Embedding a second BEGIN/COMMIT closes the runner's transaction prematurely
+-- and the runner's later Commit() then fails on a closed tx.
 
 -- Drop FK constraints so PK updates do not violate referential integrity.
 -- Constraints are re-added at the end with identical definitions.
@@ -91,5 +94,3 @@ SELECT setval('holding_schedule_overrides_id_seq',
     GREATEST(COALESCE((SELECT MAX(id) FROM holding_schedule_overrides), 99999), 99999), true);
 SELECT setval('trades_trade_id_seq',
     GREATEST(COALESCE((SELECT MAX(trade_id) FROM trades), 99999), 99999), true);
-
-COMMIT;
