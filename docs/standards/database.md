@@ -153,3 +153,20 @@ ConnMaxIdleTime: 1 * time.Minute
 - 文件命名：`{序号}_{描述}.up.sql` / `{序号}_{描述}.down.sql`
 - 每次变更必须有对应的 up 和 down 迁移
 - 生产环境迁移前先在测试环境验证
+
+
+## 备份与恢复
+
+依据 richman-backend-v2-trd.md SS22.11：richson 的 90 天 backfill 计算成本不低，一旦生产库损坏且无备份则必须重跑一次 backfill，代价显著。生产部署必须满足下列最低要求，运维手册需与实际配置保持同步。
+
+- 全量备份：`pg_dump` 每日 1 次，保留最近 7 天，脚本例：
+  ```bash
+  pg_dump --format=custom --file=/var/backups/richman-$(date +%F).dump $DATABASE_URL
+  find /var/backups -name 'richman-*.dump' -mtime +7 -delete
+  ```
+- WAL 归档：PostgreSQL 开启 `archive_mode = on` 与 `archive_command`，增量归档到对象存储或独立盘。WAL 保留至少与全量备份相同的 7 天。
+- 异地副本：备份产物不得只保存在数据库所在主机；至少一份同步到对象存储或独立可用区。
+- 恢复演练：每季度至少在测试环境执行一次 `pg_restore` + WAL replay 的恢复演练，验证 RPO/RTO 仍满足目标。
+- 密钥与凭据：备份文件如包含用户表，必须加密后再上传（gpg 或对象存储服务端加密），访问凭据仅授予运维角色。
+
+应用层仓库中不附带备份执行脚本（部署环境差异较大），实际脚本与 cron 条目由部署仓库/运维手册维护，本文档只约束最低策略。

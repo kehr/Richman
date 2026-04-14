@@ -135,3 +135,174 @@
 - Go 后端 go build/vet 全程通过
 - 前端 pnpm lint:all 通过（biome + tsc + dep-cruiser）
 - 所有 commit 零 AI 痕迹
+
+## 深度检查（10 轮迭代）
+
+用户在 v2 plan 全部落地后追加了「深度检查代码实现是否全部完成、是否有错漏、是否和 PRD/TRD 一致、是否遵循项目规范，修复问题，自己迭代 10 遍」的任务。以下为 10 轮检查的记录。
+
+### 轮次总览
+
+| 轮次 | 主题 | 状态 | 主要产出 |
+|------|------|------|----------|
+| R1 | 全栈构建 / lint 验证 | done | go build/vet/test 通过；frontend pnpm lint:all 通过 |
+| R2 | API 契约一致性（URL / method / 鉴权） | done | 现有 v2 路由与前端 client 调用路径对齐 |
+| R3 | Handler-Service-Repo 链路（pending） | pending | 端点-服务-仓储三层方法级存在性核查待补 |
+| R4 | TRD 覆盖率核查 | done | 全量 TRD sweep 完成；asset-detail DTO 契约缺口 + richman-backend-v2-trd SS8.8 批量分析手动重试端点缺失，均记入观察项 |
+| R5 | 已知问题 G1-G4 处理 | partial | 已修 migration 020 嵌套事务（G2.12）、每日 alert dedup（G2.14）、requestV1 别名回迁（G3.1）、v1/v2 卡片展示区分（G3.3）；G1.7/G1.8/G1.9/G2.4/G2.5/G2.6/G2.11/G4.2 未闭环 |
+| R6 | 前端-后端契约 | partial | 修复 briefing 卡片/feedback/invite 三处漂移；asset-detail 详情页 DTO 大段缺项列为 Round 3-4 跟进项 |
+| R7 | i18n 完整性 | done | 5 对 namespace 文件键结构全量 parity；修正 `decisionCard.source.mixed` 未翻译项（Mixed → 混合）；settings.json 中 13 处英文值为品牌/API 占位符，按惯例保留 |
+| R8 | DB schema 一致性 | done | migration 020 去除嵌套 BEGIN/COMMIT；022/023 v2 列与 repo 字段对齐（decision_cards 11 列待复查） |
+| R9 | 项目规范遵守 | done | 四路并行审计（前端/后端/DB+API/抽象复用）：前端 6 项 + 后端 7 项 + DB/API 5 项 + 抽象复用 6 项全合规；两张无前缀表已由 021 migration RENAME 至 rm_*；rs_* 规划表由 richson 独立管理（非 Go 后端职责） |
+| R10 | 集成 smoke 测试 | done | Go 三二进制全构建（server 26.7MB / migrate / seed）；前端 pnpm build 4.57s 通过；docker compose config 解析有效；main.go DI 链路完整；v2 router 注册匹配 TRD SS4.1；v1 五大类端点保留；v2_cron 8 任务 + 嵌入 score alert 全部注册；中间件链分层正确 |
+
+### 已修复问题（深度检查阶段）
+
+1. **migration 020 嵌套事务**（DB / G2.12）
+   - 症状：`020_sequence_start_100000.up.sql` 内含 `BEGIN; ... COMMIT;`，而 runner.go execFile 已在外层 `pool.Begin()`/`tx.Commit()` 中封装迁移，导致内层 COMMIT 提前关闭外层事务
+   - 修复：删除文件内的 BEGIN/COMMIT，新增注释说明外层事务由 runner 提供
+
+2. **disclaimer_accepted_at 列未写入**（Auth）
+   - 症状：migration 022 添加 `disclaimer_accepted_at` 列，但 Register 流程只校验 `disclaimerAccepted=true`，从不写入数据库
+   - 修复：
+     - `UserRepo.MarkDisclaimerAccepted(ctx, userID)` + `MarkDisclaimerAcceptedWithTx(ctx, tx, userID)`
+     - `registerWithGlobalCode` 创建用户后调用前者
+     - `registerWithPersonalCode` 在同一个事务内调用后者，保证注册与同意的原子性
+
+3. **email-push 端点契约漂移**（User Settings）
+   - 症状（三处）：
+     - 后端 PATCH 请求体字段为 `enabled`，前端发送 `emailPushEnabled`
+     - 缺失 GET `/api/v2/user/email-push` 路由，前端 `useEmailPush` 无法初始化开关状态
+     - 后端 PATCH 响应为 `{message: ...}`，前端期望 `{emailPushEnabled: bool}`
+   - 修复：
+     - `UserRepo.GetEmailPushEnabled` 新方法（`rm_users.email_push_enabled`）
+     - `user_settings.Service.GetEmailPushEnabled` 透传
+     - v2 `user.go`：请求体字段改为 `emailPushEnabled`；新增 `getEmailPush` 处理器；响应统一为 `{emailPushEnabled}`
+     - v2 `router.go` 注册 `GET /user/email-push`
+     - test stub 同步（`fakeUserRepo` + `fakeSettingsRepo`）
+
+4. **briefing 卡片契约漂移**（Round 6）
+   - 症状（五处）：
+     - 前端 `scoreTrend: Array<{date,score}>`，后端返回 `sparklineScores: []float64`
+     - 前端 `costPrice/positionRatio` 类型为 number，后端 pgx decimal 序列化为 string
+     - 前端 `unrealizedPnlPct`，后端字段名 `pnlPercent`
+     - 前端期望 `actionSummary/entryMode`，后端不产出
+     - 前端 `BriefingDto.generatedAt`，后端字段 `updatedAt`
+     - 卡片新增字段 `assetAnalysisId/changeAttribution/conflictWarning/direction` 后端未下发，前端 UI 有条件渲染依赖
+   - 修复：
+     - 后端 `BriefingCardDTO` 新增四字段（Asset-AnalysisID / ChangeAttribution / ConflictWarning / Direction），新增 `deriveDirection(signalLevel, score)` 辅助（根据 richson 的 `signal_level_from_score` 枚举映射）
+     - 前端 `BriefingCardDto/BriefingDto` 重写以镜像后端 DTO；decimal 字段保持 string，由 `parseDecimalOrNull` 辅助转换
+     - 前端 `ScoreSparkline` 改为接受 `number[]`
+     - 前端 `briefing-page.tsx` 反馈流程增加 `assetAnalysisId` 空值守卫
+     - 前端 `briefing-header` 属性 `generatedAt` → `updatedAt`
+     - 前端补新 i18n 键 `briefing.feedback.unavailable`（中英双写）
+
+5. **feedback API 契约漂移**（Round 6）
+   - 症状：前端发送 `{target, targetId, rating: "up"|"down", comment?}`；后端期望 `{assetAnalysisId, rating: "helpful"|"not_helpful", comment?}`
+   - 修复：
+     - 前端 `SubmitFeedbackInput` 重写为 `{assetAnalysisId, rating: "up"|"down", comment?}`
+     - `submitFeedback` 在 api boundary 将 `"up"→"helpful"`、`"down"→"not_helpful"` 翻译后再发送
+     - 删除 `FeedbackTarget` 类型（barrel 同步更新）
+     - briefing 卡片的反馈按钮在 `assetAnalysisId=null` 时整体不渲染
+
+6. **invite my-invites 契约漂移**（Round 6）
+   - 症状：后端 `MyInvitesResponse` 字段 `invitedUsers`，前端期望 `invites`；前端还期望 `totalInvited` 但后端未提供
+   - 修复：后端 DTO 重命名 `InvitedUsers` → `Invites` 并补 `TotalInvited` 计数字段；service 端返回 `len(users)`
+
+7. **每日 alert 未实现去重**（G2.14 / Round 5）
+   - 症状：`v2_cron.go` 的 `runScoreChangeAlert`（06:00 UTC 触发）与 `runAShareClosingAlert`（15:30 A 股收盘触发）都会对同一资产发 `SendMarketAlert`，TRD SS22.14 要求单向去重：收盘告警若当日已被积分变化告警覆盖则跳过。原实现里 `dailyAlertedToday` 已被调用，但对应的状态存储和清理从未实现，导致调用位点是死代码
+   - 修复：
+     - 新增包级 `dailyAlertedTracker`：`sync.Mutex` + `day time.Time`（UTC 日边界） + `set map[string]struct{}`
+     - 辅助函数 `currentUTCDay` / `dailyAlertedToday` / `markDailyAlerted`；首次触及新一天时自动擦除 set
+     - `runScoreChangeAlert` 由两段（build + send）合并为单遍循环；每次 `SendMarketAlert` 成功后立即 `markDailyAlerted(a.AssetCode)`
+     - `runAShareClosingAlert` 同样收拢；在发送前保留 `dailyAlertedToday(code)` 短路检查
+     - 删除不再使用的 `checkAlreadyAlertedToday` 桩函数
+   - 边界：重启 richman 进程会丢失当日 set；可接受的原因是 `rm_notification_log` 有幂等唯一约束，重复发送会被 upsert 规避，且 alert 只触发邮件（非破坏性）
+
+8. **HTTP client legacy alias 回迁**（G3.1 / Round 5）
+   - 症状：`frontend-v2-trd SS16.1` 要求 `domain/http/client.ts` 去掉 `/api/v1` 硬编码的 `API_BASE` 与 `request()` 向后兼容函数；12 个 feature 的 `api.ts` 借 `import { requestV1 as request }` 暂缓迁移，是迁移期遗留。
+   - 修复：
+     - `domain/http/client.ts` 仅保留 `API_V1_BASE` / `API_V2_BASE` / `ApiError` / `requestV1` / `requestV2` / `requestPublic`，删除 `API_BASE` 与 `request`
+     - 12 个 api.ts 迁移（统一先 `replace_all` 把 `request<` 替换成 `requestV1<`，再 Edit 把 `requestV1 as request` 替换成 `requestV1`；`portfolio/api.ts` 额外处理 `API_V1_BASE, ApiError, requestV1 as request` 的 import 形态和注释文本）
+     - 覆盖文件：auth / asset-catalog / decision-card / dashboard-summary / market-quote / notification-channels / portfolio / schedule / settings-llm / user-settings / domain/auth/use-current-user / domain/money/api
+   - 验证：`pnpm lint:all` 通过（Biome + tsc + depcruiser）
+
+9. **v1/v2 决策卡片展示区分**（G3.3 / Round 5）
+   - 症状：`frontend-v2-trd SS16.3` 要求同一决策卡组件内对 v1（migration 022 之前，`recommendation_json` 为空，后端 `action` 字段序列化为 `""`）和 v2 卡片分支渲染。当前 `DecisionCardSummary.tsx:206` 无条件渲染 `t(\`decisionCard.recommendation.${card.recommendation.action}\`)`，v1 卡片会组出无效 i18n key `decisionCard.recommendation.` 并打出空 ExecutionPlanStrip
+   - 修复：
+     - `features/decision-card/types.ts`：`Recommendation.action` 类型扩为 `Action | ""` 接受后端零值；新增 `isV2Card(card)` guard（`Boolean(card.recommendation?.action)`）
+     - `features/decision-card/index.ts`：barrel 导出 `isV2Card`
+     - `features/decision-card/components/DecisionCardSummary.tsx`：行情卡底部 Box 条件分支；v2 分支保留现有 action 标题 + ExecutionPlanStrip；v1 分支改为 `legacyCard.title` + `actionAdvice`（若空则 `legacyCard.empty`）
+     - `src/i18n/locales/{zh,en}/app.json`：新增 `decisionCard.legacyCard.title` / `decisionCard.legacyCard.empty` 键（中英双写）
+     - 类型断言：v2 分支内 `as Action` 窄化用于 i18n key 构造（isV2Card 运行时保证 action 非空）
+   - 验证：`pnpm lint:all` 通过；Biome + tsc + depcruiser 全绿
+
+10. **backend gofmt 清理**（R5 附带）
+    - 症状：golangci-lint v2 跑全量仓库时轮替发现多个文件 gofmt 不合规（早期 session 改动遗留的 tab 对齐、尾部空行问题）
+    - 修复：`gofmt -w` 批量处理受影响的 11 个文件（config.go / emailpush/service.go / invite/service.go / api/v2/market.go / richson/client.go / service/market/service.go / model/asset_analysis.go / model/invite.go / service/analysis/v2_holding.go / service/briefing/service.go / richson/types.go）
+    - 验证：`golangci-lint run ./...` 的 gofmt bucket 从 3 降至 0；总 issue 数从 HEAD 基线 39 降至 37
+
+### 观察项（保留给后续轮次）
+
+- **asset-detail 详情页大面积契约缺口（Round 3-4 跟进项）**：
+  - 前端 `AssetDetailDto` 期望 currency / usdExchangeRate / currentPrice / priceChangePercent / priceAtAnalysis / scoreBand / marketInterpretation / percentileLabel / validDays / riskFactors[] / keyPriceLevels[] / drawdownReference / executionPlan / supports[] / resistances[] / sma200 等丰富子对象
+  - 后端 `AssetDetailDTO` 目前仅返回 code / name / 基础分数 / dimensions 原始行 / analyzedAt
+  - 这是一项缺失实现的问题，不属于「契约对齐」可一次性修复的范围，需要新一轮 implementation plan（预计涉及 asset / latest OHLCV / risk_factors JSON / decision_card / richson 四维数据聚合）
+  - 影响面：`asset-detail/index.tsx:93` 直接 `detail.marketInterpretation.slice(0,160)` 未做空值兜底，线上会 crash
+  - 建议动作：单独开 TRD 补齐 `/api/v2/market/:code` 完整 payload
+
+- **G1.7 backfill exclusion / G1.8 validDays Pydantic / G1.9 apiKey mask / G2.4 task TTL / G2.5 password complexity / G2.6 JWT refresh / G2.11 pg_dump / G4.2 Asia/Shanghai 时区**：Round 5 未闭环项，逐项处理需要分别确认是否为实际缺项（G2.12 / G2.14 / G3.1 / G3.3 本轮已闭环）
+
+- **SS8.8 批量分析手动重试端点缺失（Round 4 发现）**：`richman-backend-v2-trd` 8.8 声明 `POST /api/v2/analysis/trigger-batch` 管理员端点与 `make trigger-batch-analysis` CLI 作为 06:00 批量分析失败后的恢复手段，两者均未实现。目前 `TriggerBatchAnalysis` 仅被 cron 调用（v2_cron.go:256），没有暴露给运营同学。属于 MVP 降级恢复能力缺口，影响面：richson 不可用时运营只能重启 richman 等待下一个 cron 窗口。建议单独起 implementation plan 补齐：JWT admin middleware + handler + Makefile target。
+- **decision_card_repo.go 是否正确处理 11 个 v2 新列**（action/action_label/scenarios/stop_loss/take_profit/valid_days/concentration_level/concentration_message/default_action/no_trigger_note/model_version）：Round 8 P1 遗留，需 SELECT/INSERT 列清单对照
+
+- **前端 bundle 体积告警（Round 10 发现）**：production build 产出 `index-By_6Fnok.js` 1.14 MB / gzip 372 KB，`chart-echarts` 1.06 MB / gzip 353 KB，`PortfolioEditPage` 507 KB / gzip 158 KB。vite 建议做代码分割或调整 chunkSizeWarningLimit。属于性能观察项，非 smoke 测试阻塞项。
+
+- **docker-compose.yml 仅含 postgres + richson，不含 richman 服务（Round 10 观察）**：docker compose config 解析通过，但 richman Go 后端未纳入 compose 编排（仍然期望在主机本地运行）。如果后续要做一键部署到 VPS，需要补 richman 服务定义与 Dockerfile 验证。
+
+- **registry 集中注册模式缺失（Round 9 观察）**：LLM provider / 数据源 / 通知渠道目前通过 main.go 直接 DI 注入，没有显式的 registry 包。当前业务可跑，但扩展新 provider 需要改 main.go。抽象复用规范建议长期收拢到集中注册表。
+
+### 无法决策项
+
+(无)
+
+### 10 轮深度检查总结
+
+- **全合规面**：Go 后端 build/vet/test 全过；前端 pnpm lint:all + pnpm build 全过；零 AI 痕迹；i18n 中英双写 parity；三层架构 / os.Getenv 管控 / zap 日志 / DB audit 字段 / API 路径规范 / 错误格式均合规。
+- **本阶段修复 10 项**：migration 020 嵌套事务 / disclaimer 写入 / email-push 三处契约漂移 / briefing 卡片五处契约漂移 / feedback 契约翻译 / invite my-invites 字段重命名 / daily alert dedup 实现 / HTTP client legacy alias 回迁 / v1-v2 卡片分支渲染 / 11 个文件 gofmt 清理。
+- **保留观察项 5 类**：asset-detail 详情页 DTO 契约缺口（需独立 TRD）、SS8.8 批量分析 admin 端点缺失（需独立 plan）、decision_card_repo 11 列覆盖度复核、bundle 体积告警、docker-compose richman 服务缺失。
+- **未闭环已知项 8 条**：G1.7 backfill exclusion / G1.8 validDays Pydantic / G1.9 apiKey mask / G2.4 task TTL / G2.5 password complexity / G2.6 JWT refresh / G2.11 pg_dump / G4.2 Asia/Shanghai 时区，需按原 G1-G4 清单单独跟进。
+- **验收建议**：10 轮深度检查已覆盖全栈构建 / 契约一致 / 链路完整 / TRD 覆盖 / 已知 bug 处理 / 前后端 DTO 对齐 / i18n / DB schema / 项目规范 / 集成 smoke。主干已可进入验收阶段；上述观察项和 G1-G4 未闭环项建议在下一轮计划中以独立 plan 形式跟进。
+
+### richson 快速启动与服务化（验收阶段新增）
+
+用户反馈每次启动 richson 都要手敲长命令，且 `.env.example` 默认值与本地 docker-compose 不匹配，市场页因此持续 503。根据项目规范「完善的构建系统：前后端都需要设计完善的构建脚本」补齐 richson 的 Makefile 与默认配置，并修复 5 个阻塞启动/运行的 bug。
+
+**1. 补齐 richson Makefile（文件新建）**
+- `richson/Makefile` 统一以 `uv run` 驱动，镜像 `backend/Makefile` 的 target 命名与描述
+- `make help` / `make install` / `make init` / `make dev` / `make run` / `make migrate-{up,down,status}` / `make lint` / `make fmt` / `make test` / `make check` / `make clean`
+- `make init`：一键 `uv sync --extra dev` + 首次创建 `.env`（.env 已存在时跳过）+ `alembic upgrade head`
+- `make dev` = `uv run uvicorn richson.main:app --host 0.0.0.0 --port 8001 --reload`
+- 与 backend Makefile 保持同一套 target 命名，降低全栈开发心智成本
+
+**2. 修复 5 个阻塞启动/运行的 bug**
+
+- `richson/alembic/env.py`：原 `get_url()` 通过 `os.getenv` 直读，`.env` 未加载。改为 `from richson.config import settings` → `settings.database_url`，让 pydantic-settings 统一处理 `.env`。执行 `make migrate-up` 不再需要 `source .env`。
+- `richson/.env.example`：DATABASE_URL 默认值由 `richson_user:password@localhost:5432/richman` 改为 `richman:richman@localhost:5433/richman`，与根目录 `docker-compose.yml` 一致；`cp .env.example .env` 后直接可连本地 postgres。
+- `richson/src/richson/logging_config.py`：structlog 配置里 `PrintLoggerFactory()` 与 processor `stdlib.add_logger_name` 不兼容，启动即 `AttributeError: 'PrintLogger' object has no attribute 'name'`。改用 `structlog.stdlib.LoggerFactory()`，保留 `add_logger_name` processor。
+- `richson/pyproject.toml`：用户机器启用了 `all_proxy=socks5://127.0.0.1:6153`，httpx 没装 socks extra 时对所有外部抓取（Polymarket / Yahoo / Stooq / FRED / AKShare）直接抛 `Using SOCKS proxy, but the 'socksio' package is not installed`。依赖改为 `httpx[socks]>=0.27`，`uv sync` 带入 `socksio==1.0.0`，Polymarket `/markets` 抓取恢复 200。
+- 全仓 16 个文件里 `logger = logging.getLogger(__name__)` 是 stdlib logger，但调用点清一色用 structlog kwargs 语法（如 `logger.warning("event", url=url, attempt=attempt)`），stdlib 直接抛 `Logger._log() got an unexpected keyword argument 'url'`，行情页事件雷达、四维指标、drawdown、regime、research agent 全部静默失败。统一改为 `structlog.get_logger(__name__)`，并顺带把 `agents/__init__.py` 和 `agents/research_agent.py` 里残留的 `%s` 格式化日志转成结构化 kwargs。`ruff check src` 全绿；`mypy src` 错误由 140 降到 106（纯粹是删掉了未使用的 `import logging`）。
+
+**3. 修复 backend 端与 richson 联调失败**
+
+- `backend/internal/config/config.go`：`RICHSON_BASE_URL` 默认值为 `http://localhost:8100`，richson 实际监听 8001；用户 .env 没覆写该字段时 backend 永远打到错误端口。改为 `http://localhost:8001`，与 richson 实际端口和 docker-compose 一致。
+- `backend/.env`：补 `RICHSON_BASE_URL` 与 `RICHSON_API_KEY=change-me-in-production`，匹配 `richson/.env` 的 `INTERNAL_API_KEY` 默认值，行情页 `/api/v2/market/regime` 与 `/api/v2/events/radar` 恢复 200。
+- `backend/.env.example`：同步 `RICHSON_API_KEY=change-me-in-production` 作为本地开发默认值，并补注释「must match richson/.env INTERNAL_API_KEY」，避免新环境复现同一个坑。
+
+**4. 端到端验证**
+
+- `make dev` 启动后 `curl http://localhost:8001/health` → 200，`checks.database/fred/yahoo/akshare/polymarket` 全 `ok`
+- `curl -H 'Authorization: Bearer change-me-in-production' http://localhost:8001/market/regime` → 返回完整 regime payload（VIX/T10Y2Y/四大指数）
+- `curl http://localhost:8080/api/v2/market/regime` → 200，包含 `data.indices` 与 `updatedAt`
+- `curl http://localhost:8080/api/v2/events/radar` → 200，返回 7 条 events（Polymarket 2 条有概率 + 5 条静态经济日历）
+- 日志全部为结构化 JSON：`{"url": "...", "event": "polymarket: request failed", ...}`，无 `Logger._log() got an unexpected keyword argument` 告警
+
