@@ -14,6 +14,7 @@ On error or missing data, methods return None rather than raising.
 from __future__ import annotations
 
 import datetime
+import re
 from typing import Any
 
 import pandas as pd
@@ -28,6 +29,22 @@ SERIES_IDS = ["FEDFUNDS", "T10Y2Y", "DFII10", "DGS10", "M2SL"]
 
 # Lookback window for percentile calculation (5 years + buffer)
 _HISTORY_YEARS = 6
+
+# FRED requires a 32-character lowercase alphanumeric API key. Anything else is
+# either an empty default or a placeholder the operator never replaced (e.g.
+# "...", "change-me"). We detect these early so the scheduler does not waste
+# cycles retrying every series against a server that will always reject us.
+_FRED_KEY_PATTERN = re.compile(r"^[a-z0-9]{32}$")
+
+
+def _is_valid_fred_api_key(key: str) -> bool:
+    """Return True when the key has the shape FRED's server will accept.
+
+    This is a shape check, not a liveness check — the server is still the
+    authority on whether the key is registered. It exists solely to short-
+    circuit obvious placeholders at startup.
+    """
+    return bool(key) and _FRED_KEY_PATTERN.fullmatch(key) is not None
 
 
 class FREDClient:
@@ -44,6 +61,19 @@ class FREDClient:
         self._timeout = timeout
         self._max_retries = max_retries
         self._fred: Any = None  # lazy init
+        # A non-empty but malformed key (e.g. the default "..." placeholder)
+        # will make every FRED call fail with "Bad Request" and flood the logs.
+        # Treat shape-invalid keys as "disabled" and log once so the operator
+        # sees a single actionable message instead of per-series retries.
+        self._disabled: bool = bool(api_key) and not _is_valid_fred_api_key(api_key)
+        if self._disabled:
+            logger.warning(
+                "fred: api key looks like a placeholder, disabling fetches",
+                hint=(
+                    "Set FRED_API_KEY to a 32-character lowercase alphanumeric "
+                    "key (register at https://fred.stlouisfed.org/docs/api/api_key.html)"
+                ),
+            )
 
     def _get_client(self) -> Any:
         """Lazily initialise the fredapi.Fred client."""
@@ -68,6 +98,13 @@ class FREDClient:
         cached = cache_get("fred", series_id)
         if cached is not None:
             return cached  # type: ignore[return-value]
+
+        # If the key is obviously malformed, skip the network round-trip and
+        # the retry loop. The one-time startup warning already told the
+        # operator what to fix; spamming "fred fetch failed" per series for
+        # every scheduled run buys nothing.
+        if self._disabled:
+            return None
 
         end_date = datetime.date.today()
         start_date = end_date - datetime.timedelta(days=_HISTORY_YEARS * 365)

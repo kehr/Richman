@@ -169,13 +169,19 @@ func (s *Service) SendDailyBriefing(ctx context.Context) error {
 		s.logger.Warn("failed to fetch events for daily briefing", zap.Error(r.eventsErr))
 	}
 
-	// Build event summaries.
+	// Build event summaries. richson may emit a null goldDirection for events
+	// that do not have a deterministic gold impact; collapse to empty string
+	// so the template renders without dereferencing nil.
 	var events []emailtemplate.EventSummary
 	if r.events != nil {
 		for _, ev := range r.events.Events {
+			goldDir := ""
+			if ev.GoldDirection != nil {
+				goldDir = *ev.GoldDirection
+			}
 			events = append(events, emailtemplate.EventSummary{
 				Title:         ev.Title,
-				GoldDirection: ev.GoldDirection,
+				GoldDirection: goldDir,
 				Impact:        ev.Impact,
 			})
 		}

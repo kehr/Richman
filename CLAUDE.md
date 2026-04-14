@@ -108,3 +108,4 @@ task (see "Design Review Gate" above); the rest are loaded on demand.
 | `dev-environment.md` | Startup order, pull-then-migrate discipline, schema drift defenses (Makefile + startup check), observability invariants |
 | `abstraction-reuse.md` | MANDATORY abstraction and reuse principles (frontend + backend): domain layer model, forbidden direct infra calls, interface-first, centralized registries |
 | `trd-review-discipline.md` | MANDATORY TRD review discipline: code-first verification, API name validation, end-to-end data tracing, multi-role checklist, known-issues policy |
+| `contract-drift.md` | MANDATORY cross-layer DTO discipline: richson (pydantic) / backend (Go) / frontend (TS) field-name parity, null semantics (Go pointers required for `T \| None`), env-to-end verification checklist |

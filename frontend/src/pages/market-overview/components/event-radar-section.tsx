@@ -14,7 +14,7 @@ function EventRow({ event }: EventRowProps) {
 	const { token } = useToken();
 
 	const impactTagColor =
-		event.impactLevel === "high" ? "error" : event.impactLevel === "medium" ? "warning" : "default";
+		event.impact === "high" ? "error" : event.impact === "medium" ? "warning" : "default";
 
 	const goldTagColor =
 		event.goldDirection === "bullish"
@@ -23,8 +23,9 @@ function EventRow({ event }: EventRowProps) {
 				? "error"
 				: "default";
 
-	const change24hSign =
-		event.polymarketChange24h !== null && event.polymarketChange24h > 0 ? "+" : "";
+	const hasProbability = typeof event.probability === "number";
+	const hasChange24h = typeof event.probabilityChange24h === "number";
+	const change24hSign = hasChange24h && (event.probabilityChange24h as number) > 0 ? "+" : "";
 
 	return (
 		<div
@@ -64,7 +65,7 @@ function EventRow({ event }: EventRowProps) {
 			<Space size={6} wrap>
 				{/* Impact level */}
 				<Tag color={impactTagColor} style={{ fontSize: 11, margin: 0 }}>
-					{t(`overview.eventRadar.impactLevel.${event.impactLevel}`)}
+					{t(`overview.eventRadar.impactLevel.${event.impact}`)}
 				</Tag>
 
 				{/* Gold direction */}
@@ -75,27 +76,28 @@ function EventRow({ event }: EventRowProps) {
 				)}
 
 				{/* Polymarket probability */}
-				{event.polymarketProbability !== null && (
+				{hasProbability && (
 					<Text style={{ fontSize: 12, color: token.colorTextSecondary }}>
-						{t("overview.eventRadar.probability")} {(event.polymarketProbability * 100).toFixed(0)}%
+						{t("overview.eventRadar.probability")}{" "}
+						{((event.probability as number) * 100).toFixed(0)}%
 					</Text>
 				)}
 
 				{/* 24h change */}
-				{event.polymarketChange24h !== null && (
+				{hasChange24h && (
 					<Text
 						style={{
 							fontSize: 12,
 							color:
-								event.polymarketChange24h > 0
+								(event.probabilityChange24h as number) > 0
 									? token.colorSuccess
-									: event.polymarketChange24h < 0
+									: (event.probabilityChange24h as number) < 0
 										? token.colorError
 										: token.colorTextTertiary,
 						}}
 					>
 						{t("overview.eventRadar.change24h")} {change24hSign}
-						{(event.polymarketChange24h * 100).toFixed(1)}pp
+						{((event.probabilityChange24h as number) * 100).toFixed(1)}pp
 					</Text>
 				)}
 			</Space>
@@ -151,8 +153,9 @@ export function EventRadarSection({ data, isLoading, isError, onRetry }: EventRa
 					</Text>
 				) : (
 					<div>
-						{data.events.map((event) => (
-							<EventRow key={event.id} event={event} />
+						{data.events.map((event, idx) => (
+							// richson does not emit a stable id; synthesize from date+title+idx.
+							<EventRow key={`${event.date}-${event.title}-${idx}`} event={event} />
 						))}
 					</div>
 				))}

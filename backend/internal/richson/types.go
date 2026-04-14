@@ -150,15 +150,20 @@ type ScoreHistoryResponse struct {
 // ---- Events ----
 
 // EventItem describes a single macro or market event.
+// Pointer fields mirror the "T | None" shape emitted by richson
+// (richson/src/richson/schemas/events.py::EventItem); using value types
+// here would silently collapse JSON null into Go zero values and re-emit
+// them as 0 / "", producing wrong semantics on the client (e.g. "0%"
+// probability shown for events that actually have no polymarket data).
 type EventItem struct {
-	Date                 string  `json:"date"`
-	Title                string  `json:"title"`
-	Category             string  `json:"category"`
-	Impact               string  `json:"impact"`
-	GoldDirection        string  `json:"goldDirection"`
-	Probability          float64 `json:"probability"`
-	ProbabilitySource    string  `json:"probabilitySource"`
-	ProbabilityChange24h float64 `json:"probabilityChange24h"`
+	Date                 string   `json:"date"`
+	Title                string   `json:"title"`
+	Category             string   `json:"category"`
+	Impact               string   `json:"impact"`
+	GoldDirection        *string  `json:"goldDirection"`
+	Probability          *float64 `json:"probability"`
+	ProbabilitySource    *string  `json:"probabilitySource"`
+	ProbabilityChange24h *float64 `json:"probabilityChange24h"`
 }
 
 // EventsRadarResponse is returned by GET /events/radar.
