@@ -1,7 +1,7 @@
 .PHONY: help install init dev run migrate-up migrate-down migrate-status lint fmt test check clean
 
 HOST ?= 0.0.0.0
-PORT ?= 8001
+PORT ?= 8100
 
 help:
 	@echo "richson — quantitative computation sidecar"
