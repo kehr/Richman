@@ -117,17 +117,60 @@ print('disabled:', c._disabled)
    - 无 polymarket 数据的事件不显示概率区块（而非显示「概率 0%」）
 5. 后端日志：`make dev` 启动后不再出现 FRED Bad Request 刷屏；richson `/market/regime` 恢复正常返回（依赖 FRED 的卡片不再"即将开放"）
 
+## 追加：MarketOverview 资产卡片契约漂移修复（阶段 1）
+
+2026-04-15 同日截图反馈：行情首页满屏灰色「即将开放」占位卡。根因是事件雷达契约漂移的孪生问题——frontend `AssetCardDto` 与 backend `AssetCardDTO` 字段命名完全错位：
+
+| frontend 期望 | backend 实际返回 | 结果 |
+|---|---|---|
+| `nameZh` | `name` | undefined |
+| `signal` | `signalLevel` | undefined |
+| `isActive` | 不返回 | 永远 undefined → falsy → 全部走「即将开放」占位 |
+| `price` / `changePercent` / `currency` / `percentileLabel` | 不返回 | undefined |
+| `AssetGroupDto.category` / `categoryLabel` | `assetType` | undefined |
+
+### 设计决策
+
+用户选择前端对齐后端（同 event-radar 方向）并分两阶段推进：
+
+- **阶段 1（本次）**：纯 frontend 修复。字段重命名 + 激活判断改用 `overallScore` 是否存在 + 文案改「等待分析」+ 补 i18n 键。不改 backend。
+- **阶段 2（后续独立任务）**：backend `AssetCardDTO` 增加 `percentileLabel` 并在 `GetOverview` 批量计算；新增 batch quote 接口或直接在 overview 中嵌入 `current`（price / changePercent / currency）。阶段 2 应走 PRD → TRD → Plan 正式流程，涉及数据源 QPS 评估与缓存策略。
+
+### 本次修改清单（阶段 1）
+
+| 文件 | 改动 |
+|---|---|
+| `frontend/src/features/market-overview/types.ts` | `AssetCardDto` 按 backend 返回重写：`nameZh → name`、`signal → signalLevel`、`category → assetType` 分组键；移除 `isActive` / `price` / `changePercent` / `currency` / `percentileLabel`；保留并对齐 `overallScore` / `scoreDelta` 为可空；`AssetGroupDto` 改为 `assetType + assets` |
+| `frontend/src/pages/market-overview/components/asset-card.tsx` | 激活判断从 `!asset.isActive` 改为 `typeof asset.overallScore !== "number"`；新增 `scoreDelta` 趋势着色；移除 price/changePercent/percentileLabel 渲染；i18n key `overview.assetCard.comingSoon` 改为 `overview.assetCard.waitingAnalysis` |
+| `frontend/src/pages/market-overview/components/asset-group-section.tsx` | label 从 `group.categoryLabel` 改为 `t('overview.assetType.${assetType}', assetType)`，带 raw-key fallback 兜底未知 assetType |
+| `frontend/src/pages/market-overview/components/asset-card-wall.tsx` | 分组 key 从 `group.category` 改为 `group.assetType` |
+| `frontend/src/i18n/locales/{zh,en}/market.json` | 新增 `overview.assetCard.waitingAnalysis` 和 `overview.assetType.{gold_etf,a_share_broad,a_share_industry,us_stock}`；删除无用的 `overview.assetCard.comingSoon` |
+
+### 阶段 1 验证
+
+- `cd frontend && pnpm lint:all` → Biome + tsc + depcruise 全绿（252 files / 277 modules / 879 deps）
+- 人工验收（待用户执行）：
+  1. 刷新 `/market`，卡片不再满屏「即将开放」
+  2. 已分析资产显示名称 + 评分/100 + scoreDelta 趋势 + 信号标签，可点击进详情
+  3. 无 analysis 的资产显示灰色卡片 + 「等待分析」标签，不可点击
+  4. 分组标题（如「黄金 ETF」「A 股宽基」）按 assetType + 当前 locale 正确翻译；新 assetType 未加翻译时 fallback 到 raw key 不崩
+
 ## 已记录但未修复的观察项
 
 1. richson 的 mypy 基线有 106 条 pre-existing 错误，涉及 33 个文件。本次只验证改动未引入新错误，未做统一修复。建议下一个专门的"richson 类型修复"任务处理。
 2. 用户 `richson/.env` 中 `PLATFORM_LLM_API_KEY=sk-...` 同样是占位符，本次未改动。若未来 scheduler 用到 platform LLM，会在这里再次踩坑。短期可参考 FRED 方案为 LLM 客户端加同样的占位符检测。
-3. `frontend/src/pages/market/MarketOverviewPage.tsx` 与 `frontend/src/pages/market-overview/market-overview-page.tsx` 并存，页面路由上似乎选用了新版。旧文件是否可删除未在本次确认。
+3. ~~`frontend/src/pages/market/MarketOverviewPage.tsx` 与 `frontend/src/pages/market-overview/market-overview-page.tsx` 并存~~。**已处理**：旧 `pages/market/` 目录两个 stub 文件删除，`routes.tsx` 中 `AssetDetailPage` 的 lazy import 直接指向 `@/pages/asset-detail`。
 4. backend `make check` 依赖 `golangci-lint`，当前本机未安装；本次只跑了 `go build` + `go vet` 替代。建议在 `docs/standards/lint-toolchain.md` 约束的版本下补装。
+5. **阶段 2 待办（独立任务）**：backend overview DTO 加 `percentileLabel` 批量计算 + 增加 batch quote 接口（或在 overview 中内嵌 `current`）以支持卡片显示百分位 + 实时价格 / 涨跌幅 / 币种。需 PRD + TRD + Plan。
+6. 行情首页和卡片详情页原本用 `maxWidth: 960` / `maxWidth: 900` 硬限宽导致 1920+ 屏内容过窄，且未用 PageContainer 包裹。**已处理**：两页面根节点统一改为 `<PageContainer title={false}>`，删除 page 级 maxWidth 交给 ProLayout contentWidth="Fixed" 统一控制；`docs/standards/frontend.md` 补了「Page 根元素必须用 PageContainer（MANDATORY）」章节，memory 写入 `feedback_page_must_use_pagecontainer.md`。
 
 ## 验收后续
 
 - 用户确认端到端可见事件雷达恢复正常后，本次改动可直接 commit 到 main
-- commit 建议拆分为三个独立 commit（遵守 `docs/standards/commit-hygiene.md` 一次一主题）：
+- commit 建议拆分为六个独立 commit（遵守 `docs/standards/commit-hygiene.md` 一次一主题）：
   1. `fix(events): align event radar DTO names across richson/backend/frontend`（frontend types + section + backend pointers + emailpush 适配）
   2. `fix(richson): short-circuit FRED fetches when api_key is a placeholder`（fred.py + .env.example）
-  3. `docs(standards): add cross-layer contract drift discipline`（contract-drift.md + CLAUDE.md 索引）
+  3. `docs(standards): add cross-layer contract drift discipline`（contract-drift.md + CLAUDE.md 索引 + 两条 memory）
+  4. `fix(market): align asset card DTO and show waiting-analysis placeholder`（market-overview 字段对齐、组件重写、i18n 键迁移）
+  5. `fix(ui): wrap market pages with PageContainer and drop page-level maxWidth`（market-overview-page + asset-detail + routes.tsx 清理旧 market 目录）
+  6. `docs(standards): require PageContainer as page root`（frontend.md + feedback_page_must_use_pagecontainer.md + MEMORY.md 索引）
