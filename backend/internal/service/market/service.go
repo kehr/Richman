@@ -43,18 +43,18 @@ type MarketOverviewDTO struct {
 
 // AssetDetailDTO is the response payload for GET /v2/market/assets/{code}.
 type AssetDetailDTO struct {
-	Code             string                    `json:"code"`
-	Name             string                    `json:"name"`
-	NameEn           string                    `json:"nameEn"`
-	AssetType        string                    `json:"assetType"`
-	Exchange         string                    `json:"exchange"`
-	OverallScore     *float64                  `json:"overallScore,omitempty"`
-	SignalLevel      *string                   `json:"signalLevel,omitempty"`
-	ScoreDelta       *float64                  `json:"scoreDelta,omitempty"`
-	PercentileLabel  *string                   `json:"percentileLabel,omitempty"`
-	Dimensions       []model.AnalysisDimension `json:"dimensions"`
-	AnalyzedAt       *time.Time                `json:"analyzedAt,omitempty"`
-	AnalysisID       *int64                    `json:"analysisId,omitempty"`
+	Code            string                    `json:"code"`
+	Name            string                    `json:"name"`
+	NameEn          string                    `json:"nameEn"`
+	AssetType       string                    `json:"assetType"`
+	Exchange        string                    `json:"exchange"`
+	OverallScore    *float64                  `json:"overallScore,omitempty"`
+	SignalLevel     *string                   `json:"signalLevel,omitempty"`
+	ScoreDelta      *float64                  `json:"scoreDelta,omitempty"`
+	PercentileLabel *string                   `json:"percentileLabel,omitempty"`
+	Dimensions      []model.AnalysisDimension `json:"dimensions"`
+	AnalyzedAt      *time.Time                `json:"analyzedAt,omitempty"`
+	AnalysisID      *int64                    `json:"analysisId,omitempty"`
 }
 
 // Service provides market overview and asset detail queries.
@@ -293,4 +293,3 @@ func (s *Service) InvalidatePercentileCache(code string) {
 func (s *Service) GetLatestAnalysisForDemoPlan(ctx context.Context, code string) (*model.AssetAnalysis, error) {
 	return s.analysisRepo.GetLatestByAssetCode(ctx, code)
 }
-

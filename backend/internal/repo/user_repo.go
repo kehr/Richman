@@ -439,6 +439,63 @@ func (r *UserRepo) UpdateRiskPreference(ctx context.Context, userID int64, prefe
 	return nil
 }
 
+// MarkDisclaimerAcceptedWithTx stamps disclaimer_accepted_at with NOW() inside
+// the given transaction. Used by the registration flows to record consent at
+// account creation time. Returns an error if the user does not exist.
+func (r *UserRepo) MarkDisclaimerAcceptedWithTx(ctx context.Context, tx pgx.Tx, userID int64) error {
+	tag, err := tx.Exec(ctx,
+		`UPDATE rm_users
+		 SET disclaimer_accepted_at = NOW(),
+		     updated_at = NOW()
+		 WHERE user_id = $1 AND is_deleted = 0`,
+		userID,
+	)
+	if err != nil {
+		return fmt.Errorf("mark disclaimer accepted (tx): %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		return fmt.Errorf("mark disclaimer accepted: user %d not found", userID)
+	}
+	return nil
+}
+
+// MarkDisclaimerAccepted is the non-transactional variant used by the global
+// (v1) registration path which does not own a transaction. Identical semantics.
+func (r *UserRepo) MarkDisclaimerAccepted(ctx context.Context, userID int64) error {
+	tag, err := r.pool.Exec(ctx,
+		`UPDATE rm_users
+		 SET disclaimer_accepted_at = NOW(),
+		     updated_at = NOW()
+		 WHERE user_id = $1 AND is_deleted = 0`,
+		userID,
+	)
+	if err != nil {
+		return fmt.Errorf("mark disclaimer accepted: %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		return fmt.Errorf("mark disclaimer accepted: user %d not found", userID)
+	}
+	return nil
+}
+
+// GetEmailPushEnabled reads the user's email_push_enabled flag. Returns true
+// (the database default) when the user does not exist so callers can safely
+// treat a missing user as opted-in without a second null check.
+func (r *UserRepo) GetEmailPushEnabled(ctx context.Context, userID int64) (bool, error) {
+	var enabled bool
+	err := r.pool.QueryRow(ctx,
+		`SELECT email_push_enabled FROM rm_users WHERE user_id = $1 AND is_deleted = 0`,
+		userID,
+	).Scan(&enabled)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return true, nil
+		}
+		return false, fmt.Errorf("query email push enabled: %w", err)
+	}
+	return enabled, nil
+}
+
 // UpdateEmailPush sets the email_push_enabled column for a user. Returns an
 // error if the user does not exist.
 func (r *UserRepo) UpdateEmailPush(ctx context.Context, userID int64, enabled bool) error {
@@ -480,16 +537,23 @@ func (r *UserRepo) GetLoginStreak(ctx context.Context, userID int64) (int, error
 // single UPDATE to avoid read-modify-write race conditions in multi-device
 // login scenarios. Returns the new streak value so the caller can check if
 // a new invite code should be generated (streak % 7 == 0).
+//
+// The date boundary is computed as `(NOW() AT TIME ZONE 'Asia/Shanghai')::date`
+// rather than the session `CURRENT_DATE` (invite TRD SS11.2). Pinning the
+// comparison to CST keeps streak accounting stable regardless of the server
+// timezone setting -- a late-night login near UTC midnight no longer flips the
+// date and breaks an otherwise consecutive streak for CST-local users.
 func (r *UserRepo) UpdateLoginStreak(ctx context.Context, userID int64) (int, error) {
 	var streak int
 	err := r.pool.QueryRow(ctx,
-		`UPDATE rm_users SET
+		`WITH cst AS (SELECT (NOW() AT TIME ZONE 'Asia/Shanghai')::date AS today)
+		 UPDATE rm_users SET
 		   login_streak = CASE
-		     WHEN last_login_date = CURRENT_DATE - INTERVAL '1 day' THEN login_streak + 1
-		     WHEN last_login_date = CURRENT_DATE THEN login_streak
+		     WHEN last_login_date = (SELECT today - 1 FROM cst) THEN login_streak + 1
+		     WHEN last_login_date = (SELECT today FROM cst) THEN login_streak
 		     ELSE 1
 		   END,
-		   last_login_date = CURRENT_DATE,
+		   last_login_date = (SELECT today FROM cst),
 		   updated_at = NOW()
 		 WHERE user_id = $1 AND is_deleted = 0
 		 RETURNING login_streak`,

@@ -31,31 +31,32 @@ type AssetAnalysis struct {
 	D3LLMAdjustment      *float64
 	D4Score              *float64
 	D4BaseScore          *float64
-	D4LLMAdjustment      *float64
-	D1Weight             float64
-	D2Weight             float64
-	D3Weight             float64
-	D4Weight             float64
-	LLMSkipped           bool
-	DataCoverage         string
-	ConflictType         *string
-	ConflictMessage      *string
-	PrevAnalysisID       *int64
-	ScoreDelta           *float64
-	ChangeSummary        *string
-	MajorChangeRecap     *string
-	DataSnapshotAt       time.Time
-	UsdExchangeRate      *float64        // CNY/USD snapshot; NULL for USD assets
-	PriceAtAnalysis      *float64
-	DemoPlan             json.RawMessage
-	AnalysisMetadata     json.RawMessage // extensible JSONB (drawdownReference, etc.)
-	GeneratedBy          string
-	Source               string
-	JobID                *string
-	AnalyzedAt           time.Time
-	CreatedAt            time.Time
-	UpdatedAt            time.Time
-	IsDeleted            int
+	// D4 (technical position) is purely quantitative; no LLM adjustment column
+	// exists in rs_asset_analyses.
+	D1Weight         float64
+	D2Weight         float64
+	D3Weight         float64
+	D4Weight         float64
+	LLMSkipped       bool
+	DataCoverage     string
+	ConflictType     *string
+	ConflictMessage  *string
+	PrevAnalysisID   *int64
+	ScoreDelta       *float64
+	ChangeSummary    *string
+	MajorChangeRecap *string
+	DataSnapshotAt   time.Time
+	UsdExchangeRate  *float64 // CNY/USD snapshot; NULL for USD assets
+	PriceAtAnalysis  *float64
+	DemoPlan         json.RawMessage
+	AnalysisMetadata json.RawMessage // extensible JSONB (drawdownReference, etc.)
+	GeneratedBy      string
+	Source           string
+	JobID            *string
+	AnalyzedAt       time.Time
+	CreatedAt        time.Time
+	UpdatedAt        time.Time
+	IsDeleted        int
 }
 
 // AnalysisDimension maps to rs_asset_analysis_dimensions (read-only).

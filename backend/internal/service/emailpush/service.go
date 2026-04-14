@@ -564,4 +564,3 @@ func (s *Service) SendHoldingSuggestion(ctx context.Context, userID int64, card 
 	)
 	return s.sender.Send(ctx, u.Email, subject, html)
 }
-

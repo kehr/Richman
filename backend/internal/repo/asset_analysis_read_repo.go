@@ -24,13 +24,15 @@ func NewAssetAnalysisReadRepo(pool *pgxpool.Pool) *AssetAnalysisReadRepo {
 
 // assetAnalysisColumns lists every column scanned by scanAssetAnalysisRow.
 // Keep in sync with the scan order in scanAssetAnalysisRow.
+// D4 (technical position) is purely quantitative and has no llm_adjustment
+// column; only D1/D2/D3 receive LLM adjustments per richson schema.
 const assetAnalysisColumns = `asset_analysis_id, asset_code, locale,
 	overall_score, signal_level, confidence, confidence_band_low, confidence_band_high,
 	model_version, market_interpretation, risk_factors, regime_summary,
 	d1_score, d1_base_score, d1_llm_adjustment,
 	d2_score, d2_base_score, d2_llm_adjustment,
 	d3_score, d3_base_score, d3_llm_adjustment,
-	d4_score, d4_base_score, d4_llm_adjustment,
+	d4_score, d4_base_score,
 	d1_weight, d2_weight, d3_weight, d4_weight,
 	llm_skipped, data_coverage,
 	conflict_type, conflict_message,
@@ -61,7 +63,7 @@ func scanAssetAnalysisRow(row analysisScanner, a *model.AssetAnalysis) error {
 		&a.D1Score, &a.D1BaseScore, &a.D1LLMAdjustment,
 		&a.D2Score, &a.D2BaseScore, &a.D2LLMAdjustment,
 		&a.D3Score, &a.D3BaseScore, &a.D3LLMAdjustment,
-		&a.D4Score, &a.D4BaseScore, &a.D4LLMAdjustment,
+		&a.D4Score, &a.D4BaseScore,
 		&a.D1Weight, &a.D2Weight, &a.D3Weight, &a.D4Weight,
 		&a.LLMSkipped, &a.DataCoverage,
 		&a.ConflictType, &a.ConflictMessage,

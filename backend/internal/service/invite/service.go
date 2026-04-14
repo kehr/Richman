@@ -17,18 +17,18 @@ import (
 )
 
 const (
-	codePrefix     = "RM"
-	codeRandBytes  = 4  // 4 bytes = 8 hex chars
+	codePrefix      = "RM"
+	codeRandBytes   = 4 // 4 bytes = 8 hex chars
 	maxCodesPerUser = 20
 	minUnusedCodes  = 3
-	codeRetryMax   = 3
-	rewardType     = "extra_analysis_refresh"
+	codeRetryMax    = 3
+	rewardType      = "extra_analysis_refresh"
 )
 
 // bruteRecord tracks failed invite-code validation attempts from a single IP.
 type bruteRecord struct {
-	failures  int
-	windowEnd time.Time
+	failures    int
+	windowEnd   time.Time
 	lockedUntil time.Time
 }
 
@@ -65,15 +65,19 @@ func NewService(
 
 // MyCodesResponse is returned by GetMyCodes.
 type MyCodesResponse struct {
-	Codes         []model.UserInviteCode `json:"codes"`
-	TotalCodes    int                    `json:"totalCodes"`
-	UsedCount     int                    `json:"usedCount"`
-	NextUnlockIn  int                    `json:"nextUnlockIn"` // days until next code unlock (7 - streak%7)
+	Codes        []model.UserInviteCode `json:"codes"`
+	TotalCodes   int                    `json:"totalCodes"`
+	UsedCount    int                    `json:"usedCount"`
+	NextUnlockIn int                    `json:"nextUnlockIn"` // days until next code unlock (7 - streak%7)
 }
 
-// MyInvitesResponse is returned by GetMyInvites.
+// MyInvitesResponse is returned by GetMyInvites. Field names match the
+// frontend contract (see frontend/src/features/invite/types.ts): the list of
+// users appears under "invites" and the total count is precomputed so the UI
+// can render the "Invited Users ({n})" header without a separate derivation.
 type MyInvitesResponse struct {
-	InvitedUsers []model.InvitedUser `json:"invitedUsers"`
+	Invites      []model.InvitedUser `json:"invites"`
+	TotalInvited int                 `json:"totalInvited"`
 }
 
 // generateCode produces a random "RM" + 8-char uppercase hex invite code.
@@ -304,7 +308,7 @@ func (s *Service) GetMyInvites(ctx context.Context, userID int64) (*MyInvitesRes
 	if users == nil {
 		users = []model.InvitedUser{}
 	}
-	return &MyInvitesResponse{InvitedUsers: users}, nil
+	return &MyInvitesResponse{Invites: users, TotalInvited: len(users)}, nil
 }
 
 // GetFirstAvailableCode returns the first unused invite code for userID, or

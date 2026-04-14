@@ -49,8 +49,25 @@ func (h *UserHandler) updateRiskPreference(c *gin.Context) {
 }
 
 // patchEmailPushRequest is the request body for PATCH /api/v2/user/email-push.
+// The field name mirrors the GET response shape so the frontend can use a
+// single EmailPushPrefs interface for both directions.
 type patchEmailPushRequest struct {
-	Enabled bool `json:"enabled"`
+	EmailPushEnabled *bool `json:"emailPushEnabled" binding:"required"`
+}
+
+// getEmailPush handles GET /api/v2/user/email-push and returns the current
+// flag for the authenticated user. The response shape matches the PATCH
+// response so the frontend can reuse the same type.
+func (h *UserHandler) getEmailPush(c *gin.Context) {
+	userID := middleware.GetUserID(c)
+
+	enabled, err := h.userSettingsSvc.GetEmailPushEnabled(c.Request.Context(), userID)
+	if err != nil {
+		handleServiceError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": gin.H{"emailPushEnabled": enabled}})
 }
 
 // updateEmailPush handles PATCH /api/v2/user/email-push.
@@ -65,10 +82,11 @@ func (h *UserHandler) updateEmailPush(c *gin.Context) {
 		return
 	}
 
-	if err := h.userSettingsSvc.UpdateEmailPush(c.Request.Context(), userID, req.Enabled); err != nil {
+	enabled := *req.EmailPushEnabled
+	if err := h.userSettingsSvc.UpdateEmailPush(c.Request.Context(), userID, enabled); err != nil {
 		handleServiceError(c, err)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"data": gin.H{"message": "email push setting updated"}})
+	c.JSON(http.StatusOK, gin.H{"data": gin.H{"emailPushEnabled": enabled}})
 }

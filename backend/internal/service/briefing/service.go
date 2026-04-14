@@ -42,6 +42,22 @@ type BriefingCardDTO struct {
 	ConcentrationLevel   concentrationLevel `json:"concentrationLevel"`
 	ConcentrationMessage string             `json:"concentrationMessage"`
 	AnalyzedAt           *time.Time         `json:"analyzedAt,omitempty"`
+
+	// AssetAnalysisID is the primary key of the rs_asset_analyses row backing
+	// OverallScore/SignalLevel/ScoreDelta above. The frontend includes this
+	// value in POST /api/v2/feedback so the feedback row can reference the
+	// exact analysis that was rated. NULL when no analysis exists yet.
+	AssetAnalysisID *int64 `json:"assetAnalysisId,omitempty"`
+	// ChangeAttribution is a one-sentence attribution for today's score
+	// change (shown in the UI when |scoreDelta| >= 5). Sourced from the
+	// analysis change_summary column.
+	ChangeAttribution *string `json:"changeAttribution,omitempty"`
+	// ConflictWarning is a human-readable warning when dimensional
+	// conflicts are detected (analysis.conflict_message).
+	ConflictWarning *string `json:"conflictWarning,omitempty"`
+	// Direction is the derived trend label based on SignalLevel/OverallScore:
+	// "bullish" | "bearish" | "neutral".
+	Direction string `json:"direction"`
 }
 
 // BriefingDTO is the full response for GET /v2/briefing.
@@ -80,8 +96,8 @@ func NewService(
 // parallel via errgroup; steps 5-7 run sequentially using the gathered data.
 func (s *Service) GetBriefing(ctx context.Context, userID int64) (*BriefingDTO, error) {
 	var (
-		holdings  []model.Holding
-		analyses  map[string]*model.AssetAnalysis
+		holdings    []model.Holding
+		analyses    map[string]*model.AssetAnalysis
 		latestCards map[int64]*model.DecisionCard
 		sparklines  map[string][]float64
 	)
@@ -185,13 +201,13 @@ func (s *Service) buildCard(
 	sparklines map[string][]float64,
 ) BriefingCardDTO {
 	card := BriefingCardDTO{
-		HoldingID:     h.HoldingID,
-		AssetCode:     h.AssetCode,
-		AssetName:     h.AssetName,
-		AssetType:     h.AssetType,
-		CostPrice:     h.CostPrice.String(),
-		PositionRatio: h.PositionRatio.String(),
-		Quantity:      h.Quantity.String(),
+		HoldingID:       h.HoldingID,
+		AssetCode:       h.AssetCode,
+		AssetName:       h.AssetName,
+		AssetType:       h.AssetType,
+		CostPrice:       h.CostPrice.String(),
+		PositionRatio:   h.PositionRatio.String(),
+		Quantity:        h.Quantity.String(),
 		SparklineScores: []float64{},
 	}
 
@@ -206,6 +222,11 @@ func (s *Service) buildCard(
 		card.SignalLevel = &a.SignalLevel
 		card.ScoreDelta = a.ScoreDelta
 		card.AnalyzedAt = &a.AnalyzedAt
+		id := a.AssetAnalysisID
+		card.AssetAnalysisID = &id
+		card.ChangeAttribution = a.ChangeSummary
+		card.ConflictWarning = a.ConflictMessage
+		card.Direction = deriveDirection(a.SignalLevel, a.OverallScore)
 
 		// Step 5: calculate P&L using price_at_analysis vs cost_price.
 		if a.PriceAtAnalysis != nil && !h.CostPrice.IsZero() {
@@ -217,6 +238,10 @@ func (s *Service) buildCard(
 				card.PnLPercent = &pnl
 			}
 		}
+	} else {
+		// No analysis yet: default direction to neutral so the frontend has a
+		// deterministic string to render.
+		card.Direction = "neutral"
 	}
 
 	// Attach latest decision card data.
@@ -234,6 +259,32 @@ func (s *Service) buildCard(
 	card.ConcentrationLevel, card.ConcentrationMessage = ComputeConcentration(posRatio)
 
 	return card
+}
+
+// deriveDirection returns a simple trend label based on the richson signal
+// level first, falling back to the overall score when the signal is missing
+// or unrecognised. The frontend uses this value to render the sparkline trend
+// badge on each briefing card.
+//
+// Signal levels produced by richson (see core.scoring.signal_level_from_score):
+// strong_bullish / moderate_bullish -> bullish
+// strong_bearish / moderate_bearish -> bearish
+// neutral / unknown -> score-based fallback.
+func deriveDirection(signalLevel string, overallScore float64) string {
+	switch signalLevel {
+	case "strong_bullish", "moderate_bullish":
+		return "bullish"
+	case "strong_bearish", "moderate_bearish":
+		return "bearish"
+	}
+	switch {
+	case overallScore >= 60:
+		return "bullish"
+	case overallScore <= 40:
+		return "bearish"
+	default:
+		return "neutral"
+	}
 }
 
 // ComputeConcentration returns a concentration level and a descriptive message

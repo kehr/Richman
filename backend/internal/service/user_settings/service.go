@@ -61,6 +61,7 @@ type UserRepo interface {
 		ctx context.Context, userID int64, patch *repo.UserSettingsPatch,
 	) (*model.User, error)
 	UpdateRiskPreference(ctx context.Context, userID int64, preference string) error
+	GetEmailPushEnabled(ctx context.Context, userID int64) (bool, error)
 	UpdateEmailPush(ctx context.Context, userID int64, enabled bool) error
 }
 
@@ -274,6 +275,17 @@ func (s *Service) UpdateRiskPreference(ctx context.Context, userID int64, prefer
 		return fmt.Errorf("update risk preference: %w", err)
 	}
 	return nil
+}
+
+// GetEmailPushEnabled fetches the user's email_push_enabled flag. Returns true
+// (the database default) for unknown users so an unauthenticated read at the
+// edge is treated as opt-in without a secondary null check.
+func (s *Service) GetEmailPushEnabled(ctx context.Context, userID int64) (bool, error) {
+	enabled, err := s.users.GetEmailPushEnabled(ctx, userID)
+	if err != nil {
+		return false, fmt.Errorf("get email push enabled: %w", err)
+	}
+	return enabled, nil
 }
 
 // UpdateEmailPush sets the email_push_enabled flag for the given user.

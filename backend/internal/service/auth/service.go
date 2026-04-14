@@ -65,6 +65,30 @@ type AuthResult struct {
 	Token string      `json:"token"`
 }
 
+// ValidatePasswordComplexity enforces the policy from richman TRD SS22.5:
+// at least one uppercase letter, one lowercase letter, and one digit. Length
+// limits are enforced by binding tags at the handler layer so this helper
+// assumes the string has already passed the 8..128 byte check. Exposed so
+// future ChangePassword flows can apply the same rule.
+func ValidatePasswordComplexity(password string) error {
+	var hasUpper, hasLower, hasDigit bool
+	for _, r := range password {
+		switch {
+		case r >= 'A' && r <= 'Z':
+			hasUpper = true
+		case r >= 'a' && r <= 'z':
+			hasLower = true
+		case r >= '0' && r <= '9':
+			hasDigit = true
+		}
+		if hasUpper && hasLower && hasDigit {
+			return nil
+		}
+	}
+	return model.NewAppError(http.StatusBadRequest, "VALIDATION_ERROR",
+		"password must contain uppercase, lowercase, and digit characters")
+}
+
 // Register creates a new user account with invite code validation.
 // disclaimerAccepted must be true; a false value returns a 400 error.
 // The invite code is checked against global codes first (v1 flow); if not found
@@ -78,6 +102,11 @@ func (s *Service) Register(
 	if !disclaimerAccepted {
 		return nil, model.NewAppError(http.StatusBadRequest, "VALIDATION_ERROR",
 			"disclaimer must be accepted to register")
+	}
+
+	// Enforce password character-class complexity (richman TRD SS22.5).
+	if err := ValidatePasswordComplexity(password); err != nil {
+		return nil, err
 	}
 
 	// --- Phase 1: try global (v1) invite codes ---
@@ -148,6 +177,11 @@ func (s *Service) registerWithGlobalCode(
 		return nil, fmt.Errorf("create user: %w", err)
 	}
 
+	// Record disclaimer acceptance (PRD SS12 / migration 022 column).
+	if err := s.userRepo.MarkDisclaimerAccepted(ctx, user.UserID); err != nil {
+		return nil, fmt.Errorf("mark disclaimer accepted: %w", err)
+	}
+
 	// Increment global invite code usage.
 	if err := s.inviteRepo.IncrementInviteCodeUsage(ctx, ic.InviteCodeID); err != nil {
 		return nil, fmt.Errorf("increment invite usage: %w", err)
@@ -208,6 +242,12 @@ func (s *Service) registerWithPersonalCode(
 		return nil, fmt.Errorf("create user (tx): %w", err)
 	}
 
+	// Record disclaimer acceptance inside the same transaction so account
+	// creation and consent stay atomic (PRD SS12 / migration 022).
+	if err := s.userRepo.MarkDisclaimerAcceptedWithTx(ctx, tx, user.UserID); err != nil {
+		return nil, fmt.Errorf("mark disclaimer accepted (tx): %w", err)
+	}
+
 	// Consume personal invite code.
 	if err := s.inviteService.UseInviteCode(ctx, tx, personalCode.InviteCodeID, user.UserID); err != nil {
 		return nil, err
@@ -259,9 +299,9 @@ func (s *Service) Login(ctx context.Context, email, password string) (*AuthResul
 		return nil, fmt.Errorf("verify password: %w", err)
 	}
 
-	// Update login streak (Asia/Shanghai date boundary is handled in SQL via
-	// session-level timezone; the CURRENT_DATE value in the UPDATE already
-	// reflects the server's configured timezone).
+	// Update login streak. The date boundary is pinned to Asia/Shanghai inside
+	// the SQL itself (see UserRepo.UpdateLoginStreak, invite TRD SS11.2) so the
+	// result is independent of the server / session timezone configuration.
 	streak, streakErr := s.userRepo.UpdateLoginStreak(ctx, user.UserID)
 	if streakErr != nil {
 		// Non-fatal: a failed streak update should not block login.
@@ -345,6 +385,15 @@ type Claims struct {
 }
 
 // GenerateJWT creates a signed JWT token for the given user.
+//
+// MVP (current): single long-lived access token, cfg.JWT.Expiry defaults to
+// 7 days. There is no refresh mechanism -- when the token expires the client
+// must re-authenticate.
+//
+// Phase 2 (planned, richman TRD SS22.6): replace this with a two-token flow
+// -- a short-lived access token (~15min) plus a long-lived refresh token
+// (~30 days) rotated through a dedicated /auth/refresh endpoint, with the
+// refresh token persisted (hashed) so it can be revoked at logout.
 func (s *Service) GenerateJWT(userID int64, email, role string) (string, error) {
 	now := time.Now()
 	claims := Claims{

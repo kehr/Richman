@@ -86,11 +86,14 @@ func authIPRateLimit(maxPerWindow int, window time.Duration) gin.HandlerFunc {
 	}
 }
 
+// Password length is enforced by the binding tag (8-128). Character class
+// complexity (upper + lower + digit) is validated in the service layer so
+// the same rule applies to future ChangePassword flows (richman TRD SS22.5).
 type registerRequest struct {
-	Email               string `json:"email" binding:"required,email"`
-	Password            string `json:"password" binding:"required,min=6,max=128"`
-	InviteCode          string `json:"inviteCode" binding:"required"`
-	DisclaimerAccepted  bool   `json:"disclaimerAccepted"`
+	Email              string `json:"email" binding:"required,email"`
+	Password           string `json:"password" binding:"required,min=8,max=128"`
+	InviteCode         string `json:"inviteCode" binding:"required"`
+	DisclaimerAccepted bool   `json:"disclaimerAccepted"`
 }
 
 // Register handles POST /api/v1/auth/register.

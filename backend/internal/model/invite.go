@@ -10,17 +10,17 @@ import (
 // personal invite codes (3 generated at registration, plus 1 per 7-day
 // continuous login streak).
 type UserInviteCode struct {
-	InviteCodeID   int64      `json:"inviteCodeId"`
-	UserID         int64      `json:"userId"`
-	Code           string     `json:"code"`
-	IsUsed         bool       `json:"isUsed"`
-	UsedByUserID   *int64     `json:"usedByUserId,omitempty"`
-	UsedAt         *time.Time `json:"usedAt,omitempty"`
-	CreatedAt      time.Time  `json:"createdAt"`
-	UpdatedAt      time.Time  `json:"updatedAt"`
-	Creator        string     `json:"-"`
-	Modifier       string     `json:"-"`
-	IsDeleted      int16      `json:"-"`
+	InviteCodeID int64      `json:"inviteCodeId"`
+	UserID       int64      `json:"userId"`
+	Code         string     `json:"code"`
+	IsUsed       bool       `json:"isUsed"`
+	UsedByUserID *int64     `json:"usedByUserId,omitempty"`
+	UsedAt       *time.Time `json:"usedAt,omitempty"`
+	CreatedAt    time.Time  `json:"createdAt"`
+	UpdatedAt    time.Time  `json:"updatedAt"`
+	Creator      string     `json:"-"`
+	Modifier     string     `json:"-"`
+	IsDeleted    int16      `json:"-"`
 }
 
 // InviteReward maps to rm_invite_rewards. Records rewards granted to both

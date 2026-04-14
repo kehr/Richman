@@ -31,6 +31,57 @@ var reAShareCode = regexp.MustCompile(`^\d{6}$`)
 // parallel during the daily holding analysis cron task.
 const holdingAnalysisConcurrency = 5
 
+// dailyAlertedTracker records which asset codes have already fired a market
+// alert in the current UTC day. It backs the unidirectional dedup between
+// the 06:00 score change alert and the 15:30 A-share closing alert
+// (richman TRD SS22.14).
+//
+// A database-backed dedup is not possible without a schema change:
+// rm_notification_logs is a per-user log and carries no asset/event column.
+// An in-memory set is acceptable for MVP because the scheduler runs inside
+// a single process and A-share assets are not yet enabled in production.
+// First write of each new UTC day wipes the previous day's entries.
+var dailyAlertedTracker = struct {
+	mu  sync.Mutex
+	day time.Time // UTC day boundary (00:00:00 UTC) the set belongs to
+	set map[string]struct{}
+}{
+	set: make(map[string]struct{}),
+}
+
+// currentUTCDay returns today's date in UTC truncated to the day start.
+func currentUTCDay() time.Time {
+	now := time.Now().UTC()
+	return time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
+}
+
+// dailyAlertedToday reports whether markDailyAlerted was called with code
+// earlier in the current UTC day.
+func dailyAlertedToday(code string) bool {
+	dailyAlertedTracker.mu.Lock()
+	defer dailyAlertedTracker.mu.Unlock()
+	today := currentUTCDay()
+	if !dailyAlertedTracker.day.Equal(today) {
+		return false
+	}
+	_, ok := dailyAlertedTracker.set[code]
+	return ok
+}
+
+// markDailyAlerted records that a market alert was emitted for this asset
+// in the current UTC day. The first call on a new UTC day wipes the prior
+// day's entries before recording.
+func markDailyAlerted(code string) {
+	dailyAlertedTracker.mu.Lock()
+	defer dailyAlertedTracker.mu.Unlock()
+	today := currentUTCDay()
+	if !dailyAlertedTracker.day.Equal(today) {
+		dailyAlertedTracker.day = today
+		dailyAlertedTracker.set = make(map[string]struct{})
+	}
+	dailyAlertedTracker.set[code] = struct{}{}
+}
+
 // RegisterV2CronJobs adds all v2 scheduled tasks to the given cron instance.
 // The caller is responsible for starting and stopping c; this function only
 // registers entries.
@@ -116,8 +167,13 @@ func RegisterV2CronJobs(
 		runEventAlertPolling(emailPushSvc, eventAlertRepo, logger)
 	})
 
-	// ---- 7. Expired job cleanup: every 10 minutes ----
-	addCronFunc("*/10 * * * *", func() {
+	// ---- 7. Expired job cleanup: every 3 minutes ----
+	// Interval tightened from 10 -> 3 minutes (richman TRD SS22.4). When a
+	// richson worker crashes mid-job the row sits in `running` status under a
+	// unique (asset_code) constraint, so any retry blocks until this sweep
+	// clears it. 3 minutes keeps the worst-case block time bounded without
+	// flooding Postgres with empty scans.
+	addCronFunc("*/3 * * * *", func() {
 		runExpiredJobCleanup(analysisJobRepo, logger)
 	})
 
@@ -231,7 +287,10 @@ func runScoreChangeAlert(
 		return
 	}
 
-	var alertsToSend []*model.EventAlert
+	// Build-and-send is collapsed into one loop so each successful push can
+	// call markDailyAlerted(a.AssetCode) — feeding the unidirectional dedup
+	// consumed by the 15:30 A-share closing alert (richman TRD SS22.14).
+	var sent, eligible int
 	for _, a := range latestMap {
 		if a.ScoreDelta == nil {
 			continue
@@ -239,6 +298,7 @@ func runScoreChangeAlert(
 		if math.Abs(*a.ScoreDelta) < 10 {
 			continue
 		}
+		eligible++
 		dir := scoreChangeDirection(*a.ScoreDelta)
 		alert := &model.EventAlert{
 			EventSlug:       "score_change_" + a.AssetCode,
@@ -249,23 +309,25 @@ func runScoreChangeAlert(
 			Threshold:       10,
 			GoldDirection:   &dir,
 		}
-		alertsToSend = append(alertsToSend, alert)
-	}
-
-	if len(alertsToSend) == 0 {
-		logger.Info("score change alert: no significant changes found")
-		return
-	}
-
-	logger.Info("score change alert: sending alerts", zap.Int("count", len(alertsToSend)))
-	for _, alert := range alertsToSend {
 		if err := emailPushSvc.SendMarketAlert(ctx, alert); err != nil {
 			logger.Error("score change alert: send failed",
 				zap.String("event_slug", alert.EventSlug),
 				zap.Error(err),
 			)
+			continue
 		}
+		markDailyAlerted(a.AssetCode)
+		sent++
 	}
+
+	if eligible == 0 {
+		logger.Info("score change alert: no significant changes found")
+		return
+	}
+	logger.Info("score change alert: sent alerts",
+		zap.Int("sent", sent),
+		zap.Int("eligible", eligible),
+	)
 }
 
 // scoreChangeDirection maps a score delta to a directional label.
@@ -472,7 +534,21 @@ func runAShareClosingAlert(
 		return
 	}
 
-	var alertsToSend []*model.EventAlert
+	// Build-and-send is collapsed into one loop so the dedup check and the
+	// markDailyAlerted call share the per-asset context (richman TRD SS22.14).
+	//
+	// Dedup is unidirectional: 15:30 closing alert skips assets the 06:00
+	// analysis already pushed. Reverse dedup (06:00 skipping assets that
+	// 15:30 touched) is not needed because 06:00 always runs first in the
+	// same UTC day.
+	//
+	// Implementation trade-off: rm_notification_logs is a per-user log with
+	// no asset/event column, so a pure SQL per-asset lookup is impossible
+	// without a schema change. For MVP we keep an in-memory set of asset
+	// codes that fired earlier today (see dailyAlertedTracker). When A-share
+	// assets are re-enabled in Phase 2 the set grows from the 06:00
+	// runScoreChangeAlert path and is consulted here.
+	var sent, eligible int
 	for _, a := range latestMap {
 		if a.ScoreDelta == nil {
 			continue
@@ -481,18 +557,14 @@ func runAShareClosingAlert(
 			continue
 		}
 
-		// Dedup: skip assets already alerted in the 06:00 UTC (22:00 UTC prev) run.
-		// We check whether there is a recent market_alert notification log entry
-		// keyed to this asset. The slug prefix "score_change_" is used by the
-		// 06:00 daily analysis alert; if found, skip to avoid double push.
-		alreadyAlerted := checkAlreadyAlertedToday(ctx, notifLogRepo, a.AssetCode, logger)
-		if alreadyAlerted {
+		if dailyAlertedToday(a.AssetCode) {
 			logger.Debug("A-share closing alert: already alerted today, skipping",
 				zap.String("asset_code", a.AssetCode),
 			)
 			continue
 		}
 
+		eligible++
 		dir := scoreChangeDirection(*a.ScoreDelta)
 		alert := &model.EventAlert{
 			EventSlug:       "ashare_close_" + a.AssetCode,
@@ -503,52 +575,25 @@ func runAShareClosingAlert(
 			Threshold:       5,
 			GoldDirection:   &dir,
 		}
-		alertsToSend = append(alertsToSend, alert)
-	}
-
-	if len(alertsToSend) == 0 {
-		logger.Info("A-share closing alert: no changes meeting threshold")
-		return
-	}
-
-	logger.Info("A-share closing alert: sending alerts", zap.Int("count", len(alertsToSend)))
-	for _, alert := range alertsToSend {
 		if err := emailPushSvc.SendMarketAlert(ctx, alert); err != nil {
 			logger.Error("A-share closing alert: send failed",
 				zap.String("event_slug", alert.EventSlug),
 				zap.Error(err),
 			)
+			continue
 		}
+		markDailyAlerted(a.AssetCode)
+		sent++
 	}
-}
 
-// checkAlreadyAlertedToday returns true if a market_alert push was sent for
-// this asset in the current UTC day. It uses the notification log count as a
-// proxy: any push logged today with message_type "market_alert" for a system
-// user signals the morning alert already fired. Since notification logs are
-// per-user, we use a sentinel user_id of 0 to represent platform-level dedup.
-// In practice we query the log with a simple heuristic: if the overall market
-// alert count today is non-zero for the asset, we treat it as already alerted.
-//
-// This is a best-effort dedup; a missed log entry will result in a duplicate
-// push rather than a missed one, which is the safer default.
-func checkAlreadyAlertedToday(
-	ctx context.Context,
-	notifLogRepo *repo.NotificationLogRepo,
-	_ string,
-	_ *zap.Logger,
-) bool {
-	// CountTodayByUser scopes to a single user. We pass user_id=0 as a
-	// platform-level sentinel for the morning asset analysis push. If that
-	// sentinel has a market_alert entry today, we consider the asset covered.
-	count, err := notifLogRepo.CountTodayByUser(ctx, 0, "email")
-	if err != nil {
-		// On error, proceed with the alert rather than silencing it.
-		return false
+	if eligible == 0 {
+		logger.Info("A-share closing alert: no changes meeting threshold")
+		return
 	}
-	// A count > 0 means some platform-level market alert ran this UTC day.
-	// This is coarse-grained dedup; acceptable for MVP.
-	return count > 0
+	logger.Info("A-share closing alert: sent alerts",
+		zap.Int("sent", sent),
+		zap.Int("eligible", eligible),
+	)
 }
 
 // ---- Task 5: Weekly insight ----

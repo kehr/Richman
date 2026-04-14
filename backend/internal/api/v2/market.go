@@ -5,9 +5,9 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/richman/backend/internal/richson"
 	inviteSvc "github.com/richman/backend/internal/service/invite"
 	marketSvc "github.com/richman/backend/internal/service/market"
-	"github.com/richman/backend/internal/richson"
 	"go.uber.org/zap"
 )
 
@@ -220,4 +220,3 @@ func (h *MarketHandler) getAssetShare(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"data": payload})
 }
-

@@ -87,6 +87,7 @@ func RegisterV2Routes(
 	// ---- user group (requires JWT) ----
 	userGroup := v2.Group("/user", jwtMiddleware)
 	userGroup.PATCH("/risk-preference", userH.updateRiskPreference)
+	userGroup.GET("/email-push", userH.getEmailPush)
 	userGroup.PATCH("/email-push", userH.updateEmailPush)
 
 	// ---- invite group (requires JWT) ----

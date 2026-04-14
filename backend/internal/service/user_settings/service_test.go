@@ -78,6 +78,10 @@ func (f *fakeUserRepo) UpdateRiskPreference(_ context.Context, _ int64, _ string
 	return nil
 }
 
+func (f *fakeUserRepo) GetEmailPushEnabled(_ context.Context, _ int64) (bool, error) {
+	return true, nil
+}
+
 func (f *fakeUserRepo) UpdateEmailPush(_ context.Context, _ int64, _ bool) error {
 	return nil
 }
