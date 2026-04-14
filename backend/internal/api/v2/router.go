@@ -38,13 +38,15 @@ func RegisterV2Routes(
 	invite *inviteSvc.Service,
 	analysisJobRepo *repo.AnalysisJobReadRepo,
 	_ *repo.AssetAnalysisReadRepo, // reserved: market service provides access internally
+	assetRepo *repo.AssetRepo,
+	platformLLM *richson.LLMConfig,
 	jwtMiddleware gin.HandlerFunc,
 	logger *zap.Logger,
 ) {
 	// Build handlers.
 	marketH := NewMarketHandler(richsonClient, market, invite, logger)
 	eventH := NewEventHandler(richsonClient, logger)
-	analysisH := NewAnalysisHandler(richsonClient, holdingAnalyzer, analysisJobRepo, logger)
+	analysisH := NewAnalysisHandler(richsonClient, holdingAnalyzer, analysisJobRepo, assetRepo, platformLLM, logger)
 	briefingH := NewBriefingHandler(briefing, logger)
 	feedbackH := NewFeedbackHandler(feedback, logger)
 	userH := NewUserHandler(userSettings, logger)
@@ -77,6 +79,9 @@ func RegisterV2Routes(
 	analysisGroup.POST("/trigger-asset", analysisH.triggerAssetAnalysis)
 	analysisGroup.GET("/jobs/:jobId", analysisH.getJobStatus)
 	analysisGroup.POST("/holding/:holdingId", analysisH.analyzeHolding)
+	// Manual recovery for the daily 06:00 batch when richson was unavailable;
+	// admin role required (richman-backend-v2-trd SS8.8).
+	analysisGroup.POST("/trigger-batch", middleware.RequireAdmin(), analysisH.triggerBatchAnalysis)
 
 	// ---- briefing (requires JWT) ----
 	v2.GET("/briefing", jwtMiddleware, briefingH.getBriefing)

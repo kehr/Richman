@@ -17,6 +17,8 @@ type AnalysisHandler struct {
 	richsonClient   *richson.Client
 	holdingAnalyzer *analysisSvc.V2HoldingAnalyzer
 	jobRepo         *repo.AnalysisJobReadRepo
+	assetRepo       *repo.AssetRepo
+	platformLLM     *richson.LLMConfig
 	logger          *zap.Logger
 }
 
@@ -25,12 +27,16 @@ func NewAnalysisHandler(
 	richsonClient *richson.Client,
 	holdingAnalyzer *analysisSvc.V2HoldingAnalyzer,
 	jobRepo *repo.AnalysisJobReadRepo,
+	assetRepo *repo.AssetRepo,
+	platformLLM *richson.LLMConfig,
 	logger *zap.Logger,
 ) *AnalysisHandler {
 	return &AnalysisHandler{
 		richsonClient:   richsonClient,
 		holdingAnalyzer: holdingAnalyzer,
 		jobRepo:         jobRepo,
+		assetRepo:       assetRepo,
+		platformLLM:     platformLLM,
 		logger:          logger,
 	}
 }
@@ -115,6 +121,109 @@ func (h *AnalysisHandler) getJobStatus(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"data": job})
+}
+
+// triggerBatchAnalysisRequest is the request body for POST /api/v2/analysis/trigger-batch.
+//
+// AssetCodes is optional: when empty, all active assets are submitted (mirrors
+// the daily 06:00 cron behaviour). Locale defaults to "zh".
+type triggerBatchAnalysisRequest struct {
+	AssetCodes []string `json:"assetCodes"`
+	Locale     string   `json:"locale"`
+}
+
+// triggerBatchAnalysis handles POST /api/v2/analysis/trigger-batch.
+//
+// Manual recovery hook for the daily 06:00 batch when richson was unavailable
+// during the cron window (richman-backend-v2-trd SS8.8). Restricted to admin
+// role via RequireAdmin middleware.
+func (h *AnalysisHandler) triggerBatchAnalysis(c *gin.Context) {
+	var req triggerBatchAnalysisRequest
+	// Empty body is allowed: default to "all active assets, locale=zh".
+	if c.Request.ContentLength > 0 {
+		if err := c.ShouldBindJSON(&req); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": gin.H{"code": "VALIDATION_ERROR", "message": err.Error()},
+			})
+			return
+		}
+	}
+
+	locale := req.Locale
+	if locale == "" {
+		locale = "zh"
+	}
+
+	// Resolve the asset list: explicit input overrides the active-set default.
+	var batchAssets []richson.BatchAnalyzeAsset
+	if len(req.AssetCodes) > 0 {
+		batchAssets = make([]richson.BatchAnalyzeAsset, 0, len(req.AssetCodes))
+		for _, code := range req.AssetCodes {
+			batchAssets = append(batchAssets, richson.BatchAnalyzeAsset{
+				AssetCode: code,
+				Locale:    locale,
+			})
+		}
+	} else {
+		assets, err := h.assetRepo.ListActiveWithType(c.Request.Context(), "")
+		if err != nil {
+			h.logger.Error("trigger-batch: list active assets failed", zap.Error(err))
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": gin.H{
+					"code":    "INTERNAL_ERROR",
+					"message": "failed to load active asset list",
+				},
+			})
+			return
+		}
+		if len(assets) == 0 {
+			c.JSON(http.StatusOK, gin.H{
+				"data": gin.H{"jobs": []any{}, "skipped": []any{}, "note": "no active assets"},
+			})
+			return
+		}
+		batchAssets = make([]richson.BatchAnalyzeAsset, 0, len(assets))
+		for _, a := range assets {
+			batchAssets = append(batchAssets, richson.BatchAnalyzeAsset{
+				AssetCode: a.Code,
+				Locale:    locale,
+			})
+		}
+	}
+
+	richsonReq := richson.TriggerBatchAnalysisRequest{
+		Assets:    batchAssets,
+		LLMConfig: h.platformLLM,
+	}
+
+	resp, err := h.richsonClient.TriggerBatchAnalysis(c.Request.Context(), richsonReq)
+	if err != nil {
+		if re, ok := richson.IsRichsonError(err); ok {
+			c.JSON(re.HTTPStatus, gin.H{
+				"error": gin.H{"code": re.Code, "message": re.Message},
+			})
+			return
+		}
+		h.logger.Error("trigger-batch: richson call failed",
+			zap.Int("assets", len(batchAssets)),
+			zap.Error(err),
+		)
+		c.JSON(http.StatusServiceUnavailable, gin.H{
+			"error": gin.H{
+				"code":    ErrRichsonUnavailable.Code,
+				"message": ErrRichsonUnavailable.Message,
+			},
+		})
+		return
+	}
+
+	h.logger.Info("trigger-batch: dispatched",
+		zap.Int("assets", len(batchAssets)),
+		zap.Int("jobs", len(resp.Jobs)),
+		zap.Int("skipped", len(resp.Skipped)),
+		zap.Int64("admin_user_id", middleware.GetUserID(c)),
+	)
+	c.JSON(http.StatusAccepted, gin.H{"data": resp})
 }
 
 // analyzeHolding handles POST /api/v2/analysis/holding/:holdingId.

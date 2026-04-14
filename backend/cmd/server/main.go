@@ -472,6 +472,7 @@ func main() {
 	scheduleHandler.RegisterRoutes(apiV1, authMiddleware)
 
 	// API v2 routes
+	platformLLM := scheduleSvc.BuildPlatformLLMConfig(cfg)
 	v2.RegisterV2Routes(
 		router,
 		richsonClient,
@@ -483,6 +484,8 @@ func main() {
 		inviteService,
 		analysisJobReadRepo,
 		assetAnalysisReadRepo,
+		assetRepo,
+		platformLLM,
 		authMiddleware,
 		zapLogger,
 	)

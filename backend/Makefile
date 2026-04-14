@@ -1,4 +1,4 @@
-.PHONY: dev dev-run dev-raw build lint test test-race test-cover sqlc migrate-up migrate-down seed docker-build check clean install-tools
+.PHONY: dev dev-run dev-raw build lint test test-race test-cover sqlc migrate-up migrate-down seed docker-build check clean install-tools trigger-batch-analysis
 
 HUMANLOG := $(shell go env GOPATH)/bin/humanlog
 AIR      := $(shell go env GOPATH)/bin/air
@@ -66,3 +66,22 @@ check: lint test build
 
 clean:
 	rm -rf bin/
+
+# trigger-batch-analysis: manually re-run the daily 06:00 asset batch analysis.
+# Use when the cron window failed (typically richson outage). Requires:
+#   ADMIN_JWT_TOKEN  - JWT belonging to a role=admin user
+#   API_BASE         - optional, defaults to http://localhost:8080
+# Optional override:
+#   ASSET_CODES_JSON - JSON array of codes to scope the retry, e.g. '["XAUUSD","SH600519"]'
+#                      When unset the server falls back to all active assets (richman-backend-v2-trd SS8.8).
+trigger-batch-analysis:
+	@if [ -z "$(ADMIN_JWT_TOKEN)" ]; then echo "ADMIN_JWT_TOKEN is required"; exit 1; fi
+	@BASE="$${API_BASE:-http://localhost:8080}"; \
+	BODY=$${ASSET_CODES_JSON:+'{"assetCodes":'$$ASSET_CODES_JSON'}'}; \
+	BODY=$${BODY:-'{}'}; \
+	echo "POST $$BASE/api/v2/analysis/trigger-batch  body=$$BODY"; \
+	curl --fail-with-body -sS -X POST "$$BASE/api/v2/analysis/trigger-batch" \
+		-H "Authorization: Bearer $(ADMIN_JWT_TOKEN)" \
+		-H "Content-Type: application/json" \
+		--data "$$BODY"; \
+	echo

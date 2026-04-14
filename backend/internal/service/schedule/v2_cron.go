@@ -108,7 +108,7 @@ func RegisterV2CronJobs(
 	)
 
 	// Build the platform LLM config once from application config.
-	platformLLM := buildPlatformLLMConfig(cfg)
+	platformLLM := BuildPlatformLLMConfig(cfg)
 
 	// addCronFunc registers a cron entry and logs a fatal error if registration
 	// fails (invalid spec). All specs are constants so a failure is a programming
@@ -187,12 +187,12 @@ func RegisterV2CronJobs(
 	)
 }
 
-// ---- buildPlatformLLMConfig ----
+// ---- BuildPlatformLLMConfig ----
 
-// buildPlatformLLMConfig constructs a richson.LLMConfig from the application
+// BuildPlatformLLMConfig constructs a richson.LLMConfig from the application
 // config's LLM section. The provider key/model selection follows the same
 // priority used by the LLM resolver: claude first, then openai.
-func buildPlatformLLMConfig(cfg *config.Config) *richson.LLMConfig {
+func BuildPlatformLLMConfig(cfg *config.Config) *richson.LLMConfig {
 	switch cfg.LLM.Provider {
 	case "openai":
 		if cfg.LLM.OpenAIAPIKey != "" {
