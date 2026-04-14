@@ -277,6 +277,41 @@ import { UserOutlined, DeleteOutlined } from "@/ui-kit/eat";
 - 仅在需要复杂效果时用 ProCard（ProCard.Divider、ProCard.Group）
 
 
+## Page 根元素必须用 PageContainer（MANDATORY）
+
+所有挂在路由上的 Page 组件（`src/pages/**/*Page.tsx` 或 `src/pages/**/index.tsx`）的根返回必须是 `PageContainer`，不允许用裸 `<div>` / `<>` 作为根。
+
+**为什么：**
+
+1. `MainLayout` 用 `ProLayout contentWidth="Fixed"` 提供外层固定宽度容器，`PageContainer` 是其配套组件，负责 breadcrumb、页头、内容区的统一间距与响应式断点
+2. 裸 div 会绕过 ProLayout 的间距、滚动区、footer placeholder 等约定，在不同视窗下出现内边距错乱、宽度过窄、sticky 元素错位等问题
+3. 所有现有 page（Briefing / Portfolio / Settings / Help / Dashboard 等）都用 PageContainer，混用裸 div 的 page 会视觉突兀
+
+**用法：**
+
+```tsx
+import { PageContainer } from "@/ui-kit/eat";
+
+export default function MarketOverviewPage() {
+  return (
+    <PageContainer title={false} data-testid="market-overview-page">
+      {/* page content */}
+    </PageContainer>
+  );
+}
+```
+
+- `title={false}`：不渲染 PageContainer 自带的 header（页面有自己的 sticky header / tab 时）
+- `header={{ title: null, breadcrumb: {} }}`：进一步抑制 breadcrumb（参考 `PortfolioListPage.tsx`）
+- page 级的 padding / maxWidth 不要硬编码，全部交给 ProLayout + PageContainer；需要额外间距时用 `style` 的 `paddingBottom` 等轻量调整
+- loading / error 早返回的分支**也必须用 PageContainer 包裹**，不允许一个页面出现「有时是 PageContainer 有时是裸 div」的混搭，否则骨架屏与正常内容切换时会整页跳动
+
+**例外：**
+
+- `LoginPage` / `RegisterPage` 走独立全屏布局（不在 `MainLayout` 下），不需要 PageContainer
+- 纯 `<Outlet />` 的路由中间件组件不需要 PageContainer
+
+
 ## 页面文件命名
 
 | 类型 | 规则 | 示例 |
