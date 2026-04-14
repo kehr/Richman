@@ -164,6 +164,13 @@ type EventItem struct {
 	Probability          *float64 `json:"probability"`
 	ProbabilitySource    *string  `json:"probabilitySource"`
 	ProbabilityChange24h *float64 `json:"probabilityChange24h"`
+	// SourceUrl, SourceName and ReleaseId are nullable for the same reason as
+	// the fields above: richson emits null for events that lack a canonical
+	// source page (e.g. legacy items) or a release id (Polymarket entries).
+	// Value types would silently collapse null into "" / 0 and mislead clients.
+	SourceUrl  *string `json:"sourceUrl"`
+	SourceName *string `json:"sourceName"`
+	ReleaseId  *int    `json:"releaseId"`
 }
 
 // EventsRadarResponse is returned by GET /events/radar.
