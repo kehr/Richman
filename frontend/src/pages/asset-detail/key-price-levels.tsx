@@ -5,8 +5,8 @@ import { formatPrice, formatUsdEquiv } from "./utils";
 
 interface Props {
 	levels: KeyPriceLevelDto[];
-	currentPrice: number;
-	currency: "USD" | "CNY";
+	currentPrice?: number;
+	currency?: "USD" | "CNY";
 	usdExchangeRate: number | null;
 }
 
@@ -58,7 +58,8 @@ export function KeyPriceLevels({
 			title: t("assetDetail.risk.keyPriceLevels.distance"),
 			dataIndex: "distancePct",
 			key: "distancePct",
-			render: (pct: number) => {
+			render: (pct: number | undefined) => {
+				if (pct === undefined || pct === null) return "—";
 				const sign = pct > 0 ? "+" : "";
 				return (
 					<span style={{ color: pct > 0 ? "#52c41a" : "#f5222d" }}>

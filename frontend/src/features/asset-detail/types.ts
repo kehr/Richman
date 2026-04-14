@@ -67,40 +67,45 @@ export interface ExecutionPlanDto {
 	disclaimer: string;
 }
 
+// AssetDetailDto mirrors /api/v2/market/:code. Many fields are optional because
+// the backend MVP currently returns a subset of the TRD-specified payload (see
+// docs/reports/richman-v2-plan-execution-report.md Round 3-4 observation).
+// Consumers must treat every optional field as absent-when-undefined and
+// provide a graceful fallback UI rather than assuming presence.
 export interface AssetDetailDto {
 	code: string;
 	name: string;
 	nameEn: string;
 	assetType: string;
 	exchange: string;
-	currency: "USD" | "CNY";
-	usdExchangeRate: number | null;
+	currency?: "USD" | "CNY";
+	usdExchangeRate?: number | null;
 	// current price from latest data
-	currentPrice: number;
-	priceChangePercent: number;
-	priceAtAnalysis: number;
+	currentPrice?: number;
+	priceChangePercent?: number;
+	priceAtAnalysis?: number;
 	// analysis fields
-	overallScore: number;
-	scoreBandLow: number;
-	scoreBandHigh: number;
-	signalLevel: string; // "strong_bullish" | "bullish" | "neutral" | "bearish" | "strong_bearish"
-	percentileLabel: string; // "veryHigh" | "high" | "mid" | "low" | "veryLow"
-	marketInterpretation: string;
-	scoreDelta: number;
-	changeSummary: string | null;
-	majorChangeRecap: MajorChangeRecapDto | null;
-	conflictType: string | null;
-	conflictMessage: string | null;
-	analyzedAt: string;
-	validDays: number;
+	overallScore?: number;
+	scoreBandLow?: number;
+	scoreBandHigh?: number;
+	signalLevel?: string; // "strong_bullish" | "bullish" | "neutral" | "bearish" | "strong_bearish"
+	percentileLabel?: string; // "veryHigh" | "high" | "mid" | "low" | "veryLow"
+	marketInterpretation?: string;
+	scoreDelta?: number;
+	changeSummary?: string | null;
+	majorChangeRecap?: MajorChangeRecapDto | null;
+	conflictType?: string | null;
+	conflictMessage?: string | null;
+	analyzedAt?: string;
+	validDays?: number;
 	dimensions: DimensionDetailDto[];
-	riskFactors: RiskFactorDto[];
-	keyPriceLevels: KeyPriceLevelDto[];
-	drawdownReference: DrawdownReferenceDto | null;
-	executionPlan: ExecutionPlanDto | null;
-	supports: number[];
-	resistances: number[];
-	sma200: number | null;
+	riskFactors?: RiskFactorDto[];
+	keyPriceLevels?: KeyPriceLevelDto[];
+	drawdownReference?: DrawdownReferenceDto | null;
+	executionPlan?: ExecutionPlanDto | null;
+	supports?: number[];
+	resistances?: number[];
+	sma200?: number | null;
 }
 
 export interface OhlcvBarDto {

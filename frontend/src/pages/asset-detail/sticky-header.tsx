@@ -18,6 +18,7 @@ interface Props {
 export function StickyHeader({ detail }: Props) {
 	const { token } = useToken();
 	const drift = computePriceDriftPercent(detail.currentPrice, detail.priceAtAnalysis);
+	const scoreDelta = detail.scoreDelta ?? 0;
 
 	return (
 		<div
@@ -52,16 +53,16 @@ export function StickyHeader({ detail }: Props) {
 					bandHigh={detail.scoreBandHigh}
 				/>
 			</div>
-			{detail.scoreDelta >= 5 && detail.changeSummary && (
-				<ChangeSummary text={detail.changeSummary} />
-			)}
-			{Math.abs(detail.scoreDelta) > 20 && detail.majorChangeRecap && (
+			{scoreDelta >= 5 && detail.changeSummary && <ChangeSummary text={detail.changeSummary} />}
+			{Math.abs(scoreDelta) > 20 && detail.majorChangeRecap && (
 				<MajorChangeRecap recap={detail.majorChangeRecap} />
 			)}
 			{detail.conflictType && detail.conflictMessage && (
 				<ConflictWarning type={detail.conflictType} message={detail.conflictMessage} />
 			)}
-			{drift > 2 && <FreshnessIndicator drift={drift} analysisTime={detail.analyzedAt} />}
+			{drift > 2 && detail.analyzedAt && (
+				<FreshnessIndicator drift={drift} analysisTime={detail.analyzedAt} />
+			)}
 		</div>
 	);
 }

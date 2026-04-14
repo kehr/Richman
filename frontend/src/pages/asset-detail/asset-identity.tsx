@@ -7,14 +7,16 @@ interface Props {
 	code: string;
 	name: string;
 	nameEn: string;
-	price: number;
-	currency: "USD" | "CNY";
-	changePercent: number;
+	price?: number;
+	currency?: "USD" | "CNY";
+	changePercent?: number;
 }
 
 export function AssetIdentity({ code, name, nameEn, price, currency, changePercent }: Props) {
 	const priceColor = getPriceChangeColor(code, changePercent);
-	const sign = changePercent > 0 ? "+" : "";
+	const hasPrice = price !== undefined && price !== null;
+	const hasChange = changePercent !== undefined && changePercent !== null;
+	const sign = hasChange && (changePercent as number) > 0 ? "+" : "";
 
 	return (
 		<Space align="baseline" wrap>
@@ -24,13 +26,17 @@ export function AssetIdentity({ code, name, nameEn, price, currency, changePerce
 			<Text type="secondary" style={{ fontSize: 13 }}>
 				{nameEn} ({code})
 			</Text>
-			<Text strong style={{ fontSize: 20, color: priceColor }}>
-				{formatPrice(price, currency)}
-			</Text>
-			<Text style={{ color: priceColor, fontSize: 14 }}>
-				{sign}
-				{changePercent.toFixed(2)}%
-			</Text>
+			{hasPrice && (
+				<Text strong style={{ fontSize: 20, color: priceColor }}>
+					{formatPrice(price, currency)}
+				</Text>
+			)}
+			{hasChange && (
+				<Text style={{ color: priceColor, fontSize: 14 }}>
+					{sign}
+					{(changePercent as number).toFixed(2)}%
+				</Text>
+			)}
 		</Space>
 	);
 }

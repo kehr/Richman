@@ -12,8 +12,8 @@ import { useTranslation } from "react-i18next";
 interface Props {
 	code: string;
 	sma200: number | null;
-	supports: number[];
-	resistances: number[];
+	supports?: number[];
+	resistances?: number[];
 }
 
 const PERIODS: OhlcvPeriod[] = ["1D", "1W", "1M", "3M", "1Y"];
@@ -25,6 +25,8 @@ export function OhlcvChart({ code, sma200, supports, resistances }: Props) {
 	const chartRef = useRef<IChartApi | null>(null);
 
 	const { data, isLoading, isError } = useAssetOhlcv(code, period);
+	const supportList = supports ?? [];
+	const resistanceList = resistances ?? [];
 
 	// Initialize chart on mount, clean up on unmount.
 	useEffect(() => {
@@ -81,7 +83,7 @@ export function OhlcvChart({ code, sma200, supports, resistances }: Props) {
 		}
 
 		// Support levels
-		for (const s of supports) {
+		for (const s of supportList) {
 			candleSeries.createPriceLine({
 				price: s,
 				color: "#52c41a",
@@ -93,7 +95,7 @@ export function OhlcvChart({ code, sma200, supports, resistances }: Props) {
 		}
 
 		// Resistance levels
-		for (const r of resistances) {
+		for (const r of resistanceList) {
 			candleSeries.createPriceLine({
 				price: r,
 				color: "#f5222d",
@@ -110,7 +112,7 @@ export function OhlcvChart({ code, sma200, supports, resistances }: Props) {
 		return () => {
 			chart.removeSeries(candleSeries);
 		};
-	}, [data, sma200, supports, resistances, t]);
+	}, [data, sma200, supportList, resistanceList, t]);
 
 	const periodOptions = PERIODS.map((p) => ({
 		value: p,

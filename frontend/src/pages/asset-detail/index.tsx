@@ -64,10 +64,15 @@ export default function AssetDetailPage() {
 		);
 	}
 
-	const signalLabel = t(
-		`assetDetail.scoreSummary.signal.${detail.signalLevel}`,
-		detail.signalLevel,
-	);
+	const signalLabel = detail.signalLevel
+		? t(`assetDetail.scoreSummary.signal.${detail.signalLevel}`, detail.signalLevel)
+		: "";
+	const scoreText = detail.overallScore !== undefined ? `${detail.overallScore}/100` : "";
+	const interpretationDescription = detail.marketInterpretation?.slice(0, 160) ?? "";
+	const interpretationOg = detail.marketInterpretation?.slice(0, 100) ?? "";
+	const titleSegments = [detail.name, scoreText, signalLabel, "Richman"].filter(Boolean);
+	const pageTitle = titleSegments.join(" | ");
+	const ogTitle = [detail.name, signalLabel].filter(Boolean).join(" ");
 	const tabItems = [
 		{
 			key: "analysis",
@@ -89,10 +94,12 @@ export default function AssetDetailPage() {
 	return (
 		<div style={{ maxWidth: 900, margin: "0 auto" }}>
 			<Helmet>
-				<title>{`${detail.name} | ${detail.overallScore}/100 ${signalLabel} | Richman`}</title>
-				<meta name="description" content={detail.marketInterpretation.slice(0, 160)} />
-				<meta property="og:title" content={`${detail.name} ${signalLabel}`} />
-				<meta property="og:description" content={detail.marketInterpretation.slice(0, 100)} />
+				<title>{pageTitle}</title>
+				{interpretationDescription && (
+					<meta name="description" content={interpretationDescription} />
+				)}
+				{ogTitle && <meta property="og:title" content={ogTitle} />}
+				{interpretationOg && <meta property="og:description" content={interpretationOg} />}
 			</Helmet>
 
 			<StickyHeader detail={detail} />

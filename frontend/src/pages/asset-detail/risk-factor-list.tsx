@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 const { Text } = Typography;
 
 interface Props {
-	factors: RiskFactorDto[];
+	factors?: RiskFactorDto[];
 }
 
 const SEVERITY_COLORS: Record<string, string> = {
@@ -16,14 +16,15 @@ const SEVERITY_COLORS: Record<string, string> = {
 
 export function RiskFactorList({ factors }: Props) {
 	const { t } = useTranslation("app");
+	const items = factors ?? [];
 
 	return (
 		<Card title={t("assetDetail.risk.factors.title")} size="small" style={{ marginBottom: 16 }}>
-			{factors.length === 0 ? (
+			{items.length === 0 ? (
 				<Text type="secondary">—</Text>
 			) : (
 				<List
-					dataSource={factors}
+					dataSource={items}
 					renderItem={(f) => (
 						<List.Item key={f.id}>
 							<div style={{ display: "flex", gap: 8, alignItems: "flex-start", width: "100%" }}>

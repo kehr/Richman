@@ -5,9 +5,9 @@ import { Tooltip } from "@/ui-kit/eat";
 import { useTranslation } from "react-i18next";
 
 interface Props {
-	score: number;
-	bandLow: number;
-	bandHigh: number;
+	score?: number;
+	bandLow?: number;
+	bandHigh?: number;
 }
 
 const ZONE_COLORS = [
@@ -24,13 +24,21 @@ function getZoneColor(score: number): string {
 
 export function ScoreBar({ score, bandLow, bandHigh }: Props) {
 	const { t } = useTranslation("app");
-	const bandLeft = `${bandLow}%`;
-	const bandWidth = `${Math.max(0, bandHigh - bandLow)}%`;
+
+	// When there is no score at all, skip rendering the bar entirely.
+	if (score === undefined || score === null) return null;
+
+	const hasBand = bandLow !== undefined && bandHigh !== undefined;
+	const bandLeft = hasBand ? `${bandLow}%` : "0";
+	const bandWidth = hasBand ? `${Math.max(0, (bandHigh as number) - (bandLow as number))}%` : "0";
 	const markerLeft = `${Math.min(100, Math.max(0, score))}%`;
 	const markerColor = getZoneColor(score);
+	const tooltipTitle = hasBand
+		? `${t("assetDetail.scoreBar.bandLabel")}: ${bandLow}–${bandHigh}`
+		: `${t("assetDetail.scoreBar.bandLabel")}: —`;
 
 	return (
-		<Tooltip title={`${t("assetDetail.scoreBar.bandLabel")}: ${bandLow}–${bandHigh}`}>
+		<Tooltip title={tooltipTitle}>
 			<div
 				style={{
 					position: "relative",
@@ -43,18 +51,20 @@ export function ScoreBar({ score, bandLow, bandHigh }: Props) {
 					cursor: "help",
 				}}
 			>
-				{/* Confidence band overlay */}
-				<div
-					style={{
-						position: "absolute",
-						left: bandLeft,
-						width: bandWidth,
-						top: 0,
-						height: "100%",
-						background: "rgba(255,255,255,0.35)",
-						borderRadius: 4,
-					}}
-				/>
+				{/* Confidence band overlay, only rendered when band is known */}
+				{hasBand && (
+					<div
+						style={{
+							position: "absolute",
+							left: bandLeft,
+							width: bandWidth,
+							top: 0,
+							height: "100%",
+							background: "rgba(255,255,255,0.35)",
+							borderRadius: 4,
+						}}
+					/>
+				)}
 				{/* Score point marker */}
 				<div
 					style={{

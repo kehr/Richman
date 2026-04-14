@@ -4,6 +4,7 @@ import { getThemeConfig } from "@/config/theme";
 import { useThemeMode } from "@/domain/ui/use-theme";
 import { antdLocaleMap } from "@/i18n/antd-locale";
 import { App as AntApp, ConfigProvider } from "@/ui-kit/eat";
+import { HelmetProvider } from "@dr.pogodin/react-helmet";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -16,17 +17,19 @@ export function App() {
 	const { i18n } = useTranslation();
 
 	return (
-		<QueryClientProvider client={queryClient}>
-			<ConfigProvider
-				theme={getThemeConfig(mode)}
-				locale={antdLocaleMap[i18n.language as "en" | "zh"]}
-			>
-				<AntApp>
-					<BrowserRouter>
-						<AppRoutes />
-					</BrowserRouter>
-				</AntApp>
-			</ConfigProvider>
-		</QueryClientProvider>
+		<HelmetProvider>
+			<QueryClientProvider client={queryClient}>
+				<ConfigProvider
+					theme={getThemeConfig(mode)}
+					locale={antdLocaleMap[i18n.language as "en" | "zh"]}
+				>
+					<AntApp>
+						<BrowserRouter>
+							<AppRoutes />
+						</BrowserRouter>
+					</AntApp>
+				</ConfigProvider>
+			</QueryClientProvider>
+		</HelmetProvider>
 	);
 }

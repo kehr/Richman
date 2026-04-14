@@ -27,6 +27,8 @@ export function ExecutionPlanContent({ plan, isLoading }: Props) {
 	if (isLoading) return <Skeleton active />;
 	if (!plan) return null;
 
+	const scenarios = plan.scenarios ?? [];
+
 	return (
 		<div>
 			{plan.concentrationWarning && (
@@ -62,13 +64,13 @@ export function ExecutionPlanContent({ plan, isLoading }: Props) {
 				{plan.defaultAdvice}
 			</Text>
 
-			{plan.scenarios.length > 0 && (
+			{scenarios.length > 0 && (
 				<div style={{ marginTop: 12 }}>
 					<Text strong style={{ display: "block", marginBottom: 8 }}>
 						{t("assetDetail.execution.fullPlan.scenarios")}
 					</Text>
 					<Timeline
-						items={plan.scenarios.map((s) => ({
+						items={scenarios.map((s) => ({
 							color: s.priority === 1 ? "red" : "blue",
 							children: (
 								<div

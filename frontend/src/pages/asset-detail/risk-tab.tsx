@@ -9,15 +9,16 @@ interface Props {
 }
 
 // RiskTab is lazy-loaded (enabled only when the user clicks the Risk tab).
+// Each child accepts optional inputs because backend MVP may omit sections.
 export function RiskTab({ detail }: Props) {
 	return (
 		<div style={{ padding: "16px 0" }}>
-			<RiskFactorList factors={detail.riskFactors} />
+			<RiskFactorList factors={detail.riskFactors ?? []} />
 			<KeyPriceLevels
-				levels={detail.keyPriceLevels}
+				levels={detail.keyPriceLevels ?? []}
 				currentPrice={detail.currentPrice}
 				currency={detail.currency}
-				usdExchangeRate={detail.usdExchangeRate}
+				usdExchangeRate={detail.usdExchangeRate ?? null}
 			/>
 			{detail.drawdownReference && <DrawdownReference drawdown={detail.drawdownReference} />}
 			<EventCalendar />

@@ -54,9 +54,9 @@ export function FullExecutionPlan({ detail, holding }: Props) {
 	const jobFailed = jobId && jobQuery.data?.status === "failed";
 
 	const pnl =
-		holding.costPrice > 0
+		holding.costPrice > 0 && detail.currentPrice !== undefined
 			? ((detail.currentPrice - holding.costPrice) / holding.costPrice) * 100
-			: 0;
+			: null;
 
 	return (
 		<div style={{ padding: "16px 0" }}>
@@ -74,10 +74,14 @@ export function FullExecutionPlan({ detail, holding }: Props) {
 						{holding.positionRatio.toFixed(1)}%
 					</Descriptions.Item>
 					<Descriptions.Item label={t("assetDetail.execution.fullPlan.pnl")}>
-						<span style={{ color: pnl >= 0 ? "#52c41a" : "#f5222d" }}>
-							{pnl >= 0 ? "+" : ""}
-							{pnl.toFixed(2)}%
-						</span>
+						{pnl !== null ? (
+							<span style={{ color: pnl >= 0 ? "#52c41a" : "#f5222d" }}>
+								{pnl >= 0 ? "+" : ""}
+								{pnl.toFixed(2)}%
+							</span>
+						) : (
+							"—"
+						)}
 					</Descriptions.Item>
 				</Descriptions>
 			</Card>
@@ -116,7 +120,7 @@ export function FullExecutionPlan({ detail, holding }: Props) {
 				/>
 			)}
 
-			<ExecutionPlanContent plan={detail.executionPlan} />
+			<ExecutionPlanContent plan={detail.executionPlan ?? null} />
 
 			{/* Bottom disclaimer */}
 			<div style={{ marginTop: 16, color: "#8c8c8c", fontSize: 11 }}>
