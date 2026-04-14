@@ -325,7 +325,7 @@ func main() {
 	}()
 
 	// Initialize v2 services
-	marketService := marketSvc.NewService(assetRepo, assetAnalysisReadRepo, analysisDimensionReadRepo, zapLogger)
+	marketService := marketSvc.NewService(assetRepo, assetAnalysisReadRepo, analysisDimensionReadRepo, richsonClient, zapLogger)
 	briefingService := briefingSvc.NewService(holdingRepo, assetAnalysisReadRepo, cardRepo, zapLogger)
 	feedbackService := feedbackSvc.NewService(userFeedbackRepo, zapLogger)
 

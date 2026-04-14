@@ -104,6 +104,29 @@ func (r *AssetAnalysisReadRepo) GetLatestByAssetCode(
 	return &a, nil
 }
 
+// GetByID returns a single analysis row by its primary key. Returns (nil, nil)
+// when no row exists, so callers can apply a fallback (e.g. derive previous
+// score from current - delta) without treating the miss as an error.
+func (r *AssetAnalysisReadRepo) GetByID(
+	ctx context.Context, id int64,
+) (*model.AssetAnalysis, error) {
+	var a model.AssetAnalysis
+	row := r.pool.QueryRow(ctx,
+		`SELECT `+assetAnalysisColumns+`
+		 FROM rs_asset_analyses
+		 WHERE asset_analysis_id = $1 AND is_deleted = 0
+		 LIMIT 1`,
+		id,
+	)
+	if err := scanAssetAnalysisRow(row, &a); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("query analysis by id: %w", err)
+	}
+	return &a, nil
+}
+
 // GetSecondLatestByAssetCode returns the second most recent analysis for an
 // asset (i.e. the analysis immediately before the one with excludeID). Used by
 // the daily briefing to compute the gold score delta vs yesterday.
