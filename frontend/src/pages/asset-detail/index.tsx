@@ -2,7 +2,15 @@
 // Public page with sticky header and three lazily-loaded tabs.
 
 import { useAssetDetail } from "@/features/asset-detail";
-import { Alert, Button, ReloadOutlined, ShareAltOutlined, Skeleton, Tabs } from "@/ui-kit/eat";
+import {
+	Alert,
+	Button,
+	PageContainer,
+	ReloadOutlined,
+	ShareAltOutlined,
+	Skeleton,
+	Tabs,
+} from "@/ui-kit/eat";
 import { App as AntApp } from "@/ui-kit/eat";
 import { Helmet } from "@dr.pogodin/react-helmet";
 import { useState } from "react";
@@ -42,15 +50,15 @@ export default function AssetDetailPage() {
 
 	if (isLoading) {
 		return (
-			<div style={{ padding: 24 }}>
+			<PageContainer title={false} data-testid="asset-detail-page">
 				<Skeleton active paragraph={{ rows: 4 }} />
-			</div>
+			</PageContainer>
 		);
 	}
 
 	if (isError || !detail) {
 		return (
-			<div style={{ padding: 24 }}>
+			<PageContainer title={false} data-testid="asset-detail-page">
 				<Alert
 					type="error"
 					message={isError ? t("assetDetail.loadError") : t("assetDetail.notFound")}
@@ -60,7 +68,7 @@ export default function AssetDetailPage() {
 						</Button>
 					}
 				/>
-			</div>
+			</PageContainer>
 		);
 	}
 
@@ -98,7 +106,7 @@ export default function AssetDetailPage() {
 	];
 
 	return (
-		<div style={{ maxWidth: 900, margin: "0 auto" }}>
+		<PageContainer title={false} data-testid="asset-detail-page">
 			<Helmet>
 				<title>{pageTitle}</title>
 				{interpretationDescription && (
@@ -136,6 +144,6 @@ export default function AssetDetailPage() {
 					{t("assetDetail.disclaimer")}
 				</div>
 			</div>
-		</div>
+		</PageContainer>
 	);
 }

@@ -1,6 +1,7 @@
 import { getToken } from "@/domain/auth/storage";
 import { useEventRadar } from "@/features/event-radar";
 import { useMarketOverview, useMarketRegime } from "@/features/market-overview";
+import { PageContainer } from "@/ui-kit/eat";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
@@ -44,12 +45,10 @@ export default function MarketOverviewPage() {
 	};
 
 	return (
-		<div
-			style={{
-				maxWidth: 960,
-				margin: "0 auto",
-				padding: isAuthenticated ? "0 0 16px" : "0 0 72px",
-			}}
+		<PageContainer
+			title={false}
+			data-testid="market-overview-page"
+			style={{ paddingBottom: isAuthenticated ? 16 : 72 }}
 		>
 			{/* Market regime bar — hidden on richson error (G3.9) */}
 			<MarketRegimeBar data={regimeData} isLoading={regimeLoading} isError={regimeError} />
@@ -67,6 +66,6 @@ export default function MarketOverviewPage() {
 
 			{/* Registration prompt for unauthenticated visitors */}
 			{!isAuthenticated && <RegisterCTA />}
-		</div>
+		</PageContainer>
 	);
 }

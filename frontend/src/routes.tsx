@@ -7,7 +7,7 @@ import { Navigate, Route, Routes } from "react-router";
 const LoginPage = lazy(() => import("@/pages/auth/LoginPage"));
 const RegisterPage = lazy(() => import("@/pages/auth/RegisterPage"));
 const MarketOverviewPage = lazy(() => import("@/pages/market-overview/market-overview-page"));
-const AssetDetailPage = lazy(() => import("@/pages/market/AssetDetailPage"));
+const AssetDetailPage = lazy(() => import("@/pages/asset-detail"));
 const BriefingPage = lazy(() => import("@/pages/briefing/briefing-page"));
 const PortfolioListPage = lazy(() => import("@/pages/portfolio/PortfolioListPage"));
 const PortfolioEditPage = lazy(() => import("@/pages/portfolio/PortfolioEditPage"));
