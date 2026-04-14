@@ -1,12 +1,19 @@
-import type { EventDto, EventRadarDto } from "@/features/event-radar";
 import { Alert, Button, Card, Skeleton, Space, Tag, Typography, theme } from "@/ui-kit/eat";
+import type React from "react";
 import { useTranslation } from "react-i18next";
+import type { EventDto, EventRadarDto } from "./types";
 
 const { Text, Title } = Typography;
 const { useToken } = theme;
 
 interface EventRowProps {
 	event: EventDto;
+}
+
+// Only allow https links to render as anchors. Defends against javascript: /
+// data: schemes if a future upstream payload ever leaks them.
+function isSafeHttpsUrl(value: string | null | undefined): value is string {
+	return typeof value === "string" && value.startsWith("https://");
 }
 
 function EventRow({ event }: EventRowProps) {
@@ -27,17 +34,24 @@ function EventRow({ event }: EventRowProps) {
 	const hasChange24h = typeof event.probabilityChange24h === "number";
 	const change24hSign = hasChange24h && (event.probabilityChange24h as number) > 0 ? "+" : "";
 
-	return (
-		<div
-			style={{
-				display: "flex",
-				alignItems: "center",
-				gap: 12,
-				padding: "10px 0",
-				borderBottom: `1px solid ${token.colorBorderSecondary}`,
-				flexWrap: "wrap",
-			}}
-		>
+	const isClickable = isSafeHttpsUrl(event.sourceUrl);
+
+	const baseStyle: React.CSSProperties = {
+		display: "flex",
+		alignItems: "center",
+		gap: 12,
+		padding: "10px 8px",
+		borderBottom: `1px solid ${token.colorBorderSecondary}`,
+		flexWrap: "wrap",
+		borderRadius: 4,
+		textDecoration: "none",
+		color: "inherit",
+		cursor: isClickable ? "pointer" : "default",
+		transition: "background-color 0.15s",
+	};
+
+	const content = (
+		<>
 			{/* Date */}
 			<Text
 				style={{
@@ -101,8 +115,33 @@ function EventRow({ event }: EventRowProps) {
 					</Text>
 				)}
 			</Space>
-		</div>
+		</>
 	);
+
+	if (isClickable) {
+		const sourceLabel = event.sourceName
+			? t("overview.eventRadar.sourceLabel", { name: event.sourceName })
+			: t("overview.eventRadar.openSourceTooltip");
+		return (
+			<a
+				href={event.sourceUrl as string}
+				target="_blank"
+				rel="noopener noreferrer"
+				title={sourceLabel}
+				style={baseStyle}
+				onMouseEnter={(e) => {
+					e.currentTarget.style.backgroundColor = token.colorBgTextHover;
+				}}
+				onMouseLeave={(e) => {
+					e.currentTarget.style.backgroundColor = "transparent";
+				}}
+			>
+				{content}
+			</a>
+		);
+	}
+
+	return <div style={baseStyle}>{content}</div>;
 }
 
 interface EventRadarSectionProps {
@@ -114,6 +153,8 @@ interface EventRadarSectionProps {
 
 // EventRadarSection renders the upcoming macro event list.
 // On error, shows a retry prompt (G3.9) rather than hiding the section entirely.
+// Each row links to its upstream source (FRED release / Polymarket event) when
+// a sourceUrl is present.
 export function EventRadarSection({ data, isLoading, isError, onRetry }: EventRadarSectionProps) {
 	const { t } = useTranslation("market");
 	const { token } = useToken();
@@ -153,10 +194,16 @@ export function EventRadarSection({ data, isLoading, isError, onRetry }: EventRa
 					</Text>
 				) : (
 					<div>
-						{data.events.map((event, idx) => (
-							// richson does not emit a stable id; synthesize from date+title+idx.
-							<EventRow key={`${event.date}-${event.title}-${idx}`} event={event} />
-						))}
+						{data.events.map((event) => {
+							// Stable key strategy: prefer FRED release_id, fall back to the
+							// source URL for Polymarket (slug carries identity), then to the
+							// title for items without any source metadata.
+							const key =
+								event.releaseId !== null && event.releaseId !== undefined
+									? `fred-${event.releaseId}-${event.date}`
+									: `${event.sourceName ?? "unknown"}-${event.sourceUrl ?? event.title}-${event.date}`;
+							return <EventRow key={key} event={event} />;
+						})}
 					</div>
 				))}
 		</Card>

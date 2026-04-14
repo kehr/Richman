@@ -42,7 +42,9 @@
 			"change24h": "24h Change",
 			"noEvents": "No upcoming events",
 			"loadError": "Failed to load event data",
-			"retry": "Retry"
+			"retry": "Retry",
+			"openSourceTooltip": "Open source in new tab",
+			"sourceLabel": "Source: {{name}}"
 		},
 		"registerCta": {
 			"text": "Register for Richman to get personalized investment execution plans",

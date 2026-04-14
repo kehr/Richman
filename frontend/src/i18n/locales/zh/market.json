@@ -42,7 +42,9 @@
 			"change24h": "24h 变动",
 			"noEvents": "暂无近期事件",
 			"loadError": "事件数据加载失败",
-			"retry": "重试"
+			"retry": "重试",
+			"openSourceTooltip": "在新标签页打开数据源",
+			"sourceLabel": "来源：{{name}}"
 		},
 		"registerCta": {
 			"text": "注册 百万 Richman，获取个性化投资执行计划",

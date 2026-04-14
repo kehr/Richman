@@ -1,12 +1,11 @@
 import { getToken } from "@/domain/auth/storage";
-import { useEventRadar } from "@/features/event-radar";
+import { EventRadarSection, useEventRadar } from "@/features/event-radar";
 import { useMarketOverview, useMarketRegime } from "@/features/market-overview";
 import { PageContainer } from "@/ui-kit/eat";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { AssetCardWall } from "./components/asset-card-wall";
-import { EventRadarSection } from "./components/event-radar-section";
 import { MarketRegimeBar } from "./components/market-regime-bar";
 import { RegisterCTA } from "./components/register-cta";
 
