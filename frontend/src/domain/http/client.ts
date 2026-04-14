@@ -4,7 +4,9 @@ import { getToken } from "@/domain/auth/storage";
 // API_V2_BASE is the v2 prefix for new richson-backed endpoints.
 // The host-only base (VITE_API_BASE) is kept separate so both versions
 // share the same origin without duplicating the env fallback logic.
-const API_HOST = import.meta.env.VITE_API_BASE || "http://localhost:8080";
+// An empty string is a valid value (relative path), so use ?? instead of ||
+// to only fall back when the env var is genuinely unset.
+const API_HOST = import.meta.env.VITE_API_BASE ?? "http://localhost:8080";
 export const API_V1_BASE = `${API_HOST}/api/v1`;
 export const API_V2_BASE = `${API_HOST}/api/v2`;
 
