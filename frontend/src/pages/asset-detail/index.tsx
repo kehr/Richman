@@ -66,13 +66,19 @@ export default function AssetDetailPage() {
 
 	const signalLabel = detail.signalLevel
 		? t(`assetDetail.scoreSummary.signal.${detail.signalLevel}`, detail.signalLevel)
-		: "";
-	const scoreText = detail.overallScore !== undefined ? `${detail.overallScore}/100` : "";
-	const interpretationDescription = detail.marketInterpretation?.slice(0, 160) ?? "";
-	const interpretationOg = detail.marketInterpretation?.slice(0, 100) ?? "";
-	const titleSegments = [detail.name, scoreText, signalLabel, "Richman"].filter(Boolean);
+		: null;
+	const scoreText = detail.overallScore !== undefined ? `${detail.overallScore}/100` : null;
+	// Note: keep these as `undefined` rather than "" — Helmet treats empty
+	// strings as invalid text descendants (<title> aside) and throws.
+	// `|| undefined` also folds empty strings from the backend down to undefined.
+	const interpretationDescription = detail.marketInterpretation?.slice(0, 160) || undefined;
+	const interpretationOg = detail.marketInterpretation?.slice(0, 100) || undefined;
+	const titleSegments = [detail.name, scoreText, signalLabel, "Richman"].filter((s): s is string =>
+		Boolean(s),
+	);
 	const pageTitle = titleSegments.join(" | ");
-	const ogTitle = [detail.name, signalLabel].filter(Boolean).join(" ");
+	const ogTitleSegments = [detail.name, signalLabel].filter((s): s is string => Boolean(s));
+	const ogTitle = ogTitleSegments.length > 0 ? ogTitleSegments.join(" ") : undefined;
 	const tabItems = [
 		{
 			key: "analysis",
