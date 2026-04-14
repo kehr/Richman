@@ -1,4 +1,4 @@
-import { request } from "@/domain/http/client";
+import { requestV1 } from "@/domain/http/client";
 import type { ApiResponse } from "@/domain/http/types";
 import type { DisplayCurrency } from "@/features/user-settings";
 
@@ -8,5 +8,5 @@ export interface ExchangeRatesData {
 }
 
 export function getExchangeRates(): Promise<ApiResponse<ExchangeRatesData>> {
-	return request<ApiResponse<ExchangeRatesData>>("/exchange-rates");
+	return requestV1<ApiResponse<ExchangeRatesData>>("/exchange-rates");
 }

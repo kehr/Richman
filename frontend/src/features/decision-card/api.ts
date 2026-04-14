@@ -1,4 +1,4 @@
-import { requestV1 as request } from "@/domain/http/client";
+import { requestV1 } from "@/domain/http/client";
 import type { ApiResponse } from "@/domain/http/types";
 import type {
 	AnalysisTask,
@@ -43,14 +43,14 @@ function normalizeCard(wire: WireDecisionCard): DecisionCardDTO {
 // holding" behaviour, so the query string is only added for forward
 // compatibility with future filter modes.
 export async function getDecisionCards(): Promise<ApiResponse<DecisionCardDTO[]>> {
-	const res = await request<ApiResponse<WireDecisionCard[]>>("/decision-cards?latest=true");
+	const res = await requestV1<ApiResponse<WireDecisionCard[]>>("/decision-cards?latest=true");
 	return { data: res.data.map(normalizeCard) };
 }
 
 // getDecisionCardById loads a single decision card by its primary key. The
 // backend enforces that the card belongs to the authenticated user.
 export async function getDecisionCardById(cardId: number): Promise<ApiResponse<DecisionCardDTO>> {
-	const res = await request<ApiResponse<WireDecisionCard>>(`/decision-cards/${cardId}`);
+	const res = await requestV1<ApiResponse<WireDecisionCard>>(`/decision-cards/${cardId}`);
 	return { data: normalizeCard(res.data) };
 }
 
@@ -58,7 +58,7 @@ export async function getDecisionCardById(cardId: number): Promise<ApiResponse<D
 // returns 202 Accepted with a task id the UI can poll (or just wait for the
 // cache invalidation kicked off by useRerunAnalysis).
 export function postRerunAnalysis() {
-	return request<ApiResponse<RerunAnalysisResponse>>("/analysis/trigger", {
+	return requestV1<ApiResponse<RerunAnalysisResponse>>("/analysis/trigger", {
 		method: "POST",
 	});
 }
@@ -69,7 +69,7 @@ export function postRerunAnalysis() {
 // healthy. The backend throttles the endpoint at the gateway so the client
 // does not need its own rate limit.
 export function postReanalyzeAll() {
-	return request<ApiResponse<ReanalyzeAllResponse>>("/analysis/reanalyze-all", {
+	return requestV1<ApiResponse<ReanalyzeAllResponse>>("/analysis/reanalyze-all", {
 		method: "POST",
 	});
 }
@@ -81,7 +81,7 @@ export async function getHoldingHistory(
 	holdingId: number,
 	limit = 10,
 ): Promise<ApiResponse<DecisionCardDTO[]>> {
-	const res = await request<ApiResponse<WireDecisionCard[]>>(
+	const res = await requestV1<ApiResponse<WireDecisionCard[]>>(
 		`/decision-cards/history?holding_id=${holdingId}&limit=${limit}`,
 	);
 	return { data: res.data.map(normalizeCard) };
@@ -89,12 +89,12 @@ export async function getHoldingHistory(
 
 // getAnalysisTask fetches the current status of an analysis task by ID.
 export function getAnalysisTask(taskId: string): Promise<ApiResponse<AnalysisTask>> {
-	return request<ApiResponse<AnalysisTask>>(`/analysis/tasks/${taskId}`);
+	return requestV1<ApiResponse<AnalysisTask>>(`/analysis/tasks/${taskId}`);
 }
 
 // postRerunSingle triggers re-analysis for a single holding by ID.
 export function postRerunSingle(holdingId: number) {
-	return request<ApiResponse<RerunAnalysisResponse>>(`/analysis/reanalyze/${holdingId}`, {
+	return requestV1<ApiResponse<RerunAnalysisResponse>>(`/analysis/reanalyze/${holdingId}`, {
 		method: "POST",
 	});
 }

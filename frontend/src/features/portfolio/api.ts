@@ -1,5 +1,5 @@
 import { getToken } from "@/domain/auth/storage";
-import { API_V1_BASE, ApiError, requestV1 as request } from "@/domain/http/client";
+import { API_V1_BASE, ApiError, requestV1 } from "@/domain/http/client";
 import type { ApiResponse } from "@/domain/http/types";
 import type { RecognizeResponse } from "./screenshot-types";
 import type { CreateTradeInput } from "./trade-types";
@@ -51,11 +51,11 @@ export interface TradeDto {
 }
 
 export function fetchHoldings(): Promise<ApiResponse<HoldingDto[]>> {
-	return request<ApiResponse<HoldingDto[]>>("/holdings");
+	return requestV1<ApiResponse<HoldingDto[]>>("/holdings");
 }
 
 export function createHolding(data: CreateHoldingInput): Promise<ApiResponse<HoldingDto>> {
-	return request<ApiResponse<HoldingDto>>("/holdings", {
+	return requestV1<ApiResponse<HoldingDto>>("/holdings", {
 		method: "POST",
 		body: JSON.stringify(data),
 	});
@@ -65,34 +65,34 @@ export function updateHolding(
 	id: number,
 	data: Partial<CreateHoldingInput>,
 ): Promise<ApiResponse<HoldingDto>> {
-	return request<ApiResponse<HoldingDto>>(`/holdings/${id}`, {
+	return requestV1<ApiResponse<HoldingDto>>(`/holdings/${id}`, {
 		method: "PATCH",
 		body: JSON.stringify(data),
 	});
 }
 
 export function deleteHolding(id: number): Promise<ApiResponse<null>> {
-	return request<ApiResponse<null>>(`/holdings/${id}`, {
+	return requestV1<ApiResponse<null>>(`/holdings/${id}`, {
 		method: "DELETE",
 	});
 }
 
 export function fetchTrades(holdingId: number): Promise<ApiResponse<TradeDto[]>> {
-	return request<ApiResponse<TradeDto[]>>(`/holdings/${holdingId}/trades`);
+	return requestV1<ApiResponse<TradeDto[]>>(`/holdings/${holdingId}/trades`);
 }
 
 export function createTrade(
 	holdingId: number,
 	data: CreateTradeInput,
 ): Promise<ApiResponse<TradeDto>> {
-	return request<ApiResponse<TradeDto>>(`/holdings/${holdingId}/trades`, {
+	return requestV1<ApiResponse<TradeDto>>(`/holdings/${holdingId}/trades`, {
 		method: "POST",
 		body: JSON.stringify(data),
 	});
 }
 
 // importPortfolioScreenshot uploads a single image as multipart/form-data to
-// the screenshot recognition endpoint. The standard request() helper always
+// the screenshot recognition endpoint. The standard requestV1() helper always
 // sets a JSON Content-Type, so we go to fetch directly here and reuse the
 // same auth header strategy.
 export async function importPortfolioScreenshot(

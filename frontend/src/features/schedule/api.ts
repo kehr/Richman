@@ -1,4 +1,4 @@
-import { requestV1 as request } from "@/domain/http/client";
+import { requestV1 } from "@/domain/http/client";
 import type { ApiResponse } from "@/domain/http/types";
 
 // Frequency controls how often analysis is triggered for a holding or market.
@@ -67,14 +67,14 @@ export type UpdateHoldingScheduleInput = Pick<
 
 // fetchScheduleSettings loads the global schedule configuration.
 export function fetchScheduleSettings(): Promise<ApiResponse<ScheduleSettingsDTO>> {
-	return request<ApiResponse<ScheduleSettingsDTO>>("/settings/schedule");
+	return requestV1<ApiResponse<ScheduleSettingsDTO>>("/settings/schedule");
 }
 
 // updateScheduleSettings persists a new global schedule configuration.
 export function updateScheduleSettings(
 	data: ScheduleSettingsDTO,
 ): Promise<ApiResponse<ScheduleSettingsDTO>> {
-	return request<ApiResponse<ScheduleSettingsDTO>>("/settings/schedule", {
+	return requestV1<ApiResponse<ScheduleSettingsDTO>>("/settings/schedule", {
 		method: "PUT",
 		body: JSON.stringify(data),
 	});
@@ -83,7 +83,7 @@ export function updateScheduleSettings(
 // fetchHoldingSchedule loads the per-holding schedule override for a single
 // holding identified by holdingId.
 export function fetchHoldingSchedule(holdingId: number): Promise<ApiResponse<HoldingScheduleDTO>> {
-	return request<ApiResponse<HoldingScheduleDTO>>(`/holdings/${holdingId}/schedule`);
+	return requestV1<ApiResponse<HoldingScheduleDTO>>(`/holdings/${holdingId}/schedule`);
 }
 
 // updateHoldingSchedule persists per-holding schedule overrides. Pass null for
@@ -92,7 +92,7 @@ export function updateHoldingSchedule(
 	holdingId: number,
 	data: UpdateHoldingScheduleInput,
 ): Promise<ApiResponse<HoldingScheduleDTO>> {
-	return request<ApiResponse<HoldingScheduleDTO>>(`/holdings/${holdingId}/schedule`, {
+	return requestV1<ApiResponse<HoldingScheduleDTO>>(`/holdings/${holdingId}/schedule`, {
 		method: "PUT",
 		body: JSON.stringify(data),
 	});

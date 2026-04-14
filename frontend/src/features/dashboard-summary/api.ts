@@ -1,4 +1,4 @@
-import { requestV1 as request } from "@/domain/http/client";
+import { requestV1 } from "@/domain/http/client";
 import type { ApiResponse } from "@/domain/http/types";
 import type { DashboardSummaryDTO } from "./types";
 
@@ -6,5 +6,5 @@ import type { DashboardSummaryDTO } from "./types";
 // is lightweight compared to /decision-cards (single SELECT per user) so
 // the UI can poll it on every dashboard mount without coalescing.
 export function getDashboardSummary() {
-	return request<ApiResponse<DashboardSummaryDTO>>("/dashboard/summary");
+	return requestV1<ApiResponse<DashboardSummaryDTO>>("/dashboard/summary");
 }

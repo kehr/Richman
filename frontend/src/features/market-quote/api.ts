@@ -1,4 +1,4 @@
-import { requestV1 as request } from "@/domain/http/client";
+import { requestV1 } from "@/domain/http/client";
 import type { ApiResponse } from "@/domain/http/types";
 import type { AssetQuoteDTO } from "./types";
 
@@ -7,5 +7,5 @@ export async function fetchAssetQuote(
 	assetType: string,
 	assetCode: string,
 ): Promise<ApiResponse<AssetQuoteDTO>> {
-	return request<ApiResponse<AssetQuoteDTO>>(`/quotes/${assetType}/${assetCode}`);
+	return requestV1<ApiResponse<AssetQuoteDTO>>(`/quotes/${assetType}/${assetCode}`);
 }

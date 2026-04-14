@@ -10,11 +10,6 @@ const API_HOST = import.meta.env.VITE_API_BASE ?? "http://localhost:8080";
 export const API_V1_BASE = `${API_HOST}/api/v1`;
 export const API_V2_BASE = `${API_HOST}/api/v2`;
 
-// API_BASE is kept for backward compatibility with call sites that bypass
-// the standard helpers (e.g. multipart screenshot upload in portfolio/api.ts).
-// New code must use API_V1_BASE or API_V2_BASE.
-export const API_BASE = API_V1_BASE;
-
 export class ApiError extends Error {
 	status: number;
 	code: string;
@@ -57,14 +52,14 @@ async function _request<T>(url: string, options?: RequestInit, includeAuth = tru
 	return handleResponse<T>(response);
 }
 
-// requestV1 sends an authenticated request to a v1 API path.
-// All existing feature call sites should use this after migration from request().
+// requestV1 sends an authenticated request to a v1 API path. Used by all
+// legacy richman endpoints that predate the v2/richson split.
 export function requestV1<T>(url: string, options?: RequestInit): Promise<T> {
 	return _request<T>(`${API_V1_BASE}${url}`, options, true);
 }
 
-// requestV2 sends an authenticated request to a v2 API path (richson).
-// New features backed by richson use this variant.
+// requestV2 sends an authenticated request to a v2 API path (richson-backed).
+// New features that surface richson quantitative analysis use this variant.
 export function requestV2<T>(url: string, options?: RequestInit): Promise<T> {
 	return _request<T>(`${API_V2_BASE}${url}`, options, true);
 }
@@ -73,11 +68,4 @@ export function requestV2<T>(url: string, options?: RequestInit): Promise<T> {
 // Used by Market Overview and Asset Detail pages that are open to all visitors.
 export function requestPublic<T>(url: string, options?: RequestInit): Promise<T> {
 	return _request<T>(`${API_V2_BASE}${url}`, options, false);
-}
-
-// request is kept as an alias for requestV1 for backward compatibility
-// during the migration window. Do not use for new code.
-// @deprecated use requestV1 instead
-export function request<T>(url: string, options?: RequestInit): Promise<T> {
-	return requestV1<T>(url, options);
 }

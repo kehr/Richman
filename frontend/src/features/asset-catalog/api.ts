@@ -1,4 +1,4 @@
-import { requestV1 as request } from "@/domain/http/client";
+import { requestV1 } from "@/domain/http/client";
 import type { ApiResponse } from "@/domain/http/types";
 
 export interface AssetDto {
@@ -17,9 +17,9 @@ export function fetchAssets(params?: {
 	if (params?.type) query.set("type", params.type);
 	if (params?.keyword) query.set("keyword", params.keyword);
 	const qs = query.toString();
-	return request<ApiResponse<AssetDto[]>>(`/assets${qs ? `?${qs}` : ""}`);
+	return requestV1<ApiResponse<AssetDto[]>>(`/assets${qs ? `?${qs}` : ""}`);
 }
 
 export function fetchAssetByCode(code: string): Promise<ApiResponse<AssetDto>> {
-	return request<ApiResponse<AssetDto>>(`/assets/${code}`);
+	return requestV1<ApiResponse<AssetDto>>(`/assets/${code}`);
 }

@@ -1,5 +1,5 @@
 import type { User } from "@/domain/auth/types";
-import { requestV1 as request } from "@/domain/http/client";
+import { requestV1 } from "@/domain/http/client";
 import type { ApiResponse } from "@/domain/http/types";
 
 export interface LoginInput {
@@ -19,14 +19,14 @@ export interface AuthResponse {
 }
 
 export function login(input: LoginInput) {
-	return request<ApiResponse<AuthResponse>>("/auth/login", {
+	return requestV1<ApiResponse<AuthResponse>>("/auth/login", {
 		method: "POST",
 		body: JSON.stringify(input),
 	});
 }
 
 export function register(input: RegisterInput) {
-	return request<ApiResponse<AuthResponse>>("/auth/register", {
+	return requestV1<ApiResponse<AuthResponse>>("/auth/register", {
 		method: "POST",
 		body: JSON.stringify(input),
 	});
