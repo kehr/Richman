@@ -140,7 +140,9 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("invalid SERVER_PORT: %w", err)
 	}
 
-	jwtExpiryHours, err := strconv.Atoi(getEnv("JWT_EXPIRY_HOURS", "24"))
+	// 168h == 7 days. MVP uses a single long-lived access token (richman
+	// TRD SS22.6); Phase 2 will shorten this and introduce refresh tokens.
+	jwtExpiryHours, err := strconv.Atoi(getEnv("JWT_EXPIRY_HOURS", "168"))
 	if err != nil {
 		return nil, fmt.Errorf("invalid JWT_EXPIRY_HOURS: %w", err)
 	}
