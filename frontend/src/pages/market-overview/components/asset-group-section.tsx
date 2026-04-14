@@ -11,13 +11,15 @@ interface AssetGroupSectionProps {
 }
 
 // AssetGroupSection renders a category header followed by a responsive grid of AssetCard tiles.
+// The section header label is resolved from i18n using `group.assetType` (see
+// overview.assetType.<key> in src/i18n/locales/{zh,en}/market.json). When a new
+// asset_type appears on the backend without a matching translation key, the
+// raw assetType string is rendered as a graceful fallback.
 export function AssetGroupSection({ group }: AssetGroupSectionProps) {
-	const { i18n } = useTranslation();
+	const { t } = useTranslation("market");
 	const { token } = useToken();
 
-	// categoryLabel from API is already localized by the backend;
-	// fall back to the group.category key if empty.
-	const label = group.categoryLabel || group.category;
+	const label = t(`overview.assetType.${group.assetType}`, group.assetType);
 
 	return (
 		<div style={{ marginBottom: 24 }}>

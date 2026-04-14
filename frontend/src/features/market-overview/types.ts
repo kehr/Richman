@@ -1,4 +1,6 @@
 // Types for the Market Overview feature (SS3.1 in frontend-v2-trd.md).
+// Field names must match the backend `AssetCardDTO` / `AssetGroupDTO` /
+// `MarketOverviewDTO` exactly — see docs/standards/contract-drift.md.
 
 export interface IndexSnapshotDto {
 	code: string;
@@ -15,22 +17,24 @@ export interface MarketRegimeDto {
 	updatedAt: string;
 }
 
+// AssetCardDto mirrors backend `internal/service/market/service.go AssetCardDTO`.
+// Fields with `*T` on the Go side must be `T | null` on the TS side.
+// Optional (omitempty) fields come in as undefined when absent.
 export interface AssetCardDto {
 	code: string;
-	nameZh: string;
+	name: string;
 	nameEn: string;
-	currency: string;
-	price: number | null;
-	changePercent: number | null;
-	overallScore: number | null;
-	signal: "strong_bullish" | "bullish" | "neutral" | "bearish" | "strong_bearish" | null;
-	percentileLabel: string | null;
-	isActive: boolean;
+	assetType: string;
+	exchange: string;
+	overallScore?: number | null;
+	signalLevel?: "strong_bullish" | "bullish" | "neutral" | "bearish" | "strong_bearish" | null;
+	scoreDelta?: number | null;
 }
 
+// AssetGroupDto mirrors backend `AssetGroupDTO`. The `assetType` serves as both
+// grouping key and i18n lookup for the section header label.
 export interface AssetGroupDto {
-	category: string;
-	categoryLabel: string;
+	assetType: string;
 	assets: AssetCardDto[];
 }
 

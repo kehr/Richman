@@ -9,7 +9,7 @@
 			"loadError": "Market regime data unavailable"
 		},
 		"assetCard": {
-			"comingSoon": "Coming Soon",
+			"waitingAnalysis": "Awaiting Analysis",
 			"score": "Score",
 			"signal": {
 				"strong_bullish": "Strong Bullish",
@@ -18,6 +18,12 @@
 				"bearish": "Bearish",
 				"strong_bearish": "Strong Bearish"
 			}
+		},
+		"assetType": {
+			"gold_etf": "Gold ETF",
+			"a_share_broad": "A-Share Broad",
+			"a_share_industry": "A-Share Industry",
+			"us_stock": "US Stock"
 		},
 		"eventRadar": {
 			"title": "Event Radar",

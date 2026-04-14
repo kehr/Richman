@@ -25,7 +25,7 @@ export function AssetCardWall({ data, isLoading }: AssetCardWallProps) {
 	return (
 		<div>
 			{data.groups.map((group) => (
-				<AssetGroupSection key={group.category} group={group} />
+				<AssetGroupSection key={group.assetType} group={group} />
 			))}
 		</div>
 	);

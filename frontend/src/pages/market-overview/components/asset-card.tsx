@@ -2,7 +2,7 @@ import type { AssetCardDto } from "@/features/market-overview";
 import { Card, Tag, Typography, theme } from "@/ui-kit/eat";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router";
-import { formatCurrencyPrice, getDirectionColor, getPriceChangeColor } from "../utils";
+import { getDirectionColor } from "../utils";
 
 const { Text } = Typography;
 const { useToken } = theme;
@@ -12,16 +12,20 @@ interface AssetCardProps {
 }
 
 // AssetCard renders a single asset tile in the card wall.
-// Active assets link to /market/:code and show live price + score data.
-// Greyed assets display name + "Coming Soon" and are not clickable.
+// An asset is considered "analyzed" when it has an overallScore. Analyzed
+// assets link to /market/:code and show score + signal data. Assets with no
+// analysis yet render a greyed "waiting analysis" placeholder and are not
+// clickable. Per docs/standards/contract-drift.md this component must only
+// read fields that the backend `AssetCardDTO` actually returns.
 export function AssetCard({ asset }: AssetCardProps) {
 	const { t, i18n } = useTranslation("market");
 	const { token } = useToken();
 	const navigate = useNavigate();
 
-	const displayName = i18n.language === "zh" ? asset.nameZh : asset.nameEn;
+	const displayName = i18n.language === "zh" ? asset.name : asset.nameEn;
+	const hasAnalysis = typeof asset.overallScore === "number";
 
-	if (!asset.isActive) {
+	if (!hasAnalysis) {
 		return (
 			<Card
 				style={{
@@ -36,26 +40,25 @@ export function AssetCard({ asset }: AssetCardProps) {
 				</Text>
 				<div style={{ marginTop: 6 }}>
 					<Tag color="default" style={{ fontSize: 11 }}>
-						{t("overview.assetCard.comingSoon")}
+						{t("overview.assetCard.waitingAnalysis")}
 					</Tag>
 				</div>
 			</Card>
 		);
 	}
 
-	const changeColor = getPriceChangeColor(asset.code, asset.changePercent ?? 0);
-	const colorMap: Record<string, string> = {
-		red: token.colorError,
-		green: token.colorSuccess,
-		gray: token.colorTextTertiary,
-	};
-	const priceColor = colorMap[changeColor] ?? token.colorTextTertiary;
-
-	const dirColor = asset.signal ? getDirectionColor(asset.signal) : "gray";
+	const dirColor = asset.signalLevel ? getDirectionColor(asset.signalLevel) : "gray";
 	const signalTagColor =
 		dirColor === "green" ? "success" : dirColor === "red" ? "error" : "default";
 
-	const sign = (asset.changePercent ?? 0) > 0 ? "+" : "";
+	const scoreDelta = asset.scoreDelta ?? null;
+	const deltaColor =
+		scoreDelta === null || scoreDelta === 0
+			? token.colorTextTertiary
+			: scoreDelta > 0
+				? token.colorSuccess
+				: token.colorError;
+	const deltaSign = scoreDelta !== null && scoreDelta > 0 ? "+" : "";
 
 	return (
 		<Card
@@ -64,7 +67,7 @@ export function AssetCard({ asset }: AssetCardProps) {
 			style={{ cursor: "pointer" }}
 			styles={{ body: { padding: "12px 14px" } }}
 		>
-			<div style={{ marginBottom: 4 }}>
+			<div style={{ marginBottom: 6 }}>
 				<Text strong style={{ fontSize: 13, color: token.colorText }}>
 					{displayName}
 				</Text>
@@ -73,49 +76,25 @@ export function AssetCard({ asset }: AssetCardProps) {
 				</Text>
 			</div>
 
-			{/* Price + change */}
-			{asset.price !== null && (
-				<div style={{ marginBottom: 8 }}>
-					<Text strong style={{ fontSize: 15, color: token.colorText }}>
-						{formatCurrencyPrice(asset.price, asset.currency)}
+			{/* Score + delta */}
+			<div style={{ marginBottom: 6 }}>
+				<Text strong style={{ fontSize: 16, color: token.colorText }}>
+					{asset.overallScore}
+				</Text>
+				<Text style={{ fontSize: 11, color: token.colorTextTertiary, marginLeft: 4 }}>/ 100</Text>
+				{scoreDelta !== null && (
+					<Text style={{ fontSize: 12, color: deltaColor, marginLeft: 8 }}>
+						{deltaSign}
+						{scoreDelta.toFixed(1)}
 					</Text>
-					{asset.changePercent !== null && (
-						<Text style={{ fontSize: 12, color: priceColor, marginLeft: 6 }}>
-							{sign}
-							{asset.changePercent.toFixed(2)}%
-						</Text>
-					)}
-				</div>
-			)}
-
-			{/* Score + signal */}
-			<div
-				style={{
-					display: "flex",
-					alignItems: "center",
-					gap: 6,
-					flexWrap: "wrap",
-				}}
-			>
-				{asset.overallScore !== null && (
-					<Text style={{ fontSize: 12, color: token.colorTextSecondary }}>
-						{t("overview.assetCard.score")} {asset.overallScore}
-					</Text>
-				)}
-				{asset.signal && (
-					<Tag color={signalTagColor} style={{ fontSize: 11, margin: 0 }}>
-						{t(`overview.assetCard.signal.${asset.signal}`)}
-					</Tag>
 				)}
 			</div>
 
-			{/* Percentile label */}
-			{asset.percentileLabel && (
-				<div style={{ marginTop: 4 }}>
-					<Text style={{ fontSize: 11, color: token.colorTextTertiary }}>
-						{asset.percentileLabel}
-					</Text>
-				</div>
+			{/* Signal */}
+			{asset.signalLevel && (
+				<Tag color={signalTagColor} style={{ fontSize: 11, margin: 0 }}>
+					{t(`overview.assetCard.signal.${asset.signalLevel}`)}
+				</Tag>
 			)}
 		</Card>
 	);
