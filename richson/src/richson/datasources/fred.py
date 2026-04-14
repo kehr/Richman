@@ -15,17 +15,32 @@ from __future__ import annotations
 
 import datetime
 import re
+from dataclasses import dataclass
 from typing import Any
 
+import httpx
 import pandas as pd
 import structlog
 
+from richson.config.event_metadata import FRED_RELEASE_METADATA
 from richson.datasources.cache import cache_get, cache_set
 
 logger = structlog.get_logger(__name__)
 
 # Series to fetch in bulk and their cache keys
 SERIES_IDS = ["FEDFUNDS", "T10Y2Y", "DFII10", "DGS10", "M2SL"]
+
+# FRED REST endpoint for the release calendar.
+_FRED_RELEASES_DATES_URL = "https://api.stlouisfed.org/fred/releases/dates"
+
+
+@dataclass(frozen=True)
+class FREDReleaseDate:
+    """A single upcoming FRED release date."""
+
+    release_id: int
+    release_name: str
+    date: str  # ISO YYYY-MM-DD
 
 # Lookback window for percentile calculation (5 years + buffer)
 _HISTORY_YEARS = 6
@@ -164,6 +179,86 @@ class FREDClient:
             if s is not None:
                 result[sid] = s
         return result
+
+    def get_upcoming_releases(self, window_days: int = 7) -> list[FREDReleaseDate]:
+        """Fetch upcoming FRED release dates within the next N days.
+
+        Returns:
+            Sorted list of FREDReleaseDate (ascending by date). Empty list when
+            the FRED key is disabled, the network call fails, or no releases
+            fall in the window.
+        """
+        # Disabled short-circuit: skip the network round-trip and the retry
+        # loop. The startup warning already told the operator what to fix.
+        if self._disabled or not self._api_key:
+            return []
+
+        cache_key = f"upcoming_releases:{window_days}"
+        cached = cache_get("fred", cache_key)
+        if cached is not None:
+            return list(cached)
+
+        today = datetime.date.today()
+        horizon = today + datetime.timedelta(days=window_days)
+        params: dict[str, Any] = {
+            "api_key": self._api_key,
+            "file_type": "json",
+            # The FRED default `false` filters out future dates because they
+            # have no observations yet; we must explicitly opt in to keep them.
+            "include_release_dates_with_no_data": "true",
+            "realtime_start": today.isoformat(),
+            "realtime_end": horizon.isoformat(),
+            "order_by": "release_date",
+            "sort_order": "asc",
+            "limit": 1000,
+            "offset": 0,
+        }
+
+        payload: dict[str, Any] | None = None
+        for attempt in range(self._max_retries + 1):
+            try:
+                with httpx.Client(timeout=self._timeout) as client:
+                    resp = client.get(_FRED_RELEASES_DATES_URL, params=params)
+                    resp.raise_for_status()
+                    payload = resp.json()
+                    break
+            except Exception as exc:
+                logger.warning(
+                    "fred releases fetch failed",
+                    error=str(exc),
+                    attempt=attempt,
+                )
+        if payload is None:
+            return []
+
+        raw_dates: list[dict[str, Any]] = payload.get("release_dates") or []
+        seen: set[tuple[int, str]] = set()
+        results: list[FREDReleaseDate] = []
+        for item in raw_dates:
+            try:
+                release_id = int(item["release_id"])
+            except (KeyError, TypeError, ValueError):
+                continue
+            if release_id not in FRED_RELEASE_METADATA:
+                continue
+            release_date = str(item.get("date") or "")
+            if not release_date:
+                continue
+            key = (release_id, release_date)
+            if key in seen:
+                continue
+            seen.add(key)
+            results.append(
+                FREDReleaseDate(
+                    release_id=release_id,
+                    release_name=str(item.get("release_name") or ""),
+                    date=release_date,
+                )
+            )
+
+        results.sort(key=lambda r: r.date)
+        cache_set("fred", cache_key, results)
+        return results
 
     def get_data_freshness(self, series_id: str) -> datetime.date | None:
         """Return the date of the most recent observation for a series.
