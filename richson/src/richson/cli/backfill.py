@@ -4,12 +4,14 @@ Usage:
     python -m richson.cli backfill --days 90
 
 Runs Layer 1 scoring for each day in the backfill window and writes results
-to rs_asset_analyses with source='backfill'. Used for cold-start bootstrapping
-(TRD SS13.3).
+to rs_asset_analyses with source='backfill' + generated_by='l1_only'. Used
+for cold-start bootstrapping (richson TRD SS13.3).
 
-G1.7: backfill records are marked source='backfill' so downstream queries can
-filter them if needed. Decision to include/exclude in percentile calculation
-is noted in comments.
+G1.7 (richson TRD SS21.7): backfill rows carry source='backfill' for
+auditing, but the design decision is that they DO participate in percentile
+calculations -- they form the historical baseline the blended percentile
+algorithm needs at cold start. Downstream queries therefore do NOT filter
+on source.
 """
 
 from __future__ import annotations
@@ -113,6 +115,7 @@ async def run_backfill(days: int, assets: list[str], locale: str) -> None:
                     session_factory=session_factory,
                     generated_by_override="l1_only",
                     budget_exceeded=True,  # force l1_only
+                    source="backfill",
                 )
                 success_count += 1
                 logger.info(

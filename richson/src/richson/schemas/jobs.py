@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
-from typing import Any, Literal
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -20,7 +20,7 @@ class AnalyzeAssetRequest(BaseModel):
 
     asset_code: str = Field(alias="assetCode")
     locale: str = Field(default="zh", pattern="^(zh|en)$")
-    llm_config: LLMConfig = Field(alias="llmConfig")
+    llm_config: LLMConfig | None = Field(default=None, alias="llmConfig")
     request_id: uuid.UUID | None = Field(default=None, alias="requestId")
 
     model_config = {"populate_by_name": True}
@@ -37,7 +37,7 @@ class BatchAnalyzeRequest(BaseModel):
     """POST /jobs/batch-analyze request body."""
 
     assets: list[BatchAnalyzeAsset]
-    llm_config: LLMConfig = Field(alias="llmConfig")
+    llm_config: LLMConfig | None = Field(default=None, alias="llmConfig")
     request_id: uuid.UUID | None = Field(default=None, alias="requestId")
 
     model_config = {"populate_by_name": True}

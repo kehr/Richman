@@ -26,7 +26,7 @@ class HoldingInput(BaseModel):
     holding_id: int = Field(alias="holdingId")
     cost_price: Decimal = Field(alias="costPrice")
     position_ratio: float = Field(alias="positionRatio", description="Percent 0-100")
-    quantity: int
+    quantity: float
 
     model_config = {"populate_by_name": True}
 
@@ -51,7 +51,10 @@ class ExecutionPlanData(BaseModel):
     scenarios: list[Scenario]
     stop_loss: float = Field(alias="stopLoss")
     take_profit: float = Field(alias="takeProfit")
-    valid_days: int = Field(default=7, alias="validDays")
+    # Bound mirrors the TRD contract (richson SS21.8): execution plans expire
+    # between 1 and 90 days, so accept only values in that range. The default
+    # continues to be 7 days.
+    valid_days: int = Field(default=7, ge=1, le=90, alias="validDays")
     no_trigger_note: str = Field(alias="noTriggerNote")
     concentration_level: ConcentrationLevel | None = Field(
         default=None, alias="concentrationLevel"
@@ -76,7 +79,7 @@ class AnalyzeHoldingRequest(BaseModel):
     risk_preference: RiskPreference = Field(alias="riskPreference")
     peer_exposure: float = Field(alias="peerExposure", description="Percent 0-100")
     language: str = Field(default="zh", pattern="^(zh|en)$")
-    llm_config: LLMConfig = Field(alias="llmConfig")
+    llm_config: LLMConfig | None = Field(default=None, alias="llmConfig")
     request_id: uuid.UUID | None = Field(default=None, alias="requestId")
 
     model_config = {"populate_by_name": True}
@@ -92,7 +95,7 @@ class DemoPlanRequest(BaseModel):
 
     asset_code: str = Field(alias="assetCode")
     language: str = Field(default="zh", pattern="^(zh|en)$")
-    llm_config: LLMConfig = Field(alias="llmConfig")
+    llm_config: LLMConfig | None = Field(default=None, alias="llmConfig")
     request_id: uuid.UUID | None = Field(default=None, alias="requestId")
 
     model_config = {"populate_by_name": True}

@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
+from collections.abc import Sequence
+from datetime import UTC, datetime
 from decimal import Decimal
-from typing import Any, Sequence
+from typing import Any
 
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -17,7 +18,6 @@ from richson.db.models import (
     DimensionDefinition,
     EventAlert,
 )
-
 
 # ---------------------------------------------------------------------------
 # AssetAnalysis
@@ -77,7 +77,7 @@ async def get_score_history(
     """Return recent analysis records for trend-line rendering."""
     from datetime import timedelta
 
-    cutoff = datetime.now(tz=timezone.utc) - timedelta(days=days)
+    cutoff = datetime.now(tz=UTC) - timedelta(days=days)
     stmt = (
         select(AssetAnalysis)
         .where(
@@ -139,7 +139,7 @@ async def create_analysis_job(
     """Create a new job in pending state, expiring in 1 hour."""
     from datetime import timedelta
 
-    expires_at = datetime.now(tz=timezone.utc) + timedelta(hours=1)
+    expires_at = datetime.now(tz=UTC) + timedelta(hours=1)
     job = AnalysisJob(
         job_id=uuid.uuid4(),
         asset_code=asset_code,
@@ -195,7 +195,7 @@ async def update_job_status(
     """Partially update job tracking fields."""
     values: dict[str, Any] = {
         "status": status,
-        "updated_at": datetime.now(tz=timezone.utc),
+        "updated_at": datetime.now(tz=UTC),
     }
     if current_step is not None:
         values["current_step"] = current_step
@@ -210,9 +210,9 @@ async def update_job_status(
     if asset_analysis_id is not None:
         values["asset_analysis_id"] = asset_analysis_id
     if status == "running" and "started_at" not in values:
-        values["started_at"] = datetime.now(tz=timezone.utc)
+        values["started_at"] = datetime.now(tz=UTC)
     if status in ("completed", "failed"):
-        values["completed_at"] = datetime.now(tz=timezone.utc)
+        values["completed_at"] = datetime.now(tz=UTC)
 
     stmt = (
         update(AnalysisJob)

@@ -2,11 +2,9 @@
 
 from __future__ import annotations
 
-from typing import Any, Generic, TypeVar
+from typing import Any
 
 from pydantic import BaseModel, Field
-
-T = TypeVar("T")
 
 
 class ErrorDetail(BaseModel):
@@ -19,7 +17,7 @@ class ErrorResponse(BaseModel):
     error: ErrorDetail
 
 
-class DataResponse(BaseModel, Generic[T]):
+class DataResponse[T](BaseModel):
     """Generic success envelope: {"data": <T>}."""
 
     data: T
@@ -33,11 +31,23 @@ class PaginationMeta(BaseModel):
 
 
 class LLMConfig(BaseModel):
-    """LLM provider configuration passed per-request from richman."""
+    """LLM provider configuration passed per-request from richman.
+
+    The api_key field is marked ``repr=False`` so Pydantic's automatic
+    ``__repr__`` / ``str()`` output elides it (richson SS21.9): logging a
+    LLMConfig instance — or any model that embeds one — will not leak the
+    provider secret. The HTTP request-logging middleware (see main.py) only
+    records method / path / status / duration and never reads the body, so
+    the raw "apiKey" JSON field also stays out of structured logs.
+    """
 
     provider: str = Field(
         description="LLM provider: claude | openai | openai_compatible | gemini"
     )
     model: str
-    api_key: str = Field(default="")
-    api_base: str | None = Field(default=None, description="Required for openai_compatible")
+    api_key: str = Field(default="", alias="apiKey", repr=False)
+    api_base: str | None = Field(
+        default=None, alias="apiBase", description="Required for openai_compatible"
+    )
+
+    model_config = {"populate_by_name": True}

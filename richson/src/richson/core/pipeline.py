@@ -487,6 +487,7 @@ async def run_asset_analysis_pipeline(
     model_version: str = "gold_v1.0",
     generated_by_override: str | None = None,
     budget_exceeded: bool = False,
+    source: str = "scheduled",
 ) -> None:
     """Full L1->L2->L3 pipeline for a single asset (async background task).
 
@@ -503,6 +504,12 @@ async def run_asset_analysis_pipeline(
         model_version: model version string for this analysis.
         generated_by_override: force 'l1_only' or 'backfill' mode.
         budget_exceeded: if True, skip L2/L3 (budget cap).
+        source: marker persisted on rs_asset_analyses.source. Defaults to
+            'scheduled' (cron/API triggered); backfill CLI passes 'backfill'
+            so records can be distinguished for observability (richson TRD
+            SS13.3/SS21.7). Per SS21.7 the design decision is that backfill
+            rows DO participate in percentile calculations -- the marker
+            exists for auditing, not filtering.
     """
     from richson.db import repository as repo  # noqa: PLC0415
 
@@ -839,7 +846,7 @@ async def run_asset_analysis_pipeline(
             # metadata
             "analysis_metadata": analysis_metadata,
             "generated_by": generated_by,
-            "source": "scheduled",
+            "source": source,
             "job_id": job_id,
         }
 

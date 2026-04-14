@@ -15,10 +15,10 @@ target_metadata = Base.metadata
 
 
 def get_url() -> str:
-    """Return DATABASE_URL from env if set, else fall back to alembic.ini."""
-    import os
+    """Return DATABASE_URL via pydantic settings so .env is auto-loaded."""
+    from richson.config import settings
 
-    return os.getenv("DATABASE_URL", config.get_main_option("sqlalchemy.url", ""))
+    return settings.database_url
 
 
 def run_migrations_offline() -> None:

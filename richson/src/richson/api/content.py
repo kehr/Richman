@@ -8,6 +8,7 @@ from __future__ import annotations
 import json
 import uuid
 from datetime import UTC, datetime
+from typing import Any
 
 import structlog
 from fastapi import APIRouter, Depends, Request
@@ -22,7 +23,7 @@ logger = structlog.get_logger()
 
 class WeeklyInsightBody(BaseModel):
     locale: str = Field(default="zh", pattern="^(zh|en)$")
-    llm_config: LLMConfig = Field(alias="llmConfig")
+    llm_config: LLMConfig | None = Field(default=None, alias="llmConfig")
     request_id: uuid.UUID | None = Field(default=None, alias="requestId")
 
     model_config = {"populate_by_name": True}
@@ -38,9 +39,9 @@ async def generate_weekly_insight(
     Called by richman cron every Monday. Synchronous; expects response within 30s.
 
     Returns:
-        weeklyReview: last week's summary
-        weeklyOutlook: this week's key themes
-        educationTopic: educational content
+        title: insight title
+        sections: list of {heading, content}
+        generatedAt: ISO timestamp
         locale: requested locale
     """
     from richson.core.pipeline import _resolve_model, _run_agent  # noqa: PLC0415
@@ -111,14 +112,42 @@ async def generate_weekly_insight(
 
     log.info("weekly_insight_complete")
 
+    sections = _build_sections(result, body.locale)
+    title = _build_title(body.locale)
+
     return {
         "data": {
-            "weeklyReview": result.get("weeklyReview", result.get("weekly_review", "")),
-            "weeklyOutlook": result.get("weeklyOutlook", result.get("weekly_outlook", "")),
-            "educationTopic": result.get("educationTopic", result.get("education_topic", "")),
+            "title": title,
+            "sections": sections,
+            "generatedAt": datetime.now(tz=UTC).isoformat(),
             "locale": body.locale,
         }
     }
+
+
+def _build_title(locale: str) -> str:
+    """Build the weekly insight title for the requested locale."""
+    if locale == "zh":
+        return "Richman 每周黄金洞察"
+    return "Richman Weekly Gold Insight"
+
+
+def _build_sections(result: dict[str, Any], locale: str) -> list[dict[str, str]]:
+    """Convert flat LLM result fields into ordered heading/content sections."""
+    review = result.get("weeklyReview", result.get("weekly_review", ""))
+    outlook = result.get("weeklyOutlook", result.get("weekly_outlook", ""))
+    education = result.get("educationTopic", result.get("education_topic", ""))
+
+    if locale == "zh":
+        labels = ("上周回顾", "本周展望", "投资教育")
+    else:
+        labels = ("Last Week", "This Week", "Education")
+
+    sections: list[dict[str, str]] = []
+    for heading, content in zip(labels, (review, outlook, education), strict=True):
+        if content:
+            sections.append({"heading": heading, "content": content})
+    return sections
 
 
 def _fallback_weekly_insight(context: dict, locale: str) -> dict:
