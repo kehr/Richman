@@ -306,3 +306,90 @@
 - `curl http://localhost:8080/api/v2/events/radar` → 200，返回 7 条 events（Polymarket 2 条有概率 + 5 条静态经济日历）
 - 日志全部为结构化 JSON：`{"url": "...", "event": "polymarket: request failed", ...}`，无 `Logger._log() got an unexpected keyword argument` 告警
 
+## 验收期残留项闭环（Phase A / B / C）
+
+承接「10 轮深度检查总结」中保留的 5 类观察项与 8 条未闭环 G 项，本阶段按用户「全部一次性做完」指令分三批闭环。
+
+### Phase A：docker-compose 补 richman 服务（commit 2d1552a）
+
+- 落地 Round 10 观察项「docker-compose.yml 仅含 postgres + richson，不含 richman 服务」
+- `docker-compose.yml` 新增 richman 服务定义：基于 backend/Dockerfile 构建、暴露 8080、`depends_on: postgres + richson` 用 `service_healthy` 等待、environment 注入 DB / RICHSON / JWT / EmailPush 全量 env、healthcheck 走 `wget --spider /health`
+- `backend/.env.example` 同步补 docker-compose 变量；端到端可走 `docker compose up -d` 一键起栈
+- 验证：`docker compose config` 解析通过
+
+### Phase B：SS8.8 批量分析 admin 端点（commit e9c8d73）
+
+- 落地 Round 4 观察项「SS8.8 批量分析手动重试端点缺失」
+- TRD：`docs/trds/admin-batch-analyze-trd.md`（管理员鉴权 + 端点协议 + Makefile target）
+- Plan：`docs/plans/admin-batch-analyze-plan.md`
+- 实现：
+  - `backend/internal/middleware/admin.go`：JWT admin role check（rm_users.role='admin'）
+  - `backend/internal/api/v2/admin_analysis.go`：`POST /api/v2/admin/analysis/trigger-batch` handler，复用 `richsonClient.TriggerBatchAnalysis`，返回 `{taskId, codes, status}`
+  - `backend/internal/api/v2/router.go`：在 `/v2/admin` 前缀下挂载，链路 `JWT → AdminOnly → handler`
+  - `backend/Makefile`：`make trigger-batch-analysis` target，curl 当地 `/v2/admin/analysis/trigger-batch`，从 `.env` 读 ADMIN_JWT
+- 验证：`go vet ./...` + `go test ./internal/api/v2/...` 通过
+
+### Phase C：asset-detail 后端 DTO 完整补齐（commits 4efb863 / 37a2fac）
+
+- 落地 Round 3-4 观察项「asset-detail 详情页大面积契约缺口」
+- TRD：`docs/trds/asset-detail-backend-trd.md`（前端 AssetDetailDto 全字段 → 数据源映射、JSONB 反序列化、richson OHLCV 聚合、缓存策略、错误兜底）
+- Plan：`docs/plans/asset-detail-backend-plan.md`（9 step）
+- 实现要点（commit 37a2fac）：
+  - `backend/internal/repo/asset_analysis_read_repo.go`：新增 `GetByID(ctx, id)` 复用 `assetAnalysisColumns` + `scanAssetAnalysisRow`，nil-row 走 `pgx.ErrNoRows` 映射到 `(nil, nil)`
+  - `backend/internal/service/market/jsonb.go`：新增 `rawDemoPlan` / `rawDemoPlanScenario` / `rawAnalysisMetadata` / `rawDrawdownReference` 内部解码类型（drawdown_reference 走 camelCase tag，其它走 snake_case），所有 unmarshal 失败兜底 nil
+  - `backend/internal/service/market/service.go`：
+    - `AssetDetailDTO` 扩展 17 个字段（currency / usdExchangeRate / currentPrice / priceChangePercent / priceAtAnalysis / scoreBandLow/High / marketInterpretation / changeSummary / majorChangeRecap / conflictType / conflictMessage / validDays / riskFactors / keyPriceLevels / drawdownReference / executionPlan / supports / resistances / sma200）
+    - 8 个新 DTO 类型：`DimensionDTO` / `DimensionSubIndicatorDTO` / `RiskFactorDTO` / `KeyPriceLevelDTO` / `DrawdownReferenceDTO` / `MajorChangeRecapDTO` / `ExecutionPlanDTO` / `ExecutionScenarioDTO`
+    - 新增 7 个 build* helper：`buildDimensions`（始终 4 维 + neutral 兜底） / `buildExecutionPlan` / `buildKeyPriceLevels`（按距离绝对值升序） / `buildRiskFactors`（severity 默认 medium） / `buildMajorChangeRecap`（prev_analysis_id 查询 + score 兜底） / `buildDrawdownReference` / `deriveDimensionSignal`（>=60 bullish, 40-60 neutral, <40 bearish）
+    - `Service` struct 注入 `richsonClient *richson.Client` + `ohlcvCache map[string]ohlcvCacheEntry`（60s TTL）+ `sync.Mutex`
+    - `fetchOHLCVForDetail`：失败不写缓存，所有日志带 `asset_code` 字段
+    - `inferCurrency`：stock-cn → CNY，其它 → USD（暂未覆盖 a_share_broad，列入下一轮 follow-up）
+  - `backend/cmd/server/main.go`：DI 新增 richsonClient 注入到 market.NewService
+  - `backend/internal/service/market/service_test.go`：表驱动单测覆盖 build* + deriveDimensionSignal 边界
+- 验证：worktree 内 `go vet ./...` + `go test ./...` + `go build ./cmd/server/...` 全绿；ff-merge 至 main 后 dev server 起栈，`curl http://localhost:8080/api/v2/market/159915` 返回新 DTO 形状（含 currency 字段）
+- 子缺陷修复：`pages/asset-detail/index.tsx` 出现 `<Helmet> string descendant` 整页 throw，按 marketInterpretation 兜底链路修正（commit 63ec6af / 704d71d 已修复，并沉淀为 standard，详见下条）
+
+### Helmet 子节点纪律沉淀（commits 63ec6af / b915593）
+
+- 落地 CLAUDE.md「系统性错误复盘与沉淀原则」三步：根因 → 沉淀 → 引用
+- 标准：`docs/standards/frontend.md` 新增 `## react-helmet 子节点纪律（MANDATORY）` 章节，强制三件套：`|| undefined`（不允许 `?? ""`） + `Boolean()` 短路 + type-guard filter
+- Memory：`~/.claude/projects/-Users-kyle-Studio-Richman/memory/feedback_helmet_empty_child.md` + `MEMORY.md` 索引补条目
+- 引用：CLAUDE.md `## Standards Index` 已有 `frontend.md` 条目，无需重复
+
+### G1-G4 未闭环项核实
+
+按 R5 残留 8 条逐项核实代码现状：
+
+| 编号 | 项目 | 状态 | 核实依据 |
+|------|------|------|----------|
+| G1.7 | richson backfill percentile exclusion | done | commit a603207 |
+| G1.8 | validDays Pydantic clamp | done | `richson/src/richson/core/pipeline.py:971-973` 已实现 1..90 clamp |
+| G1.9 | LLM apiKey mask 输出 | open | `backend/internal/api/` 与 `handlers/` 未发现 mask/preview/redact 关键字，settings/llm 输出仍为明文 |
+| G2.4 | task TTL 配置化 | done | `backend/internal/config/config.go:98` `TaskTTLHours` + main.go:259 注入 |
+| G2.5 | password complexity | done | `backend/internal/service/auth/service.go:68-108` `ValidatePasswordComplexity` 已落地（commit 7e5a0b1） |
+| G2.6 | JWT 7-day default | done | commit 29f4b9f + 7e5a0b1 注释 Phase 2 refresh-token 计划 |
+| G2.11 | pg_dump 备份标准 | done | commit bc38689 + `docs/standards/database.md` 备份章节 |
+| G4.2 | Asia/Shanghai 时区 | done | commit 38c429b 文档 + 7e5a0b1 注释 SQL 中 UpdateLoginStreak 钉 Asia/Shanghai 边界 |
+
+唯一仍然 open：**G1.9 LLM apiKey mask**。settings 端点目前直接回写 user 提交的 plaintext apiKey，console / 日志 / response 没有 mask，泄漏风险随用户量上涨。建议下一轮单独起 plan：
+
+- repo 层 SELECT 时仅取 `last4(api_key)`
+- service / handler 层 response DTO 字段重命名为 `apiKeyPreview`，shape `"sk-...x4"`
+- 客户端编辑流走 PATCH 半字段（`apiKey?: string`），未传则不更新
+
+未在本阶段落地原因：跨 4 个 LLM provider 的 settings 表 + 历史明文数据迁移脚本，工作量超过本阶段「一次性收尾」预算，单独立项更安全。
+
+### 其它残留观察项处理
+
+- **decision_card_repo 11 列覆盖度复核（Round 8 P1）**：本阶段未单独复核；建议在下次 decision card UI 改动时一并核对 SELECT/INSERT 列清单
+- **前端 bundle 体积告警（Round 10）**：性能观察项，当前 dev/prod 流程不阻塞；下一轮可考虑 `lightweight-charts` 与 `@ant-design/charts` 的 lazy-import 拆分
+- **registry 集中注册模式缺失（Round 9）**：架构演进项，等到第 5 个 LLM provider / 通知渠道接入时再统一抽 registry 包
+
+### 验收阶段总结
+
+- 5 类 Round 观察项：3 闭环（asset-detail / SS8.8 / docker-compose richman），2 保留（bundle 告警 / registry 抽取）
+- 8 条 G 项未闭环：7 闭环，1 真正 open（G1.9 apiKey mask）→ 单独立项
+- 1 条新沉淀标准：react-helmet 子节点纪律 → frontend.md + 个人 memory 双写
+- 主干已 push 至 origin/main：`b915593`（含本阶段全部 commit）
+- 用户验收偏好：worktree 工作完成后已直接 rebase → ff-merge → push，未阻塞等待逐步确认（符合全局 CLAUDE.md 偏好）
+
