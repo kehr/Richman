@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"strconv"
 	"sync"
 	"time"
 
@@ -93,7 +92,7 @@ func NewV2HoldingAnalyzer(deps *V2HoldingAnalyzerDeps) *V2HoldingAnalyzer {
 
 // AnalyzeHolding executes the 7-step holding analysis flow:
 //  1. Idempotency guard via sync.Map (returns 409 if already in-flight)
-//  2-5. Parallel errgroup: holding, latest analysis, peer exposure, user+LLM config
+//     2-5. Parallel errgroup: holding, latest analysis, peer exposure, user+LLM config
 //  6. Call richson POST /analyze/holding
 //  7. Persist execution plan to rm_decision_cards
 func (a *V2HoldingAnalyzer) AnalyzeHolding(
@@ -212,9 +211,9 @@ func (a *V2HoldingAnalyzer) AnalyzeHolding(
 	// Step 6: call richson.
 	req := richson.AnalyzeHoldingRequest{
 		AssetCode:       holding.AssetCode,
-		AssetAnalysisID: strconv.FormatInt(latestAnalysis.AssetAnalysisID, 10),
+		AssetAnalysisID: latestAnalysis.AssetAnalysisID,
 		Holding: richson.HoldingInput{
-			HoldingID:     strconv.FormatInt(holding.HoldingID, 10),
+			HoldingID:     holding.HoldingID,
 			CostPrice:     costStr,
 			PositionRatio: posRatio,
 			Quantity:      qty,

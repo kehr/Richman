@@ -17,21 +17,28 @@ import (
 )
 
 const (
-	asyncTimeout  = 5 * time.Second
-	syncTimeout   = 30 * time.Second
+	asyncTimeout = 5 * time.Second
+	// syncTimeout must exceed richson's internal _run_agent timeout (60s in
+	// content.py) plus a small buffer; otherwise richman aborts while richson
+	// keeps running, producing duplicate LLM cost.
+	syncTimeout   = 65 * time.Second
 	lightTimeout  = 10 * time.Second
 	healthTimeout = 3 * time.Second
 	retryDelay    = 2 * time.Second
 )
 
 // richsonErrorMap maps richson error codes to HTTP status codes.
+// Codes mirror those raised inside richson; keep this map in sync with
+// richson/src/richson/api/*.py and richson/src/richson/core/pipeline.py.
 var richsonErrorMap = map[string]int{
 	"ANALYSIS_IN_PROGRESS":    http.StatusConflict,
 	"DATA_SOURCE_UNAVAILABLE": http.StatusBadGateway,
-	"LLM_TIMEOUT":             http.StatusGatewayTimeout,
 	"LLM_INVALID_RESPONSE":    http.StatusBadGateway,
-	"ASSET_NOT_SUPPORTED":     http.StatusBadRequest,
+	"PIPELINE_ERROR":          http.StatusBadGateway,
+	"ASSET_NOT_FOUND":         http.StatusNotFound,
+	"JOB_NOT_FOUND":           http.StatusNotFound,
 	"INSUFFICIENT_HISTORY":    http.StatusBadRequest,
+	"UNAUTHORIZED":            http.StatusUnauthorized,
 }
 
 // RichsonError represents an error returned by the richson sidecar.
@@ -52,11 +59,11 @@ const requestIDKey contextKey = "request_id"
 
 // Client communicates with the richson Python sidecar over HTTP.
 type Client struct {
-	baseURL      string
-	apiKey       string
-	httpClient   *http.Client
-	logger       *zap.Logger
-	healthy      atomic.Bool
+	baseURL    string
+	apiKey     string
+	httpClient *http.Client
+	logger     *zap.Logger
+	healthy    atomic.Bool
 }
 
 // NewClient constructs a Client from the given configuration and logger.

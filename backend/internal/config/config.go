@@ -12,18 +12,18 @@ import (
 
 // Config holds all application configuration.
 type Config struct {
-	App              AppConfig
-	Database         DatabaseConfig
-	JWT              JWTConfig
-	LLM              LLMConfig
-	PlatformLLM      PlatformLLMConfig
-	CORS             CORSConfig
-	Notification     NotificationConfig
-	NotificationExt  NotificationExtConfig
-	Log              LogConfig
-	Datasource       DatasourceConfig
-	Analysis         AnalysisConfig
-	Richson          RichsonConfig
+	App             AppConfig
+	Database        DatabaseConfig
+	JWT             JWTConfig
+	LLM             LLMConfig
+	PlatformLLM     PlatformLLMConfig
+	CORS            CORSConfig
+	Notification    NotificationConfig
+	NotificationExt NotificationExtConfig
+	Log             LogConfig
+	Datasource      DatasourceConfig
+	Analysis        AnalysisConfig
+	Richson         RichsonConfig
 }
 
 // AppConfig holds application-level settings.
@@ -130,7 +130,9 @@ type NotificationExtConfig struct {
 // Load reads configuration from .env file and environment variables.
 // Environment variables take precedence over .env file values.
 func Load() (*Config, error) {
-	// Load .env file if it exists; ignore error if file is missing.
+	// Load .env file if it exists; ignore error if file is missing. The
+	// godotenv loader does not override values already set in the process
+	// environment, matching the convention documented in .env.example.
 	_ = godotenv.Load()
 
 	port, err := strconv.Atoi(getEnv("SERVER_PORT", "8080"))
@@ -221,7 +223,7 @@ func Load() (*Config, error) {
 			MaxConcurrentHoldings: maxConcurrentHoldings,
 		},
 		Richson: RichsonConfig{
-			BaseURL: getEnv("RICHSON_BASE_URL", "http://localhost:8100"),
+			BaseURL: getEnv("RICHSON_BASE_URL", "http://localhost:8001"),
 			APIKey:  getEnv("RICHSON_API_KEY", ""),
 		},
 		PlatformLLM: PlatformLLMConfig{

@@ -90,14 +90,14 @@ type IndexSnapshot struct {
 
 // MarketRegimeResponse is returned by GET /market/regime.
 type MarketRegimeResponse struct {
-	Regime        string          `json:"regime"`
-	RegimeLabel   string          `json:"regimeLabel"`
-	Reason        string          `json:"reason"`
-	VIX           float64         `json:"vix"`
-	T10Y2Y        float64         `json:"t10y2y"`
-	CreditSpread  float64         `json:"creditSpread"`
-	Indices       []IndexSnapshot `json:"indices"`
-	UpdatedAt     time.Time       `json:"updatedAt"`
+	Regime       string          `json:"regime"`
+	RegimeLabel  string          `json:"regimeLabel"`
+	Reason       string          `json:"reason"`
+	VIX          float64         `json:"vix"`
+	T10Y2Y       float64         `json:"t10y2y"`
+	CreditSpread float64         `json:"creditSpread"`
+	Indices      []IndexSnapshot `json:"indices"`
+	UpdatedAt    time.Time       `json:"updatedAt"`
 }
 
 // OHLCVCandle holds OHLCV data for a single trading period.
@@ -151,13 +151,13 @@ type ScoreHistoryResponse struct {
 
 // EventItem describes a single macro or market event.
 type EventItem struct {
-	Date                string  `json:"date"`
-	Title               string  `json:"title"`
-	Category            string  `json:"category"`
-	Impact              string  `json:"impact"`
-	GoldDirection       string  `json:"goldDirection"`
-	Probability         float64 `json:"probability"`
-	ProbabilitySource   string  `json:"probabilitySource"`
+	Date                 string  `json:"date"`
+	Title                string  `json:"title"`
+	Category             string  `json:"category"`
+	Impact               string  `json:"impact"`
+	GoldDirection        string  `json:"goldDirection"`
+	Probability          float64 `json:"probability"`
+	ProbabilitySource    string  `json:"probabilitySource"`
 	ProbabilityChange24h float64 `json:"probabilityChange24h"`
 }
 
@@ -171,36 +171,36 @@ type EventsRadarResponse struct {
 
 // SubIndicatorDetail carries raw and derived metrics for one sub-indicator.
 type SubIndicatorDetail struct {
-	Name               string  `json:"name"`
-	RawValue           float64 `json:"rawValue"`
-	Percentile1y       float64 `json:"percentile1y"`
-	Percentile5y       float64 `json:"percentile5y"`
-	BlendedPercentile  float64 `json:"blendedPercentile"`
-	NormalizedScore    float64 `json:"normalizedScore"`
-	WeightInDimension  float64 `json:"weightInDimension"`
-	DataSource         string  `json:"dataSource"`
-	DataAsOf           string  `json:"dataAsOf"`
+	Name              string  `json:"name"`
+	RawValue          float64 `json:"rawValue"`
+	Percentile1y      float64 `json:"percentile1y"`
+	Percentile5y      float64 `json:"percentile5y"`
+	BlendedPercentile float64 `json:"blendedPercentile"`
+	NormalizedScore   float64 `json:"normalizedScore"`
+	WeightInDimension float64 `json:"weightInDimension"`
+	DataSource        string  `json:"dataSource"`
+	DataAsOf          string  `json:"dataAsOf"`
 }
 
 // DimensionDetail contains a scoring dimension with its sub-indicators.
 type DimensionDetail struct {
-	Dimension       string               `json:"dimension"`
-	NameZh          string               `json:"nameZh"`
-	NameEn          string               `json:"nameEn"`
-	Score           float64              `json:"score"`
-	BaseScore       float64              `json:"baseScore"`
-	LLMAdjustment   float64              `json:"llmAdjustment"`
-	LLMAnomalyFlag  bool                 `json:"llmAnomalyFlag"`
-	Weight          float64              `json:"weight"`
-	SubIndicators   []SubIndicatorDetail `json:"subIndicators"`
+	Dimension      string               `json:"dimension"`
+	NameZh         string               `json:"nameZh"`
+	NameEn         string               `json:"nameEn"`
+	Score          float64              `json:"score"`
+	BaseScore      float64              `json:"baseScore"`
+	LLMAdjustment  float64              `json:"llmAdjustment"`
+	LLMAnomalyFlag bool                 `json:"llmAnomalyFlag"`
+	Weight         float64              `json:"weight"`
+	SubIndicators  []SubIndicatorDetail `json:"subIndicators"`
 }
 
 // DrawdownReference holds drawdown benchmark data.
 type DrawdownReference struct {
-	CurrentBullRunStart    string  `json:"currentBullRunStart"`
-	MaxDrawdown            float64 `json:"maxDrawdown"`
-	MaxDrawdownDate        string  `json:"maxDrawdownDate"`
-	HistoricalAvgDrawdown  float64 `json:"historicalAvgDrawdown"`
+	CurrentBullRunStart   string  `json:"currentBullRunStart"`
+	MaxDrawdown           float64 `json:"maxDrawdown"`
+	MaxDrawdownDate       string  `json:"maxDrawdownDate"`
+	HistoricalAvgDrawdown float64 `json:"historicalAvgDrawdown"`
 }
 
 // Scenario describes a conditional execution action within an execution plan.
@@ -215,19 +215,19 @@ type Scenario struct {
 
 // ExecutionPlanData carries the actionable trade plan for a holding.
 type ExecutionPlanData struct {
-	Action                string     `json:"action"`
-	ActionLabel           string     `json:"actionLabel"`
-	DefaultAction         string     `json:"defaultAction"`
-	CurrentPosition       float64    `json:"currentPosition"`
-	TargetPosition        float64    `json:"targetPosition"`
-	Scenarios             []Scenario `json:"scenarios"`
-	StopLoss              *float64   `json:"stopLoss,omitempty"`
-	TakeProfit            *float64   `json:"takeProfit,omitempty"`
-	ValidDays             int        `json:"validDays"`
-	NoTriggerNote         *string    `json:"noTriggerNote,omitempty"`
-	ConcentrationLevel    string     `json:"concentrationLevel"`
-	ConcentrationMessage  string     `json:"concentrationMessage"`
-	IsDemoPlan            bool       `json:"isDemoPlan"`
+	Action               string     `json:"action"`
+	ActionLabel          string     `json:"actionLabel"`
+	DefaultAction        string     `json:"defaultAction"`
+	CurrentPosition      float64    `json:"currentPosition"`
+	TargetPosition       float64    `json:"targetPosition"`
+	Scenarios            []Scenario `json:"scenarios"`
+	StopLoss             *float64   `json:"stopLoss,omitempty"`
+	TakeProfit           *float64   `json:"takeProfit,omitempty"`
+	ValidDays            int        `json:"validDays"`
+	NoTriggerNote        *string    `json:"noTriggerNote,omitempty"`
+	ConcentrationLevel   string     `json:"concentrationLevel"`
+	ConcentrationMessage string     `json:"concentrationMessage"`
+	IsDemoPlan           bool       `json:"isDemoPlan"`
 }
 
 // AnalysisDetail is the full asset analysis result.
@@ -259,7 +259,7 @@ type AnalysisDetail struct {
 
 // HoldingInput carries a user's holding position details for analysis.
 type HoldingInput struct {
-	HoldingID     string  `json:"holdingId"`
+	HoldingID     int64   `json:"holdingId"`
 	CostPrice     string  `json:"costPrice"`
 	PositionRatio float64 `json:"positionRatio"`
 	Quantity      float64 `json:"quantity"`
@@ -267,14 +267,14 @@ type HoldingInput struct {
 
 // AnalyzeHoldingRequest is sent to POST /analyze/holding.
 type AnalyzeHoldingRequest struct {
-	AssetCode       string     `json:"assetCode"`
-	AssetAnalysisID string     `json:"assetAnalysisId"`
+	AssetCode       string       `json:"assetCode"`
+	AssetAnalysisID int64        `json:"assetAnalysisId"`
 	Holding         HoldingInput `json:"holding"`
-	RiskPreference  string     `json:"riskPreference"`
-	PeerExposure    float64    `json:"peerExposure"`
-	Language        string     `json:"language"`
-	LLMConfig       *LLMConfig `json:"llmConfig,omitempty"`
-	RequestID       string     `json:"requestId"`
+	RiskPreference  string       `json:"riskPreference"`
+	PeerExposure    float64      `json:"peerExposure"`
+	Language        string       `json:"language"`
+	LLMConfig       *LLMConfig   `json:"llmConfig,omitempty"`
+	RequestID       string       `json:"requestId"`
 }
 
 // HoldingAnalysisResponse is returned by POST /analyze/holding.
@@ -323,7 +323,7 @@ type WeeklyInsightResponse struct {
 type TriggerAssetAnalysisRequest struct {
 	AssetCode string     `json:"assetCode"`
 	Locale    string     `json:"locale"`
-	LLMConfig *LLMConfig `json:"llmConfig"`
+	LLMConfig *LLMConfig `json:"llmConfig,omitempty"`
 	RequestID string     `json:"requestId,omitempty"`
 }
 
@@ -336,7 +336,7 @@ type BatchAnalyzeAsset struct {
 // TriggerBatchAnalysisRequest is sent to POST /jobs/batch-analyze.
 type TriggerBatchAnalysisRequest struct {
 	Assets    []BatchAnalyzeAsset `json:"assets"`
-	LLMConfig *LLMConfig          `json:"llmConfig"`
+	LLMConfig *LLMConfig          `json:"llmConfig,omitempty"`
 	RequestID string              `json:"requestId,omitempty"`
 }
 
