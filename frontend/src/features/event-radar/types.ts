@@ -12,6 +12,12 @@ export interface EventDto {
 	probability: number | null;
 	probabilitySource: string | null;
 	probabilityChange24h: number | null;
+	// Source metadata: present when the upstream data source exposes a stable
+	// landing page (FRED release page / Polymarket event page). Null for items
+	// that have no such page yet.
+	sourceUrl?: string | null;
+	sourceName?: string | null;
+	releaseId?: number | null;
 }
 
 export interface EventRadarDto {
