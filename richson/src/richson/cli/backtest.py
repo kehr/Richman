@@ -79,7 +79,7 @@ async def run_backtest(
     from richson.config import settings  # noqa: PLC0415
     from richson.logging_config import configure_logging  # noqa: PLC0415
 
-    configure_logging(settings.log_level)
+    configure_logging(settings.log_level, settings.app_env)
     logger.info("backtest_start", start=start, end=end, asset=asset, horizon_days=horizon_days)
 
     from richson.core.indicators.d1_macro_rates import compute_d1_indicators  # noqa: PLC0415

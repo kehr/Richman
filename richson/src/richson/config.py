@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     )
 
     # Server
+    app_env: str = "dev"
     host: str = "0.0.0.0"
     port: int = 8001
     log_level: str = "info"

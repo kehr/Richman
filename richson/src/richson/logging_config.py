@@ -1,7 +1,10 @@
-"""structlog JSON logging configuration (TRD SS11.1).
+"""structlog logging configuration (TRD SS11.1).
 
-Configures structlog for production-ready JSON output aligned with richman's
-zap format. Call configure_logging() once at application startup.
+Configures structlog with environment-aware rendering:
+- dev: human-readable ConsoleRenderer with colors for local development
+- non-dev (test/staging/prod): JSONRenderer aligned with richman's zap format
+
+Call configure_logging() once at application startup.
 """
 
 from __future__ import annotations
@@ -12,11 +15,14 @@ import sys
 import structlog
 
 
-def configure_logging(log_level: str = "info") -> None:
-    """Configure structlog for JSON output.
+def configure_logging(log_level: str = "info", app_env: str = "dev") -> None:
+    """Configure structlog with an environment-aware final renderer.
 
     Args:
         log_level: one of debug, info, warning, error (case insensitive).
+        app_env: application environment. "dev" (case insensitive) selects the
+            colored ConsoleRenderer for local readability; any other value
+            selects the JSONRenderer for machine-parseable structured logs.
     """
     level = getattr(logging, log_level.upper(), logging.INFO)
 
@@ -25,6 +31,11 @@ def configure_logging(log_level: str = "info") -> None:
         format="%(message)s",
         stream=sys.stdout,
         level=level,
+    )
+
+    is_dev = app_env.lower() == "dev"
+    final_renderer: structlog.types.Processor = (
+        structlog.dev.ConsoleRenderer() if is_dev else structlog.processors.JSONRenderer()
     )
 
     structlog.configure(
@@ -36,7 +47,7 @@ def configure_logging(log_level: str = "info") -> None:
             structlog.processors.StackInfoRenderer(),
             structlog.processors.format_exc_info,
             structlog.processors.UnicodeDecoder(),
-            structlog.processors.JSONRenderer(),
+            final_renderer,
         ],
         wrapper_class=structlog.make_filtering_bound_logger(level),
         context_class=dict,

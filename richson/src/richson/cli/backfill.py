@@ -72,7 +72,7 @@ async def run_backfill(days: int, assets: list[str], locale: str) -> None:
     from richson.core.pipeline import run_asset_analysis_pipeline  # noqa: PLC0415
     from richson.logging_config import configure_logging  # noqa: PLC0415
 
-    configure_logging(settings.log_level)
+    configure_logging(settings.log_level, settings.app_env)
 
     engine = create_async_engine(settings.database_url, pool_pre_ping=True)
     session_factory = async_sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False)

@@ -15,7 +15,7 @@ from richson.config import settings
 from richson.logging_config import configure_logging
 
 # Configure structlog before any logger is used
-configure_logging(settings.log_level)
+configure_logging(settings.log_level, settings.app_env)
 
 logger = structlog.get_logger()
 

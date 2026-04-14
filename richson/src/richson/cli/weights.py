@@ -68,7 +68,7 @@ async def run_update_weights(
     from richson.db.models import DimensionDefinition  # noqa: PLC0415
     from richson.logging_config import configure_logging  # noqa: PLC0415
 
-    configure_logging(settings.log_level)
+    configure_logging(settings.log_level, settings.app_env)
 
     new_weights = {"d1": d1, "d2": d2, "d3": d3, "d4": d4}
 
