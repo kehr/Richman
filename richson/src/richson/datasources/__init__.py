@@ -10,6 +10,7 @@ from richson.datasources.cache import cache_clear, cache_get, cache_set
 from richson.datasources.cot import COTClient
 from richson.datasources.fred import FREDClient
 from richson.datasources.polymarket import PolymarketClient
+from richson.datasources.routing import fetch_ohlcv, is_a_share_code, resolve_currency
 from richson.datasources.stooq import StooqClient
 from richson.datasources.wgc import WGCClient
 from richson.datasources.yahoo import YahooFinanceClient
@@ -22,7 +23,10 @@ __all__ = [
     "StooqClient",
     "WGCClient",
     "YahooFinanceClient",
+    "cache_clear",
     "cache_get",
     "cache_set",
-    "cache_clear",
+    "fetch_ohlcv",
+    "is_a_share_code",
+    "resolve_currency",
 ]

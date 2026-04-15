@@ -176,13 +176,12 @@ async def run_layer1_gold(asset_code: str, llm_config: Any) -> dict[str, Any]:
     from richson.datasources.cot import COTClient  # noqa: PLC0415
     from richson.datasources.fred import FREDClient  # noqa: PLC0415
     from richson.datasources.polymarket import PolymarketClient  # noqa: PLC0415
-    from richson.datasources.stooq import StooqClient  # noqa: PLC0415
+    from richson.datasources.routing import fetch_ohlcv  # noqa: PLC0415
     from richson.datasources.wgc import WGCClient  # noqa: PLC0415
     from richson.datasources.yahoo import YahooFinanceClient  # noqa: PLC0415
 
     fred_client = FREDClient(api_key=settings.fred_api_key)
     yahoo_client = YahooFinanceClient()
-    stooq_client = StooqClient()
     poly_client = PolymarketClient()
     cot_client = COTClient()
     wgc_client = WGCClient()
@@ -196,10 +195,9 @@ async def run_layer1_gold(asset_code: str, llm_config: Any) -> dict[str, Any]:
         dgs10 = all_fred.get("DGS10")
         m2sl = all_fred.get("M2SL")
 
-        # Gold price - yahoo primary, stooq fallback
-        ohlcv = yahoo_client.get_ohlcv(asset_code)
-        if ohlcv is None or (hasattr(ohlcv, "empty") and ohlcv.empty):
-            ohlcv = stooq_client.get_ohlcv(asset_code)
+        # OHLCV via the routing layer so A-share ETF codes (159934, 518880)
+        # hit AKShare instead of being misrouted to Yahoo + Stooq.
+        ohlcv = fetch_ohlcv(asset_code)
 
         vix_ohlcv = yahoo_client.get_vix()
         dxy_ohlcv = yahoo_client.get_dxy()

@@ -88,8 +88,17 @@ class StooqClient:
                     resp = client.get(_STOOQ_BASE, params=params)
                     resp.raise_for_status()
                     content = resp.text
-                    if "No data" in content or not content.strip():
-                        logger.warning("stooq: no data", ticker=ticker, stooq_sym=stooq_sym)
+                    # Stooq returns 200 OK with a non-CSV body (HTML or
+                    # plain "No data") for unknown symbols. Treat any such
+                    # response as a permanent failure: retrying just burns
+                    # 1.4s per attempt without changing the answer.
+                    if not content.startswith("Date,"):
+                        logger.warning(
+                            "stooq: non-csv response, treating as no data",
+                            ticker=ticker,
+                            stooq_sym=stooq_sym,
+                            head=content[:120],
+                        )
                         return None
                     df = pd.read_csv(io.StringIO(content))
                     if df.empty:

@@ -109,3 +109,4 @@ task (see "Design Review Gate" above); the rest are loaded on demand.
 | `abstraction-reuse.md` | MANDATORY abstraction and reuse principles (frontend + backend): domain layer model, forbidden direct infra calls, interface-first, centralized registries |
 | `trd-review-discipline.md` | MANDATORY TRD review discipline: code-first verification, API name validation, end-to-end data tracing, multi-role checklist, known-issues policy |
 | `contract-drift.md` | MANDATORY cross-layer DTO discipline: richson (pydantic) / backend (Go) / frontend (TS) field-name parity, null semantics (Go pointers required for `T \| None`), env-to-end verification checklist |
+| `richson-datasource-routing.md` | MANDATORY richson OHLCV/price datasource routing: must go through `routing.fetch_ohlcv`; catalog `data_source` ↔ pattern parity; transient vs permanent error discipline |

@@ -139,23 +139,15 @@ async def get_ohlcv(
 ) -> dict:
     """Return OHLCV candlestick data for an asset.
 
-    Supports period query param: 1D | 1W | 1M | 3M | 1Y.
+    Supports period query param: 1D | 1W | 1M | 3M | 1Y. Datasource is
+    chosen by ``richson.datasources.routing.fetch_ohlcv`` based on the
+    asset code shape; never hardcoded here.
     """
     from richson.core.support_resistance import compute_support_resistance  # noqa: PLC0415
-    from richson.datasources.stooq import StooqClient  # noqa: PLC0415
-    from richson.datasources.yahoo import YahooFinanceClient  # noqa: PLC0415
+    from richson.datasources.routing import fetch_ohlcv, resolve_currency  # noqa: PLC0415
 
-    yahoo_client = YahooFinanceClient()
-    stooq_client = StooqClient()
     days = _PERIOD_TO_DAYS.get(period, 90)
-
-    def _fetch() -> object:
-        df = yahoo_client.get_ohlcv(asset_code)
-        if df is None or (hasattr(df, "empty") and df.empty):
-            df = stooq_client.get_ohlcv(asset_code)
-        return df
-
-    ohlcv = await asyncio.to_thread(_fetch)
+    ohlcv = await asyncio.to_thread(fetch_ohlcv, asset_code)
 
     if ohlcv is None or (hasattr(ohlcv, "empty") and ohlcv.empty):
         raise HTTPException(status_code=502, detail={
@@ -208,13 +200,10 @@ async def get_ohlcv(
         except Exception:
             pass
 
-    # Determine currency
-    currency = "CNY" if any(c in asset_code for c in ["518880", ".SS", ".SZ", ".SH"]) else "USD"
-
     return {
         "data": {
             "assetCode": asset_code,
-            "currency": currency,
+            "currency": resolve_currency(asset_code),
             "period": period,
             "candles": candles,
             "sma200": sma200,
