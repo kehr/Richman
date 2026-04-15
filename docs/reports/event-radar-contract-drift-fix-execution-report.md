@@ -174,3 +174,59 @@ print('disabled:', c._disabled)
   4. `fix(market): align asset card DTO and show waiting-analysis placeholder`（market-overview 字段对齐、组件重写、i18n 键迁移）
   5. `fix(ui): wrap market pages with PageContainer and drop page-level maxWidth`（market-overview-page + asset-detail + routes.tsx 清理旧 market 目录）
   6. `docs(standards): require PageContainer as page root`（frontend.md + feedback_page_must_use_pagecontainer.md + MEMORY.md 索引）
+
+## 追加：资产卡片「等待分析」满屏 + 中文名显示异常（2026-04-15 夜）
+
+用户反馈：市场概览仍满屏「等待分析」，且资产名显示英文。逐层排查后发现两类互相独立的问题。
+
+### 问题 E：daily 分析冷启动未触发（数据侧）
+
+- `backend/internal/service/schedule/v2_cron.go:126` 注册 `runDailyAssetAnalysis` 在 `0 22 * * *` UTC（06:00 UTC+8）。dev 环境今天这个时间窗已过，backend 23:08 UTC 才起来，所以 `rs_asset_analyses` 表空 → overview API 返回全部 `overallScore=null` → 卡片全走「等待分析」占位。
+- 不是代码 bug，是 dev 冷启动的运行态问题。
+- 处理方式：走 admin recovery 通道手动触发批量分析。因 `RequireAdmin` 中间件只读 JWT 的 role claim（不回查 DB），直接用 `go run` 小程序签一个 `role=admin` 的 JWT 发到 `POST /api/v2/analysis/trigger-batch`，body 空 → 对 26 个 active 资产全量派发。
+- 结果：26 个 job 全部写入 `rs_asset_analyses`，overview API 返回值包含 `overallScore / signalLevel / scoreDelta` 字段。
+
+### 问题 F：seed 文件 name 列全英文（显示侧）
+
+- `backend/db/seed/asset_catalog.sql` 既把 `name` 和 `name_en` 都填成了英文，又仍然 `INSERT INTO asset_catalog`（migration 021 已改名为 `rm_asset_catalog`）。
+- frontend `asset-card.tsx:25` `displayName = i18n.language === "zh" ? asset.name : asset.nameEn`，zh locale 就显示英文 fallback。
+- 修复拆成两步：
+  1. 改 seed 文件：表名 → `rm_asset_catalog`，`name` 列全部改中文（`SPDR 黄金 ETF` / `华安黄金 ETF` 等 26 个），`name_en` 保留英文。
+  2. 新增迁移 `024_asset_catalog_chinese_names.up.sql` / `.down.sql`：对现存 26 行按 code 做 `CASE ... WHEN` UPDATE，`down` 直接把 `name` 复制回 `name_en`（原始 seed 状态）。
+  - 迁移号冲突检查：023 已被 invite_system 占用，取 024。
+- 执行结果：后端重启后 migration 自动跑 up，用户刷新 `/market` 看到中文资产名。
+
+### 问题 G：signalLevel 枚举漂移（契约侧，本次同批修复）
+
+验证问题 E 时发现 overview API 返回 `signalLevel: "moderate_bullish"`，但 frontend 的类型 union 和 i18n key 用的是 `bullish`/`bearish`，导致信号标签走 i18next raw-key fallback 显示字面 `moderate_bullish`。
+
+根因：richson `schemas/analysis.py:19-20` 定义 `SignalLevel = Literal["strong_bullish", "moderate_bullish", "neutral", "moderate_bearish", "strong_bearish"]` —— 枚举取值本身就是契约的一部分，但事件雷达修复那次只核对了字段名，漏看了枚举取值集合。是同一类 contract-drift 的第三次复发。
+
+修复清单（前端对齐 richson 规范，直接消 bug，不走兼容层）：
+
+| 文件 | 改动 |
+|---|---|
+| `frontend/src/features/market-overview/types.ts` | `signalLevel` union 从 `"bullish"/"bearish"` 改为 `"moderate_bullish"/"moderate_bearish"` |
+| `frontend/src/features/asset-detail/types.ts` | 注释同步改成 richson 规范（`signalLevel?: string` 保留宽类型，仅注释列举） |
+| `frontend/src/pages/market-overview/utils.ts` | `getDirectionColor` 新增 `moderate_bullish/moderate_bearish` 分支；保留 plain `bullish/bearish` 分支以兼容 `goldDirection` 三级方向命名空间 |
+| `frontend/src/pages/asset-detail/utils.ts` | `getSignalColor` 同上 additive 兼容 |
+| `frontend/src/i18n/locales/{en,zh}/market.json` | `overview.assetCard.signal.*` 的 `bullish`/`bearish` 两个 key 重命名为 `moderate_bullish`/`moderate_bearish`。**不改** `overview.eventRadar.goldDirection.*`（三级方向独立命名空间） |
+| `frontend/src/i18n/locales/{en,zh}/app.json` | `assetDetail.scoreSummary.signal.*` 同上重命名。**不改** line 94-95 `card.direction.*` 和 line 466-467 `portfolio.direction.*`（dimension/decision 三级方向，另一命名空间） |
+
+验证：`cd frontend && pnpm lint:all` → Biome + tsc + depcruise 全绿（252 文件 / 277 模块 / 879 依赖）。
+
+### 沉淀
+
+- `docs/standards/contract-drift.md` 历史教训追加 E/F/G 三条；新增「同类事故连发三次的教训」小结，强调「字段名对齐 + 可空语义对齐 + **枚举取值对齐**」三项缺一不可
+- `~/.claude/projects/-Users-kyle-Studio-Richman/memory/feedback_cross_layer_contract_drift.md` 的 How to apply 增加第 4 条「枚举取值也算契约」，并追加三次历史事故清单作为触发条件提醒
+
+### 已记录但未修复（问题 E/F/G 触及的观察项）
+
+7. richson job 状态未从 `running` 迁移到 `completed`。admin recovery 派发的 26 个 job 虽然 `asset_analysis_id` 都成功写了 `rs_asset_analyses`，但 `rs_analysis_jobs.status` 一直停在 `running`。属于 richson 端 finalizer 逻辑 bug，不影响 overview 展示（overview 直接读 `rs_asset_analyses` 不看 job 表），但会阻塞 cleanup cron 和前端未来可能的 job 状态面板。建议单独任务 fix richson `_finalize_job` 路径。
+8. 所有 `a_share_broad` 资产（5 个）的 `overallScore` 分数相同（62.24），疑似共用指标导致的 plateau 问题。属于 richson 指标引擎层面的观察项，需要 richson 侧给每只 ETF 做个性化 factor 权重才能消除。先记录，不在本次 bugfix 范围内。
+
+### 追加 commit 建议
+
+7. `fix(market): seed canonical asset catalog with Chinese names`（seed/asset_catalog.sql + migration 024 up/down）
+8. `fix(market): align signalLevel enum with richson canonical moderate_* labels`（types.ts × 2 + utils.ts × 2 + 4 个 i18n json）
+9. `docs(standards): extend contract-drift to cover enum values after third recurrence`（contract-drift.md + feedback_cross_layer_contract_drift.md）

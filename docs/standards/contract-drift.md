@@ -88,3 +88,7 @@ pydantic `Field(default=...)` / Go zero value / TS 可选字段 `?:`：如果有
 ## 历史教训
 
 - 2026-04-15：事件雷达 Event Radar 面板上线时，richson 返回 `impact/probability/probabilityChange24h`，frontend 声明 `impactLevel/polymarketProbability/polymarketChange24h`。前端渲染出 `NaN%`、`NaNpp`、`impactLevel.undefined`。三端类型检查都通过，漂移到生产前才发现。修复时同步把 backend `Probability float64` 升级为 `*float64`，保住 null 语义。
+- 2026-04-15：市场概览资产卡片 DTO 与 backend `AssetCardDTO` 字段命名全面错位（`nameZh` vs `name`、`signal` vs `signalLevel`、`category` vs `assetType`、以及 frontend 期望的 `isActive`/`price`/`changePercent` 后端根本不返回）。结果首页满屏灰色「即将开放」占位。根因同上：三端命名各按自己语义来，JSON 边界字面穿透。修复方向：前端对齐后端字段名，激活判断改用 `typeof overallScore === "number"`，移除不存在字段。
+- 2026-04-15：signalLevel 枚举漂移。richson `schemas/analysis.py` 定义 `Literal["strong_bullish", "moderate_bullish", "neutral", "moderate_bearish", "strong_bearish"]`，frontend 本地类型和 i18n key 用的是 `"bullish"/"bearish"`。overview API 返回 `signalLevel: "moderate_bullish"` 落到 `t("overview.assetCard.signal.moderate_bullish")`，命中 i18next 返回 raw key，用户看到字面 `moderate_bullish`。根因：枚举取值也算契约的一部分（见「对齐规则」表格的「枚举」行），但上次审查只看了命名对齐，没看枚举取值集合。修复：frontend `signalLevel` 类型 union、i18n `overview.assetCard.signal.*` 和 `assetDetail.scoreSummary.signal.*` key 全部重命名为 richson 规范；color mapper 采用 additive 兼容，避免误伤同样用 `bullish`/`bearish` 字面量的 `goldDirection` / `decisionCard` / `briefing` 三级方向命名空间。
+
+**同类事故连发三次的教训**：契约漂移不止「字段名」一种形态，还包括「可空语义」（Go 零值塌陷）、「枚举取值」（Literal 集合不一致）。PR 审查时必须同时核对三项，不能只看命名。
