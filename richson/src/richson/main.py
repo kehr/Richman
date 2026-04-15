@@ -2,17 +2,35 @@
 
 from __future__ import annotations
 
+import os
 import time
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
-import structlog
-from fastapi import FastAPI, Request, Response
-from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+# Proxy bypass whitelist for direct-to-China data sources. Dev machines usually
+# set HTTP_PROXY / HTTPS_PROXY to reach FRED / Yahoo / Polymarket, but akshare
+# talks to push2his.eastmoney.com which must stay on the direct connection;
+# any transient proxy hiccup would otherwise surface as a 502 on
+# /market/ohlcv/<a-share-code>. Users can still override via their own
+# NO_PROXY env — setdefault only fills the gap when it is unset.
+_DEFAULT_NO_PROXY_HOSTS = (
+    ".eastmoney.com,push2his.eastmoney.com,push2.eastmoney.com,"
+    "127.0.0.1,localhost"
+)
+os.environ.setdefault("NO_PROXY", _DEFAULT_NO_PROXY_HOSTS)
+os.environ.setdefault("no_proxy", _DEFAULT_NO_PROXY_HOSTS)
 
-from richson.config import settings
-from richson.logging_config import configure_logging
+import structlog  # noqa: E402
+from fastapi import FastAPI, Request, Response  # noqa: E402
+from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
+from sqlalchemy.ext.asyncio import (  # noqa: E402
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+)
+
+from richson.config import settings  # noqa: E402
+from richson.logging_config import configure_logging  # noqa: E402
 
 # Configure structlog before any logger is used
 configure_logging(settings.log_level, settings.app_env)
