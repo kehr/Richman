@@ -13,9 +13,9 @@
 			"score": "评分",
 			"signal": {
 				"strong_bullish": "强烈看涨",
-				"bullish": "看涨",
+				"moderate_bullish": "看涨",
 				"neutral": "中性",
-				"bearish": "看空",
+				"moderate_bearish": "看空",
 				"strong_bearish": "强烈看空"
 			}
 		},

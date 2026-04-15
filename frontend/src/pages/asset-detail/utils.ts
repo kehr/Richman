@@ -47,9 +47,15 @@ export function getPriceChangeColor(
 
 // getSignalColor returns the color for a signal level.
 // Direction labels always use international convention.
+// Accepts both richson `SignalLevel` (strong_/moderate_) and legacy plain
+// bullish/bearish tokens used elsewhere in the app (e.g. dimension direction).
 export function getSignalColor(signal: string | undefined): string {
-	if (signal === "bullish" || signal === "strong_bullish") return "#52c41a";
-	if (signal === "bearish" || signal === "strong_bearish") return "#f5222d";
+	if (signal === "bullish" || signal === "strong_bullish" || signal === "moderate_bullish") {
+		return "#52c41a";
+	}
+	if (signal === "bearish" || signal === "strong_bearish" || signal === "moderate_bearish") {
+		return "#f5222d";
+	}
 	return "#8c8c8c";
 }
 

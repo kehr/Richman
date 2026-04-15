@@ -27,7 +27,13 @@ export interface AssetCardDto {
 	assetType: string;
 	exchange: string;
 	overallScore?: number | null;
-	signalLevel?: "strong_bullish" | "bullish" | "neutral" | "bearish" | "strong_bearish" | null;
+	signalLevel?:
+		| "strong_bullish"
+		| "moderate_bullish"
+		| "neutral"
+		| "moderate_bearish"
+		| "strong_bearish"
+		| null;
 	scoreDelta?: number | null;
 }
 

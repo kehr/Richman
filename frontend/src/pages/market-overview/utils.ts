@@ -17,9 +17,16 @@ export function getPriceChangeColor(
 
 // getDirectionColor returns the color for a signal/direction label.
 // Direction labels always follow international convention: green = bullish, red = bearish.
+// Handles two enum spaces: richson `SignalLevel` (strong_/moderate_) for asset
+// analysis, and `goldDirection` three-level (bullish/bearish/neutral) for the
+// event radar. Both map to the same green/red/gray palette.
 export function getDirectionColor(signal: string): "green" | "red" | "gray" {
-	if (signal === "bullish" || signal === "strong_bullish") return "green";
-	if (signal === "bearish" || signal === "strong_bearish") return "red";
+	if (signal === "bullish" || signal === "strong_bullish" || signal === "moderate_bullish") {
+		return "green";
+	}
+	if (signal === "bearish" || signal === "strong_bearish" || signal === "moderate_bearish") {
+		return "red";
+	}
 	return "gray";
 }
 

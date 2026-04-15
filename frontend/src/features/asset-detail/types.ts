@@ -88,7 +88,7 @@ export interface AssetDetailDto {
 	overallScore?: number;
 	scoreBandLow?: number;
 	scoreBandHigh?: number;
-	signalLevel?: string; // "strong_bullish" | "bullish" | "neutral" | "bearish" | "strong_bearish"
+	signalLevel?: string; // "strong_bullish" | "moderate_bullish" | "neutral" | "moderate_bearish" | "strong_bearish"
 	percentileLabel?: string; // "veryHigh" | "high" | "mid" | "low" | "veryLow"
 	marketInterpretation?: string;
 	scoreDelta?: number;

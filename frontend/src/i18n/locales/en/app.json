@@ -505,9 +505,9 @@
 			"score": "Overall Score",
 			"signal": {
 				"strong_bullish": "Strong Bullish",
-				"bullish": "Bullish",
+				"moderate_bullish": "Bullish",
 				"neutral": "Neutral",
-				"bearish": "Bearish",
+				"moderate_bearish": "Bearish",
 				"strong_bearish": "Strong Bearish"
 			},
 			"percentile": {
