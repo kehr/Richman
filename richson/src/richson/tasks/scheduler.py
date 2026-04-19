@@ -25,6 +25,11 @@ logger = structlog.get_logger()
 # Polling intervals (seconds)
 _POLYMARKET_POLL_INTERVAL = 3600   # 1 hour
 _DATA_CLEANUP_INTERVAL = 86400 * 7  # 1 week (check daily, act weekly)
+# Event radar warmup runs more frequently than either cache TTL
+# (polymarket=15min, fred=1h) so the user-visible /events/radar path
+# always hits warm caches. 10 minutes is the largest value that still
+# refreshes polymarket before its 15-minute TTL expires.
+_EVENT_RADAR_WARMUP_INTERVAL = 600  # 10 minutes
 
 # Data retention windows (TRD SS13.1)
 _RETENTION_FULL_DAYS = 365           # keep all records for 1 year
@@ -79,6 +84,48 @@ async def poll_polymarket_events(session_factory: Any) -> None:
                 # Unique index violation = already alerted; ignore
                 logger.debug("event_alert_duplicate", slug=alert_data.get("event_slug"), error=str(exc))
         await sess.commit()
+
+
+async def warmup_event_radar(session_factory: Any) -> None:  # noqa: ARG001
+    """Proactively refresh FRED + Polymarket caches used by /events/radar.
+
+    The /events/radar handler reads two cache keys:
+      - fred:upcoming_releases:7  (TTL 1h)
+      - polymarket:gold_relevant  (TTL 15min)
+
+    Without warmup, every TTL expiry forces the next user request to pay
+    the full upstream latency (FRED cold path observed at ~16s), which
+    exceeds the backend 20s request budget and shows up as loading spinners
+    or 5xx errors. We fetch both concurrently so one slow source does not
+    delay the other; failures are logged but do not crash the scheduler.
+    """
+    from richson.config import settings  # noqa: PLC0415
+    from richson.datasources.fred import FREDClient  # noqa: PLC0415
+    from richson.datasources.polymarket import PolymarketClient  # noqa: PLC0415
+
+    fred_client = FREDClient(api_key=settings.fred_api_key)
+    poly_client = PolymarketClient()
+
+    fred_task = asyncio.to_thread(fred_client.get_upcoming_releases, 7)
+    poly_task = asyncio.to_thread(poly_client.get_gold_relevant_markets)
+
+    fred_result, poly_result = await asyncio.gather(
+        fred_task, poly_task, return_exceptions=True
+    )
+
+    fred_ok = not isinstance(fred_result, BaseException)
+    poly_ok = not isinstance(poly_result, BaseException)
+    if not fred_ok:
+        logger.warning("event_radar_warmup_fred_failed", error=str(fred_result))
+    if not poly_ok:
+        logger.warning("event_radar_warmup_polymarket_failed", error=str(poly_result))
+    logger.info(
+        "event_radar_warmup_complete",
+        fred_ok=fred_ok,
+        poly_ok=poly_ok,
+        fred_count=len(fred_result) if fred_ok else 0,
+        poly_count=len(poly_result) if poly_ok else 0,
+    )
 
 
 async def cleanup_old_analyses(session_factory: Any) -> None:
@@ -175,6 +222,15 @@ async def start_scheduler(session_factory: Any) -> list[asyncio.Task]:
                 session_factory,
             ),
             name="polymarket_events",
+        ),
+        asyncio.create_task(
+            _run_with_interval(
+                "event_radar_warmup",
+                _EVENT_RADAR_WARMUP_INTERVAL,
+                warmup_event_radar,
+                session_factory,
+            ),
+            name="event_radar_warmup",
         ),
         asyncio.create_task(
             _run_with_interval(

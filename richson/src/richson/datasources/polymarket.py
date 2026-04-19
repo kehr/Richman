@@ -16,6 +16,7 @@ Results are cached for 15 minutes.
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
 import httpx
@@ -28,8 +29,13 @@ logger = structlog.get_logger(__name__)
 _CLOB_BASE = "https://clob.polymarket.com"
 _GAMMA_BASE = "https://gamma-api.polymarket.com"
 
-# Keywords to filter relevant markets
-_GOLD_RELEVANT_TAGS = [
+# Keyword phrases for gold-relevant market filtering. Matched with word
+# boundaries (\b...\b) so that short tokens like "war" or "fed" do not
+# substring-match inside unrelated English words. Historical incident
+# (2026-04-16): bare substring match caused "Software" and "awards" to hit
+# "war", pulling the All-In Podcast meme market and an anime awards market
+# into the event radar.
+_GOLD_RELEVANT_KEYWORDS = [
     "fed",
     "federal reserve",
     "rate cut",
@@ -41,6 +47,10 @@ _GOLD_RELEVANT_TAGS = [
     "war",
     "sanctions",
 ]
+_GOLD_RELEVANT_PATTERN = re.compile(
+    r"\b(?:" + "|".join(re.escape(kw) for kw in _GOLD_RELEVANT_KEYWORDS) + r")\b",
+    re.IGNORECASE,
+)
 
 
 class PolymarketClient:
@@ -119,14 +129,30 @@ class PolymarketClient:
         relevant: list[dict[str, Any]] = []
 
         for market in all_markets:
-            question: str = (market.get("question") or "").lower()
-            tags: list[str] = [t.lower() for t in (market.get("tags") or [])]
+            question: str = market.get("question") or ""
+            tags_raw = market.get("tags") or []
+            tags: list[str] = [str(t) for t in tags_raw if t is not None]
             combined = question + " " + " ".join(tags)
 
-            if any(kw in combined for kw in _GOLD_RELEVANT_TAGS):
-                # Extract probability for "Yes" outcome if available
-                outcome_prices = market.get("outcomePrices") or []
-                if isinstance(outcome_prices, list) and outcome_prices:
+            if _GOLD_RELEVANT_PATTERN.search(combined):
+                # outcomePrices from Gamma can be either a JSON-encoded string
+                # (e.g. '["0.81", "0.19"]') or a real list depending on the
+                # endpoint version. Normalize both shapes before extracting.
+                outcome_prices_raw = market.get("outcomePrices")
+                outcome_prices: list[Any] = []
+                if isinstance(outcome_prices_raw, list):
+                    outcome_prices = outcome_prices_raw
+                elif isinstance(outcome_prices_raw, str):
+                    try:
+                        import json
+
+                        parsed = json.loads(outcome_prices_raw)
+                        if isinstance(parsed, list):
+                            outcome_prices = parsed
+                    except (ValueError, TypeError):
+                        outcome_prices = []
+
+                if outcome_prices:
                     try:
                         yes_prob = float(outcome_prices[0])
                     except (ValueError, TypeError):
@@ -134,9 +160,21 @@ class PolymarketClient:
                 else:
                     yes_prob = 0.5
 
+                # Polymarket's public event page lives at /event/<event_slug>,
+                # NOT /event/<market_slug>. The event slug is nested under
+                # `events[0].slug` in the Gamma response. Prefer it; fall back
+                # to the market slug only when events is absent (older markets).
+                events_raw = market.get("events") or []
+                event_slug = ""
+                if isinstance(events_raw, list) and events_raw:
+                    first = events_raw[0]
+                    if isinstance(first, dict):
+                        event_slug = str(first.get("slug") or "")
+
                 relevant.append(
                     {
-                        "slug": market.get("slug", ""),
+                        "slug": event_slug or market.get("slug", ""),
+                        "market_slug": market.get("slug", ""),
                         "question": market.get("question", ""),
                         "yes_probability": yes_prob,
                         "volume24hr": market.get("volume24hr", 0),

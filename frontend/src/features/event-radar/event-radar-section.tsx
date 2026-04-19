@@ -30,6 +30,17 @@ function EventRow({ event }: EventRowProps) {
 				? "error"
 				: "default";
 
+	// Source tag color distinguishes data provenance at a glance:
+	// - FRED / Federal Reserve: blue (official statistical / policy source)
+	// - Polymarket: purple (prediction-market-derived probability)
+	// - anything else: default grey
+	const sourceTagColor =
+		event.sourceName === "Polymarket"
+			? "purple"
+			: event.sourceName === "FRED" || event.sourceName === "Federal Reserve"
+				? "blue"
+				: "default";
+
 	const hasProbability = typeof event.probability === "number";
 	const hasChange24h = typeof event.probabilityChange24h === "number";
 	const change24hSign = hasChange24h && (event.probabilityChange24h as number) > 0 ? "+" : "";
@@ -77,6 +88,14 @@ function EventRow({ event }: EventRowProps) {
 			</Text>
 
 			<Space size={6} wrap>
+				{/* Source provenance — visible so users can weigh predictive
+				    Polymarket entries differently from official FRED releases. */}
+				{event.sourceName && (
+					<Tag color={sourceTagColor} style={{ fontSize: 11, margin: 0 }}>
+						{event.sourceName}
+					</Tag>
+				)}
+
 				{/* Impact level */}
 				<Tag color={impactTagColor} style={{ fontSize: 11, margin: 0 }}>
 					{t(`overview.eventRadar.impactLevel.${event.impact}`)}

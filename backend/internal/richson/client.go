@@ -21,8 +21,14 @@ const (
 	// syncTimeout must exceed richson's internal _run_agent timeout (60s in
 	// content.py) plus a small buffer; otherwise richman aborts while richson
 	// keeps running, producing duplicate LLM cost.
-	syncTimeout   = 65 * time.Second
-	lightTimeout  = 10 * time.Second
+	syncTimeout  = 65 * time.Second
+	lightTimeout = 10 * time.Second
+	// radarTimeout covers /events/radar specifically. The endpoint fans
+	// out to FRED (cold path observed ~16s) and Polymarket (~4s) via
+	// asyncio.gather; the richson FRED httpx timeout is 18s, so the
+	// backend budget must be strictly larger to observe a real response
+	// rather than cancel mid-flight. 20s is the smallest safe value.
+	radarTimeout  = 20 * time.Second
 	healthTimeout = 3 * time.Second
 	retryDelay    = 2 * time.Second
 )
@@ -381,8 +387,14 @@ func (c *Client) GetScoreHistory(ctx context.Context, code string) (*ScoreHistor
 }
 
 // GetEventsRadar sends GET /events/radar and returns an EventsRadarResponse.
+// Uses radarTimeout (not lightTimeout) because the endpoint fans out to slow
+// external APIs (FRED, Polymarket) and the cold path needs more than 10s.
+// Retry count is 0: the endpoint is read-only and idempotent, but a real
+// timeout here almost always means upstream is slow, so a retry doubles the
+// user wait without changing the outcome. If it matters, richson's scheduler
+// warmup keeps the cache hot.
 func (c *Client) GetEventsRadar(ctx context.Context) (*EventsRadarResponse, error) {
-	raw, err := c.doRequest(ctx, http.MethodGet, "/events/radar", nil, lightTimeout, 1)
+	raw, err := c.doRequest(ctx, http.MethodGet, "/events/radar", nil, radarTimeout, 0)
 	if err != nil {
 		return nil, err
 	}

@@ -230,3 +230,171 @@ print('disabled:', c._disabled)
 7. `fix(market): seed canonical asset catalog with Chinese names`（seed/asset_catalog.sql + migration 024 up/down）
 8. `fix(market): align signalLevel enum with richson canonical moderate_* labels`（types.ts × 2 + utils.ts × 2 + 4 个 i18n json）
 9. `docs(standards): extend contract-drift to cover enum values after third recurrence`（contract-drift.md + feedback_cross_layer_contract_drift.md）
+
+## 追加：事件雷达数据质量清洗（2026-04-15 夜）
+
+用户截图反馈事件雷达被「FOMC Press Release」连续 8 天占满，并混入 Polymarket 的 meme market（"Will 'Software' be said during the next episode of the All-In Podcast?"）。
+
+### 根因 H：FRED release_id=101 ≠ FOMC 会议
+
+`richson/src/richson/config/event_metadata.py:72` 把 `release_id=101` 映射为 `FOMC Press Release`，但 FRED `releases/dates` API 对该 id 几乎每个工作日都返回一条（实际是 H.15 Selected Interest Rates 的每日更新），真正的 FOMC 会议一年只有 8 次。代码把每条 `releases/dates` 记录都当成事件，导致假事件刷屏把真事件淹没。
+
+### 根因 I：Polymarket meme market 混入（用户决策：保留但显著标注来源）
+
+`polymarket.py:31-43` 的 `_GOLD_RELEVANT_TAGS` 用宽泛 substring 匹配 + 无 volume 下限。用户选择不在数据侧做额外过滤，而是通过 UI 让用户自己判断：把 `sourceName` 从 hover tooltip 升级为可见 Tag，FRED 蓝色 / Polymarket 紫色 / Federal Reserve 蓝色。
+
+### 修改清单
+
+| 文件 | 改动 |
+|---|---|
+| `richson/src/richson/config/event_metadata.py` | 新增 `FOMCMeeting` dataclass、`FOMC_MEETINGS` 硬编码列表（2026 年 8 次官方日程）、`FOMC_CALENDAR_URL` 常量；删除 `FRED_RELEASE_METADATA[101]` 并注释说明 H.15 的真实语义 |
+| `richson/src/richson/api/events.py` | import 新增 `FOMC_MEETINGS/FOMC_CALENDAR_URL`；在 FRED 事件追加逻辑后新增 FOMC 追加分支，`sourceName="Federal Reserve"`、`goldDirection="bullish"`、`impact="high"`；logger 新增 `fomc_count` 字段 |
+| `frontend/src/features/event-radar/event-radar-section.tsx` | 新增 `sourceTagColor` 计算（FRED/Federal Reserve=blue、Polymarket=purple、其他=default）；在 Space 里 impact Tag 前方渲染 source Tag；保留原 tooltip 逻辑作为补充 |
+
+### 验证
+
+- `cd frontend && pnpm lint:all` → 全绿（252 文件 / 277 模块 / 882 依赖）
+- `cd richson && uv run ruff check src/richson/config/event_metadata.py src/richson/api/events.py` → 全绿
+- `cd richson && uv run mypy src/richson/config/event_metadata.py src/richson/api/events.py` → 0 errors
+- 运行时 smoke test：`uv run python -c "from richson.config.event_metadata import ...; print(FRED_RELEASE_METADATA...)"`
+  - FRED whitelist size: 8（从 9 减到 8，确认 101 已删）
+  - `101 in FRED_RELEASE_METADATA` → False
+  - FOMC_MEETINGS 长度 8，日期均为 2026 FOMC 官方日程
+- 当前日期 2026-04-15、窗口 7 天到 2026-04-22，不包含任何 FOMC 会议（下一次 4/29），符合预期 —— 该窗口内事件雷达将不再显示任何「FOMC」字样
+
+### 沉淀
+
+- 新增 memory `feedback_external_api_semantic_validation.md`：引入外部 API 字段到业务语义映射前，必须用真实 payload 验证字段触发频次是否符合业务预期。本次 FRED release_id=101 就是因为只查了 `release` 的描述页（"FOMC Press Release"），没查 `releases/dates` 的实际 daily cadence
+
+### 追加 commit 建议
+
+10. `fix(events): replace flaky FRED release 101 with hand-maintained FOMC calendar`（event_metadata.py + events.py）
+11. `feat(events): surface data source as visible tag in event radar`（event-radar-section.tsx）
+12. `docs(memory): record external API semantic validation discipline`（new feedback memory + MEMORY.md index）
+
+## 追加：Polymarket URL 失效 + 关键词子串误配（2026-04-16）
+
+用户追加反馈 Polymarket 的「All-In Podcast / "Software"」条目点开 URL 404。逐层 curl + 实际调用 `PolymarketClient.get_gold_relevant_markets()` 发现两个彼此独立但同时作用的 bug。
+
+### 根因 J.1：`war` 作为 3 字母子串误配 `so**ftwar**e` 和 a**war**ds
+
+`richson/src/richson/datasources/polymarket.py:121-126` 用 `any(kw in combined for kw in _GOLD_RELEVANT_TAGS)` 做 substring 匹配。`_GOLD_RELEVANT_TAGS` 里的 `"war"` 被 `"software"` 里的 **war** 字符序列命中，所以「Will "Software" be said during the next episode of the All-In Podcast?」被判为 gold-relevant；同理 `"awards"` 里也包含 `war`，所以「Best New Series at the 2026 Crunchyroll Anime Awards」也被放行。
+
+复现（清 cache 后实际调用）：
+```
+gold_relevant count: 5
+  $1.10 software be said during the next episode of the all-in podcast
+  $1.06 will gold (gc) hit (HIGH) $12,000 by end of December (命中 "gold" - 正当)
+  $1.01 fed rate cut by October 2026 meeting (命中 "fed" - 正当)
+  $1.00 trump's fed chair nominee (命中 "fed" - 正当)
+  $0.35 crunchyroll anime awards (命中 "war" - 误配)
+```
+
+修复：把 `any(kw in combined ...)` 换成 `re.compile(r"\b(?:kw1|kw2|...)\b")` 的正则 word-boundary 匹配。同时保留 case-insensitive。
+
+### 根因 J.2：Polymarket URL 构造用了 market slug，但 Polymarket 需要 event slug
+
+`polymarket_event_url(slug)` 构造 `https://polymarket.com/event/<slug>`，但代码传入的是 **market slug**（`will-software-be-said-during-the-next-episode-of-the-all-in-podcast-341`），而 Polymarket 的 `/event/<slug>` 路径要求 **event slug**（`what-will-be-said-on-the-next-all-in-podcast-april-17`）。结果所有 Polymarket 条目的链接都 404 —— 不只是 meme market，就连合法的 "Fed rate cut" 等条目也点不开。
+
+实测：
+- `/event/<market_slug>` → 404
+- `/event/<event_slug>` → 200
+- `/market/<market_slug>` → 307 重定向
+
+修复：`get_gold_relevant_markets()` 从 Gamma response 的 `market["events"][0]["slug"]` 提取 event slug，存入 dict 的 `slug` 键；原 market slug 另存到 `market_slug` 键作为参考。events.py 不变即自动取到 event slug。
+
+### 修改清单
+
+| 文件 | 改动 |
+|---|---|
+| `richson/src/richson/datasources/polymarket.py` | 新增 `re` import；`_GOLD_RELEVANT_TAGS` 重命名为 `_GOLD_RELEVANT_KEYWORDS` 并加 `_GOLD_RELEVANT_PATTERN` 预编译正则（`\b(?:kw1\|kw2\|...)\b`）；`get_gold_relevant_markets` 改用 `_GOLD_RELEVANT_PATTERN.search(combined)`；`outcomePrices` 支持 str/list 两种 shape（Gamma 返回的是 JSON 字符串）；提取 `events[0].slug` 作为 event slug 存入 `slug` 键；原 market slug 存入 `market_slug` 键 |
+
+### 验证
+
+- `cd richson && uv run ruff check src/richson/datasources/polymarket.py` → 全绿
+- `cd richson && uv run mypy src/richson/datasources/polymarket.py` → 9 条 pre-existing 错误（已通过 `git stash` 对比基线确认均非本次引入）
+- 运行时实测（清 cache 后）：
+  - gold_relevant count 从 5 降到 3；software/awards 两条被正确过滤
+  - 剩余 3 条的 event_slug 与 market_slug 不同，证明提取逻辑生效
+  - `curl -I` 三条 event slug URL 全部返回 200
+- 端到端模拟（清 cache + 调完整 events radar 生成逻辑）：当前 7 天窗口最终输出 2 条 FRED 事件（US Industrial Production 4/16、US Retail Sales 4/21），Polymarket 剩余 3 条的 end_date 均在窗口外（12 月/10 月远期），符合预期；用户截图里「software/podcast」的 meme 条目彻底消失
+
+### 沉淀
+
+本次发现两类「外部 API 数据处理低级 bug」，都写入 memory 作触发条件提醒：
+
+- 在 `feedback_external_api_semantic_validation.md` 追加一节「短 token 子串误配」：任何 `kw in text` 形式的关键词过滤在引入 3 字母或更短的词（`war`/`fed`/`cpi`）时，必须换成 `\b` word-boundary 正则；否则极易被无关长词的字符序列误配
+- 在 `feedback_external_api_semantic_validation.md` 追加一节「路径标识符不等于业务标识符」：URL 路径参数（`<slug>` / `<id>` / `<key>`）的来源字段必须用真实 HTTP 请求验证 200，不能仅凭字段名「slug」就假设等同于路径片段。Polymarket 的 market.slug 与 event.slug 是两个独立标识符，用错一个就全部 404
+
+### 追加 commit 建议
+
+13. `fix(events): use event slug for polymarket url and word-boundary keyword match`（polymarket.py）
+14. `docs(memory): extend external-api-validation with substring/path-id pitfalls`（feedback_external_api_semantic_validation.md）
+
+## 追加修复：事件雷达加载慢（2026-04-15 再补）
+
+### 问题
+
+用户反馈「事件雷达的信息加载速度太慢了」。
+
+### Phase 1 根因（实测证据）
+
+直接 curl 三层链路拿到的真实延迟：
+
+| 层 | 冷路径 | 热路径 |
+|---|---|---|
+| FRED `/fred/releases/dates`（直连） | 16.2s | ~1s |
+| Polymarket Gamma `/markets`（直连） | 3.7s | <1s |
+| richson `/events/radar` | = max(fred, poly) | 5-7ms |
+| backend `/api/v2/events/radar` | +richson | 5-7ms |
+
+问题出在「冷缓存 + 冷上游」叠加时的超时矩阵：
+
+- richson httpx FRED 超时 `10s`，实际冷路径 `16s` → 每次超时都失败 → `max_retries=2` 共等 30s 返回空 `[]`
+- backend `lightTimeout=10s` 同样小于冷路径 → 10s 超时 + 2s delay + 10s 重试 = 22s 返回 503
+- 前端 `retry=2` 把单次慢请求放大成 3 次 → 最长 ~60s 用户体验
+- 无任何预热任务：`fred:upcoming_releases:7` 的 1h TTL 过期后，第一个用户必定踩完整冷路径
+
+### 修复（「预热 + 超时对齐」方案）
+
+| 文件 | 改动 |
+|---|---|
+| `richson/src/richson/tasks/scheduler.py` | 新增 `_EVENT_RADAR_WARMUP_INTERVAL = 600`（10 分钟）和 `warmup_event_radar` 协程；在 `start_scheduler` 里把它注册为第三个后台任务。并发调用 `get_upcoming_releases(7)` 和 `get_gold_relevant_markets`，把两个缓存键写热 |
+| `richson/src/richson/datasources/fred.py` | `FREDClient` 构造器 `timeout=10→18`、`max_retries=2→1`。18s 覆盖实测 16s 冷上游，再给 backend 20s 留 2s 余量；retries 从 2 降到 1，因为慢上游重试是无效等待 |
+| `backend/internal/richson/client.go` | 新增 `radarTimeout = 20 * time.Second` 常量；`GetEventsRadar` 从 `lightTimeout` 切到 `radarTimeout`，重试次数从 1 降到 0（幂等但慢上游重试无意义） |
+| `frontend/src/features/event-radar/use-event-radar.ts` | `retry: 2→0`（后端 20s 已够 + 有预热，前端再重试只会叠加延迟）；新增 `placeholderData: keepPreviousData`（15min 后台 refetch 时保留上一帧，避免闪烁 spinner） |
+
+### 超时预算对齐图
+
+```
+frontend (retry=0)
+    └─ backend radarTimeout=20s
+        └─ richson gather(
+             FRED httpx 18s,   ← 1s 余量，覆盖观测的 16s 冷路径
+             Polymarket httpx 10s
+           )
+```
+
+每一层都严格大于下一层，任何一层的超时都能观察到真实响应而不是「自己先挂掉」。
+
+### 验证
+
+- `gofmt -w` + `go build ./... + go vet ./...` → 全绿（项目无 golangci-lint 二进制，用 build+vet 代替）
+- `pnpm lint:all`（frontend）→ 全绿（Biome + tsc + depcruise 0 error）
+- `uv run ruff check`（richson scheduler.py / fred.py）→ All checks passed
+- `uv run mypy`（richson scheduler.py / fred.py）→ 4 条 pre-existing 错误，通过 `git stash` 对比基线确认均非本次引入
+- 端到端：backend + richson 命中热缓存时 5-7ms；改动不影响现存响应结构
+
+### 沉淀
+
+这类「外部 API 聚合 endpoint 超时叠加 + 无预热」的坑以前多次踩过（rate_cut / geo_risk / market/regime 等多个端点都有类似结构），写 memory 作为下次设计这类接口前的触发提醒：
+
+- 新增 `feedback_external_aggregator_latency_budget.md`：外部 API 聚合 endpoint 上线前必须做「实测延迟 → 超时预算分层对齐 → 预热 TTL 缓存 → 前端不加重试」四件事
+- 更新 `MEMORY.md` 索引加入该条目
+
+### 追加 commit 建议
+
+15. `perf(richson): warm /events/radar caches every 10min and raise fred timeout to 18s`（scheduler.py + fred.py）
+16. `perf(backend): give /events/radar its own 20s timeout with no retry`（client.go）
+17. `perf(frontend): stop retrying event radar and keep previous data on refetch`（use-event-radar.ts）
+18. `docs(memory): record external-api aggregator latency budget discipline`（memory feedback + MEMORY.md）

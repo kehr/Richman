@@ -71,7 +71,12 @@ class FREDClient:
         max_retries: number of retries on transient errors.
     """
 
-    def __init__(self, api_key: str = "", timeout: int = 10, max_retries: int = 2) -> None:
+    # timeout=18 covers the observed ~16s cold path of
+    # /fred/releases/dates while leaving 2s headroom inside the backend
+    # 20s radar request budget. max_retries=1 so a single connection
+    # blip still recovers, but a slow-server timeout does not double the
+    # wall time and blow the budget.
+    def __init__(self, api_key: str = "", timeout: int = 18, max_retries: int = 1) -> None:
         self._api_key = api_key
         self._timeout = timeout
         self._max_retries = max_retries

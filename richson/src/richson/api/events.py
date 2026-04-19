@@ -15,6 +15,8 @@ from fastapi import APIRouter, Depends
 from richson.api.auth import require_api_key
 from richson.config import settings
 from richson.config.event_metadata import (
+    FOMC_CALENDAR_URL,
+    FOMC_MEETINGS,
     FRED_RELEASE_METADATA,
     fred_release_url,
     polymarket_event_url,
@@ -88,6 +90,29 @@ async def get_event_radar() -> dict[str, Any]:
             "releaseId": release.release_id,
         })
 
+    # Append FOMC meetings from the hand-maintained calendar. FRED's
+    # releases/dates API cannot be used here: its FOMC-related release_ids
+    # fire every business day (associated daily series updates), not on
+    # actual meeting days. See event_metadata.FOMC_MEETINGS for source.
+    today_date = today.date()
+    horizon_date = horizon.date()
+    for meeting in FOMC_MEETINGS:
+        if meeting.date < today_date or meeting.date > horizon_date:
+            continue
+        events.append({
+            "date": meeting.date.isoformat(),
+            "title": meeting.en_title,
+            "category": "monetary_policy",
+            "impact": "high",
+            "goldDirection": "bullish",
+            "probability": None,
+            "probabilitySource": None,
+            "probabilityChange24h": None,
+            "sourceUrl": FOMC_CALENDAR_URL,
+            "sourceName": "Federal Reserve",
+            "releaseId": None,
+        })
+
     # Build Polymarket entries: highest-volume markets within the horizon.
     # polymarket.py:143 stores `market.get("endDate")` under key `"end_date"`.
     # The previous events.py used `"end_date_iso"` which never existed
@@ -123,10 +148,12 @@ async def get_event_radar() -> dict[str, Any]:
     events.sort(key=lambda e: e["date"])
 
     fred_count = sum(1 for e in events if e["sourceName"] == "FRED")
+    fomc_count = sum(1 for e in events if e["sourceName"] == "Federal Reserve")
     polymarket_count = sum(1 for e in events if e["sourceName"] == "Polymarket")
     logger.info(
         "event radar built",
         fred_count=fred_count,
+        fomc_count=fomc_count,
         polymarket_count=polymarket_count,
         total=len(events),
     )
